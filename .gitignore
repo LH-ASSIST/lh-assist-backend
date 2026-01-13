@@ -1,0 +1,62 @@
+### Java & Spring Boot ###
+*.class
+*.log
+*.ctxt
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+/build/
+/out/
+.gradle/
+.metadata/
+bin/
+tmp/
+
+### IntelliJ IDEA ###
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+/classes/
+
+### VS Code ###
+.vscode/
+.history/
+*.code-workspace
+
+### Python (FastAPI Module) ###
+__pycache__/
+*.py[cod]
+*$py.class
+.venv
+venv/
+ENV/
+.pytest_cache/
+.python-version
+
+### OS Specific ###
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+### Security & Environment (CRITICAL) ###
+
+.env
+.env.local
+.env.*.local
+application-secrets.yml
+application-secrets.properties
+aws-credentials
+secrets.json
+
+### Frontend (If integrated) ###
+node_modules/
+/dist/
+.npm
+.eslintcache
