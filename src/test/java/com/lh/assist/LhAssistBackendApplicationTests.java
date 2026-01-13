@@ -7,6 +7,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest
 @Testcontainers
@@ -14,7 +15,10 @@ class LhAssistBackendApplicationTests {
 
 	@Container
 	static final PostgreSQLContainer<?> POSTGRES =
-		new PostgreSQLContainer<>("ankane/pgvector:latest")
+		new PostgreSQLContainer<>(
+			DockerImageName.parse("ankane/pgvector:latest")
+				.asCompatibleSubstituteFor("postgres")
+		)
 			.withDatabaseName("lh_assist_db")
 			.withUsername("postgres")
 			.withPassword("postgres");
