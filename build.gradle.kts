@@ -31,6 +31,11 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
+	// 애플리케이션 상태 모니터링 및 관리용
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	// 지표 데이터를 프로메테우스 포맷으로 변환
+	implementation("io.micrometer:micrometer-registry-prometheus")
+	//swagger
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
