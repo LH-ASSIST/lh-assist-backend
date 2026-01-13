@@ -22,7 +22,7 @@ LH 공공주택본부의 사업 리스크를 사전에 탐지하고 규정 준�
 ### 🔹 Infrastructure
 
 * **Frontend**: React (Static Web Hosting via CloudFront)
-* **Backend**: Spring Boot 3.4.1 (Java 21/25), Spring Batch, Redis
+* **Backend**: Spring Boot 3.5.9 (Java 21), Spring Batch, Redis
 * **AI Engine**: FastAPI, Langchain, Langgraph, Python
 * **Storage**: AWS S3 (Original Docs, Results), PostgreSQL (Metadata, pgvector)
 * **Messaging**: Amazon SQS (Async Processing)
@@ -108,3 +108,18 @@ cp src/main/resources/application-sample.yml src/main/resources/application-secr
 java -jar build/libs/lh-assist-backend-0.0.1-SNAPSHOT.jar
 
 ```
+---
+
+## Local vs. Cloud Architecture
+
+본 프로젝트는 개발 편의성을 위한 로컬 환경(Docker Compose)과 고가용성/확장성을 고려한 운영 환경(AWS)을 분리하여 관리합니다. 애플리케이션의 핵심 로직(Dockerfile)은 동일하게 유지되나, 이를 둘러싼 인프라 구성은 환경에 최적화된 방식으로 전환됩니다.
+
+### 🔹 환경별 구성 비교 (Infrastructure Mapping)
+
+| 구성 요소 | 로컬 개발 환경 (Local) | 실제 운영 환경 (Production) | 핵심 변경 포인트 |
+| --- | --- | --- | --- |
+| **백엔드 로직** | `backend` 서비스 컨테이너 | **AWS ECS/EC2 (Auto-scaling)** | 트래픽에 따른 자동 확장 및 고가용성 확보 |
+| **데이터베이스** | `db` (Postgres + pgvector) | **AWS RDS for PostgreSQL** | 데이터 백업, Multi-AZ 복제, 보안 관리 자동화 |
+| **메시지 큐** | Docker 기반 Mock SQS | **Amazon SQS** | 완전 관리형 메시징 서비스를 통한 데이터 유실 방지 |
+| **모니터링** | `prometheus / grafana` 컨테이너 | **AWS Managed Prometheus / Grafana** | 모니터링 시스템 자체의 안정성 분리 및 가용성 확보 |
+| **저장소** | 로컬 볼륨 (postgres_data) | **Amazon S3 / RDS Storage** | 휘발성 컨테이너와 분리된 영구적·안정적 데이터 저장 |
