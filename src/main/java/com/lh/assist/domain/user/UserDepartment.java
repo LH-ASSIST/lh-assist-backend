@@ -1,6 +1,20 @@
 package com.lh.assist.domain.user;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
 public enum UserDepartment {
-	//임시 각 부서를 여기 저장해야함
-	GENERAL
+	PUBLIC_HOUSING_HEADQUARTERS("공공주택본부"),
+	HOUSING_INNOVATION_OFFICE("주거혁신처"),
+	DESIGN_VERIFICATION_OFFICE("설계검증처"),
+	PUBLIC_HOUSING_BUSINESS_OFFICE("공공주택사업처"),
+	PRIVATE_COOPERATION_OFFICE("민간협력사업처"),
+	PUBLIC_HOUSING_FACILITIES_OFFICE("공공주택설비처"),
+	PUBLIC_HOUSING_ELECTRICAL_OFFICE("공공주택전기처"),
+	RESIDENTIAL_ENVIRONMENT_PLANNING_GROUP("주거환경계획단"),
+	YOUTH_HOUSING_TASKFORCE("청년주택추진단(TFT)");
+
+	private final String description;
 }

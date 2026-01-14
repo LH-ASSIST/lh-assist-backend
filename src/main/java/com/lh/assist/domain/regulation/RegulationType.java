@@ -1,7 +1,14 @@
 package com.lh.assist.domain.regulation;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
 public enum RegulationType {
-	LAW,
-	ENFORCEMENT_DECREE,
-	ENFORCEMENT_RULE
+	LAW("법률"),
+	ENFORCEMENT_DECREE("시행령"),
+	ENFORCEMENT_RULE("시행규칙");
+
+	private final String description;
 }
