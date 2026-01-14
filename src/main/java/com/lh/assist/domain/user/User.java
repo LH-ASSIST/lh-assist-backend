@@ -42,6 +42,10 @@ public class User {
 	private UserRole role;
 
 	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private UserPosition position;
+
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 50)
 	private UserDepartment department;
 

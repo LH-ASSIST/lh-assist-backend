@@ -37,6 +37,8 @@ dependencies {
 	implementation("io.micrometer:micrometer-registry-prometheus")
 	//swagger
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+	// AWS S3 연동
+	implementation ("io.awspring.cloud:spring-cloud-starter-aws:2.4.4")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
 	annotationProcessor("org.projectlombok:lombok")
