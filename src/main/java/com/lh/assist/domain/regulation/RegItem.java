@@ -1,5 +1,6 @@
 package com.lh.assist.domain.regulation;
 
+import com.lh.assist.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -28,20 +29,20 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class RegItem {
+public class RegItem extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long itemId;
 
-	@Column(nullable = false, length = 50)
+	@Column(name = "clause_number", nullable = false, length = 50)
 	private String clauseNumber;
 
 	@Column(nullable = false, columnDefinition = "TEXT")
 	private String content;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 30)
+	@Column(name = "change_type", nullable = false, length = 30)
 	private RegChangeType changeType;
 
 	@Column(name = "is_mandatory", nullable = false)

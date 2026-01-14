@@ -1,5 +1,6 @@
 package com.lh.assist.domain.user;
 
+import com.lh.assist.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,8 +14,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import java.time.LocalDateTime;
 
 @Getter
 @Entity
@@ -22,7 +21,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class User {
+public class User extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,17 +48,13 @@ public class User {
 	@Column(nullable = false, length = 50)
 	private UserDepartment department;
 
-	@CreationTimestamp
-	@Column(nullable = false, updatable = false)
-	private LocalDateTime createdAt;
-
-	@Column(nullable = false)
+	@Column(name = "email_verified", nullable = false)
 	private boolean emailVerified;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private UserStatus status;
 
-	@Column(nullable = false)
+	@Column(name = "attempt_count", nullable = false)
 	private int attemptCount;
 }

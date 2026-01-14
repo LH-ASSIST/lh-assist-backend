@@ -1,5 +1,6 @@
 package com.lh.assist.domain.regulation;
 
+import com.lh.assist.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,7 +26,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Regulation {
+public class Regulation extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,25 +36,25 @@ public class Regulation {
 	private String title;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 30)
+	@Column(name = "reg_type", nullable = false, length = 30)
 	private RegulationType regType;
 
-	@Column(nullable = false)
+	@Column(name = "effective_date", nullable = false)
 	private LocalDate effectiveDate;
 
-	@Column
+	@Column(name = "expiry_date")
 	private LocalDate expiryDate;
 
 	@Column(name = "is_active", nullable = false)
 	private boolean active;
 
-	@Column(nullable = false)
+	@Column(name = "amendment_date", nullable = false)
 	private LocalDate amendmentDate;
 
 	@Column(nullable = false, length = 100)
 	private String version;
 
-	@Column(nullable = false, length = 500)
+	@Column(name = "source_url", nullable = false, length = 500)
 	private String sourceUrl;
 
 	@OneToMany(mappedBy = "regulation", fetch = FetchType.LAZY)

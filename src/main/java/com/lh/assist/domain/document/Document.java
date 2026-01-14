@@ -1,16 +1,16 @@
 package com.lh.assist.domain.document;
 
+import com.lh.assist.common.entity.BaseTimeEntity;
 import com.lh.assist.domain.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "documents")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Document {
+public class Document extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,9 +36,6 @@ public class Document {
     @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", columnDefinition = "approval_status_enum")
     private ApprovalStatus approvalStatus = ApprovalStatus.WAITING;
-
-    @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
