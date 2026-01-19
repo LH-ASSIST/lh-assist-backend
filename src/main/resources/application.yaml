@@ -29,6 +29,8 @@ spring:
         secret-key: ${AWS_SECRET_KEY}
       region:
         static: ap-northeast-2
+      s3:
+        bucket: ${AWS_S3_BUCKET}
       stack:
         auto: false
 
@@ -39,7 +41,7 @@ management:
         include: prometheus, health, info
   endpoint:
     prometheus:
-      enabled: true
+      access: unrestricted
     health:
       show-details: always
   metrics:
