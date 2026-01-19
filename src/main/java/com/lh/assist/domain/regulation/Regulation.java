@@ -60,4 +60,20 @@ public class Regulation extends BaseTimeEntity {
 	@OneToMany(mappedBy = "regulation", fetch = FetchType.LAZY)
 	@Builder.Default
 	private List<RegItem> items = new ArrayList<>();
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof Regulation that)) {
+			return false;
+		}
+		return regId != null && regId.equals(that.regId);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
+	}
 }

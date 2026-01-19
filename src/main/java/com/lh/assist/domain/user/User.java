@@ -57,4 +57,20 @@ public class User extends BaseTimeEntity {
 
 	@Column(name = "attempt_count", nullable = false)
 	private int attemptCount;
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof User that)) {
+			return false;
+		}
+		return userId != null && userId.equals(that.userId);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
+	}
 }

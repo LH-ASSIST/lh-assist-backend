@@ -63,4 +63,20 @@ public class RegItem extends BaseTimeEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "reg_id", nullable = false)
 	private Regulation regulation;
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof RegItem that)) {
+			return false;
+		}
+		return itemId != null && itemId.equals(that.itemId);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
+	}
 }
