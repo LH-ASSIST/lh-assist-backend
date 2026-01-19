@@ -24,7 +24,7 @@ public class Document extends BaseTimeEntity {
     private DocumentType docType;
 
     @Column(nullable = false, length = 500)
-    private String filePath;
+    private String s3Key;
 
     @Column(nullable = false)
     private LocalDate baseDate;
@@ -45,22 +45,41 @@ public class Document extends BaseTimeEntity {
     @JoinColumn(name = "approver_id")
     private User approver;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     @Builder
     public Document(
             String title,
             DocumentType docType,
-            String filePath,
+            String s3Key,
             LocalDate baseDate,
             User user
     ) {
         this.title = title;
         this.docType = docType;
-        this.filePath = filePath;
+        this.s3Key = s3Key;
         this.baseDate = baseDate;
         this.user = user;
     }
 
     public void assignApprover(User approver) {
+        if (this.approvalStatus != ApprovalStatus.WAITING) {
+            throw new IllegalStateException("승인 대기 상태에서만 승인자 지정 가능");
+        }
         this.approver = approver;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Document that)) return false;
+        return docId != null && docId.equals(that.docId);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }
