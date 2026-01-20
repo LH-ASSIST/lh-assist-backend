@@ -1,2 +1,2 @@
 org.springframework.boot.env.EnvironmentPostProcessor=\
-com.lh.assist.config.DotenvEnvironmentPostProcessor
+com.lh.assist.common.config.DotenvEnvironmentPostProcessor

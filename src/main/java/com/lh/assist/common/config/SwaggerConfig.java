@@ -1,6 +1,9 @@
 package com.lh.assist.common.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.info.Info;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +18,14 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("LH편 AI 컴플라이언스 시스템 API")
                         .description("공공주택 사업 리스크 사전 예방 및 규정 준수 검증 API")
-                        .version("v1.0.0"));
+                        .version("v1.0.0"))
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }
 
     // 인증 및 마이페이지
@@ -32,7 +42,7 @@ public class SwaggerConfig {
     public GroupedOpenApi analysisGroup() {
         return GroupedOpenApi.builder()
                 .group("리스크 분석 (Risk Analysis)")
-                .pathsToMatch("/api/v1/document/**", "/api/v1/analysis/**")
+                .pathsToMatch("/api/v1/documents/**", "/api/v1/analysis/**")
                 .build();
     }
 

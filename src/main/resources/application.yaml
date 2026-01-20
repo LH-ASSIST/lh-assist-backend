@@ -10,12 +10,15 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
 
   data:
     redis:
@@ -28,7 +31,7 @@ spring:
         access-key: ${AWS_ACCESS_KEY}
         secret-key: ${AWS_SECRET_KEY}
       region:
-        static: ap-northeast-2
+        static: us-east-1
       s3:
         bucket: ${AWS_S3_BUCKET}
       stack:
@@ -59,3 +62,7 @@ springdoc:
     display-request-duration: true
   default-produces-media-type: application/json
   default-consumes-media-type: application/json
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 3600000

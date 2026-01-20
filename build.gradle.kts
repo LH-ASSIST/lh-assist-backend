@@ -32,6 +32,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
+	implementation("org.flywaydb:flyway-core")
 	// 애플리케이션 상태 모니터링 및 관리용
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	// 지표 데이터를 프로메테우스 포맷으로 변환
@@ -41,8 +42,12 @@ dependencies {
 	// AWS S3 연동
 	implementation ("io.awspring.cloud:spring-cloud-starter-aws:2.4.4")
 	implementation("io.github.cdimascio:dotenv-java:3.0.0")
+	implementation("io.jsonwebtoken:jjwt-api:0.12.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
+	runtimeOnly("org.flywaydb:flyway-database-postgresql")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")

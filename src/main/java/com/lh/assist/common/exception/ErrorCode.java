@@ -6,10 +6,16 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "C001", "입력값이 올바르지 않습니다."),
+    FILE_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "C003", "파일 크기가 허용 한도를 초과했습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C002", "서버 내부 오류가 발생했습니다."),
 
     AI_ANALYSIS_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "A001", "AI 분석 서버와 통신에 실패했습니다."),
     DOCUMENT_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "A002", "지원하지 않는 문서 형식입니다."),
+    S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I001", "S3 업로드에 실패했습니다."),
+    S3_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I002", "S3 삭제에 실패했습니다."),
+
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "U001", "이미 사용 중인 이메일입니다."),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "U002", "이메일 또는 비밀번호가 올바르지 않습니다."),
 
     REGULATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 기준일의 유효한 규정을 찾을 수 없습니다."),
 
