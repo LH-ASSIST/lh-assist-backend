@@ -14,7 +14,7 @@ import com.lh.assist.document.infrastructure.aws.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -28,8 +28,8 @@ public class DocumentService {
 	private final AuditLogRepository auditLogRepository;
 	private final UserRepository userRepository;
 	private final S3Service s3Service;
-	private final TransactionTemplate transactionTemplate;
 
+	@Transactional
 	public Document uploadDocument(
 			Long userId,
 			DocumentType documentType,
@@ -52,34 +52,26 @@ public class DocumentService {
 		LocalDate resolvedBaseDate = resolveBaseDate(baseDate);
 
 		try {
-			Document savedDocument = transactionTemplate.execute(status -> {
-				Document document = Document.builder()
-						.title(resolvedTitle)
-						.docType(resolvedType)
-						.s3Key(s3Key)
-						.baseDate(resolvedBaseDate)
-						.user(user)
-						.build();
+			Document document = Document.builder()
+					.title(resolvedTitle)
+					.docType(resolvedType)
+					.s3Key(s3Key)
+					.baseDate(resolvedBaseDate)
+					.user(user)
+					.build();
 
-				Document saved = documentRepository.save(document);
+			Document saved = documentRepository.save(document);
 
-				AuditLog auditLog = AuditLog.builder()
-						.actionType("DOCUMENT_UPLOAD")
-						.targetType("DOCUMENT")
-						.targetId(saved.getDocId())
-						.s3Key(s3Key)
-						.actor(user)
-						.build();
-				auditLogRepository.save(auditLog);
+			AuditLog auditLog = AuditLog.builder()
+					.actionType("DOCUMENT_UPLOAD")
+					.targetType("DOCUMENT")
+					.targetId(saved.getDocId())
+					.s3Key(s3Key)
+					.actor(user)
+					.build();
+			auditLogRepository.save(auditLog);
 
-				return saved;
-			});
-
-			if (savedDocument == null) {
-				throw new SystemException(ErrorCode.INTERNAL_SERVER_ERROR);
-			}
-
-			return savedDocument;
+			return saved;
 		} catch (RuntimeException ex) {
 			log.warn(
 					"DB 저장 실패로 S3 보상 삭제를 시도합니다. s3Key={}, userId={}, reason={}",
