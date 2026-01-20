@@ -20,7 +20,7 @@ public class Document extends BaseTimeEntity {
     private String title;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "doc_type", columnDefinition = "doc_type_enum")
+    @Column(name = "doc_type")
     private DocumentType docType;
 
     @Column(nullable = false, length = 500)
@@ -30,15 +30,15 @@ public class Document extends BaseTimeEntity {
     private LocalDate baseDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "analysis_status", columnDefinition = "analysis_status_enum")
+    @Column(name = "analysis_status")
     private AnalysisStatus analysisStatus = AnalysisStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "approval_status", columnDefinition = "approval_status_enum")
+    @Column(name = "approval_status")
     private ApprovalStatus approvalStatus = ApprovalStatus.WAITING;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "metadata_status", columnDefinition = "metadata_status_enum")
+    @Column(name = "metadata_status")
     private MetadataStatus metadataStatus = MetadataStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
