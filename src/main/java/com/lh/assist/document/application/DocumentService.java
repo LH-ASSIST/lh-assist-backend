@@ -32,7 +32,6 @@ public class DocumentService {
 
 	public Document uploadDocument(
 			Long userId,
-			String title,
 			DocumentType documentType,
 			LocalDate baseDate,
 			MultipartFile file
@@ -48,7 +47,7 @@ public class DocumentService {
 
 		String keyPrefix = "documents/" + userId;
 		String s3Key = s3Service.uploadFile(file, keyPrefix);
-		String resolvedTitle = resolveTitle(title, file);
+		String resolvedTitle = resolveTitle(file);
 		DocumentType resolvedType = resolveDocumentType(documentType);
 		LocalDate resolvedBaseDate = resolveBaseDate(baseDate);
 
@@ -111,7 +110,6 @@ public class DocumentService {
 
 	public Document uploadDocumentByEmail(
 			String email,
-			String title,
 			DocumentType documentType,
 			LocalDate baseDate,
 			MultipartFile file
@@ -123,7 +121,7 @@ public class DocumentService {
 		User user = userRepository.findByEmail(email)
 				.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
 
-		return uploadDocument(user.getUserId(), title, documentType, baseDate, file);
+		return uploadDocument(user.getUserId(), documentType, baseDate, file);
 	}
 
 	private void validateFile(MultipartFile file) {
@@ -138,10 +136,7 @@ public class DocumentService {
 		}
 	}
 
-	private String resolveTitle(String title, MultipartFile file) {
-		if (title != null && !title.isBlank()) {
-			return title.trim();
-		}
+	private String resolveTitle(MultipartFile file) {
 		String originalFilename = file.getOriginalFilename();
 		if (originalFilename == null || originalFilename.isBlank()) {
 			return "업로드 문서";

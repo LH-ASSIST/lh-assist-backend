@@ -35,15 +35,12 @@ public class DocumentController {
 	public ResponseEntity<ApiResponse<DocumentResponse>> uploadDocument(
 			Authentication authentication,
 			@RequestParam("file") MultipartFile file,
-			@HiddenParamDocs
-			@RequestParam(value = "title", required = false) String title,
-			@HiddenParamDocs
-			@RequestParam(value = "docType", required = false) DocumentType docType,
+			@RequestParam("docType") DocumentType docType,
 			@HiddenParamDocs
 			@RequestParam(value = "baseDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate baseDate
 	) {
 		String email = authentication != null ? authentication.getName() : null;
-		Document document = documentService.uploadDocumentByEmail(email, title, docType, baseDate, file);
+		Document document = documentService.uploadDocumentByEmail(email, docType, baseDate, file);
 		DocumentResponse response = DocumentMapper.toResponse(document);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
 	}
