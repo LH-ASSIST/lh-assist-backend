@@ -1,0 +1,21 @@
+AWS_ACCESS_KEY: test-access-key
+AWS_SECRET_KEY: test-secret-key
+AWS_S3_BUCKET: test-bucket
+JWT_SECRET: test-jwt-secret
+
+spring:
+  cloud:
+    aws:
+      credentials:
+        access-key: test-access-key
+        secret-key: test-secret-key
+      region:
+        static: us-east-1
+      s3:
+        bucket: test-bucket
+      stack:
+        auto: false
+
+jwt:
+  secret: test-jwt-secret-test-jwt-secret-test-jwt-secret
+  access-token-expiration: 3600000

@@ -28,7 +28,9 @@ spring:
         access-key: ${AWS_ACCESS_KEY}
         secret-key: ${AWS_SECRET_KEY}
       region:
-        static: ap-northeast-2
+        static: us-east-1
+      s3:
+        bucket: ${AWS_S3_BUCKET}
       stack:
         auto: false
 
@@ -39,7 +41,7 @@ management:
         include: prometheus, health, info
   endpoint:
     prometheus:
-      enabled: true
+      access: unrestricted
     health:
       show-details: always
   metrics:
@@ -57,3 +59,7 @@ springdoc:
     display-request-duration: true
   default-produces-media-type: application/json
   default-consumes-media-type: application/json
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 3600000

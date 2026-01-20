@@ -2,6 +2,7 @@ plugins {
 	java
 	id("org.springframework.boot") version "3.5.9"
 	id("io.spring.dependency-management") version "1.1.7"
+//	jacoco
 }
 
 group = "com.lh.assist"
@@ -39,6 +40,10 @@ dependencies {
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 	// AWS S3 연동
 	implementation ("io.awspring.cloud:spring-cloud-starter-aws:2.4.4")
+	implementation("io.github.cdimascio:dotenv-java:3.0.0")
+	implementation("io.jsonwebtoken:jjwt-api:0.12.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
 	annotationProcessor("org.projectlombok:lombok")
@@ -55,3 +60,15 @@ dependencies {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
+
+//jacoco {
+//	toolVersion = "0.8.12"
+//}
+//
+//tasks.jacocoTestReport {
+//	dependsOn(tasks.test)
+//	reports {
+//		xml.required.set(true)
+//		html.required.set(true)
+//	}
+//}

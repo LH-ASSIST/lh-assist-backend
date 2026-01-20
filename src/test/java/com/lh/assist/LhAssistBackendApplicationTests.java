@@ -21,7 +21,8 @@ class LhAssistBackendApplicationTests {
 		)
 			.withDatabaseName("lh_assist_db")
 			.withUsername("postgres")
-			.withPassword("postgres");
+			.withPassword("postgres")
+			.withInitScript("db/init-test.sql");
 
 	@DynamicPropertySource
 	static void registerDataSourceProperties(DynamicPropertyRegistry registry) {
