@@ -32,7 +32,11 @@ public class AnalysisService {
 	private final SqsMessageProducer sqsMessageProducer;
 
 	@Transactional
-	public AnalysisRequestResponse requestAnalysisByEmail(Long docId, String email, LocalDate baseDate) {
+	public AnalysisRequestResponse requestAnalysisByEmail(
+			Long docId,
+			String email,
+			LocalDate baseDate
+	) {
 		User user = getUserByEmail(email);
 		Document document = getDocumentById(docId);
 		if (!document.getUser().equals(user)) {
@@ -71,7 +75,10 @@ public class AnalysisService {
 		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 			@Override
 			public void afterCommit() {
-				sqsMessageProducer.sendAnalysisRequested(analysisJob.getJobId(), user.getUserId());
+				sqsMessageProducer.sendAnalysisRequested(
+						analysisJob.getJobId(),
+						user.getUserId()
+				);
 			}
 		});
 

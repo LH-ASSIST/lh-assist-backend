@@ -35,7 +35,10 @@ public class SqsMessageProducer {
 	@Value("${app.sqs.retry-delay-ms:200}")
 	private long retryDelayMs;
 
-	public void sendAnalysisRequested(Long jobId, Long userId) {
+	public void sendAnalysisRequested(
+			Long jobId,
+			Long userId
+	) {
 		String payload = toJson(jobId);
 		int attempt = 0;
 		while (true) {
@@ -63,7 +66,11 @@ public class SqsMessageProducer {
 		}
 	}
 
-	private void writeAuditLog(Long jobId, Long userId, String reason) {
+	private void writeAuditLog(
+			Long jobId,
+			Long userId,
+			String reason
+	) {
 		User actor = userRepository.getReferenceById(userId);
 		AuditLog auditLog = AuditLog.builder()
 				.actionType("ANALYSIS_SQS_SEND_FAILED")

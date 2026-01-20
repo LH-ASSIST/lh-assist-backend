@@ -23,7 +23,10 @@ public class S3Service {
 	@Value("${spring.cloud.aws.s3.bucket}")
 	private String bucket;
 
-	public String uploadFile(MultipartFile file, String keyPrefix) {
+	public String uploadFile(
+			MultipartFile file,
+			String keyPrefix
+	) {
 		if (file == null || file.isEmpty()) {
 			throw new DocumentException(ErrorCode.INVALID_INPUT_VALUE);
 		}
@@ -34,7 +37,12 @@ public class S3Service {
 		metadata.setContentType(file.getContentType());
 
 		try (InputStream inputStream = file.getInputStream()) {
-			amazonS3.putObject(bucket, key, inputStream, metadata);
+			amazonS3.putObject(
+					bucket,
+					key,
+					inputStream,
+					metadata
+			);
 			return key;
 		} catch (IOException | RuntimeException ex) {
 			throw new SystemException(ErrorCode.S3_UPLOAD_FAILED, ex);
@@ -53,7 +61,10 @@ public class S3Service {
 		}
 	}
 
-	private String buildKey(String keyPrefix, String originalFilename) {
+	private String buildKey(
+			String keyPrefix,
+			String originalFilename
+	) {
 		String safePrefix = (keyPrefix == null || keyPrefix.isBlank()) ? "" : keyPrefix.trim();
 		String filename = (originalFilename == null || originalFilename.isBlank())
 				? "file"
