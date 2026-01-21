@@ -41,12 +41,27 @@ public class RegItem extends BaseTimeEntity {
 	@Column(nullable = false, columnDefinition = "TEXT")
 	private String content;
 
+	@Column(name = "chunk_index")
+	private Integer chunkIndex;
+
+	@Column(name = "page_number")
+	private Integer pageNumber;
+
+	@Column(name = "section_title", length = 200)
+	private String sectionTitle;
+
+	@Column(name = "content_hash", length = 64, nullable = false)
+	private String contentHash;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "change_type", nullable = false, length = 30)
 	private RegChangeType changeType;
 
 	@Column(name = "is_mandatory", nullable = false)
 	private boolean mandatory;
+
+	@Column(name = "embedding_model", length = 100)
+	private String embeddingModel;
 
 	@Convert(converter = VectorStringConverter.class)
 	@Column(name = "vector_index", columnDefinition = "vector")

@@ -12,13 +12,19 @@ import org.springframework.core.env.MapPropertySource;
 public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
 	@Override
-	public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+	public void postProcessEnvironment(
+			ConfigurableEnvironment environment,
+			SpringApplication application
+	) {
 		Dotenv dotenv = Dotenv.configure()
 				.ignoreIfMissing()
 				.load();
 
 		Map<String, Object> values = new HashMap<>();
-		dotenv.entries().forEach(entry -> values.put(entry.getKey(), entry.getValue()));
+		dotenv.entries().forEach(entry -> values.put(
+				entry.getKey(),
+				entry.getValue()
+		));
 
 		if (!values.isEmpty()) {
 			environment.getPropertySources().addLast(new MapPropertySource("dotenv", values));

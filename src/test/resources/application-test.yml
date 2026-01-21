@@ -15,6 +15,12 @@ spring:
         bucket: test-bucket
       stack:
         auto: false
+  jpa:
+    hibernate:
+      ddl-auto: create
+  datasource:
+    hikari:
+      max-lifetime: 30000
 
 jwt:
   secret: test-jwt-secret-test-jwt-secret-test-jwt-secret

@@ -18,6 +18,7 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "U002", "이메일 또는 비밀번호가 올바르지 않습니다."),
 
     REGULATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 기준일의 유효한 규정을 찾을 수 없습니다."),
+    DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "D001", "문서를 찾을 수 없습니다."),
 
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "S001", "권한이 없습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "S002", "인증 정보가 유효하지 않습니다.");
