@@ -1,6 +1,7 @@
 package com.lh.assist.common.security.jwt;
 
 import com.lh.assist.user.domain.User;
+import com.lh.assist.common.security.UserPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -35,6 +36,7 @@ public class JwtTokenProvider {
 
 		return Jwts.builder()
 				.subject(String.valueOf(user.getUserId()))
+				.claim("userId", user.getUserId())
 				.claim("email", user.getEmail())
 				.claim("role", user.getRole().name())
 				.issuedAt(now)
@@ -48,7 +50,13 @@ public class JwtTokenProvider {
 		String role = claims.get("role", String.class);
 		List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 		String email = claims.get("email", String.class);
-		return new UsernamePasswordAuthenticationToken(email, token, authorities);
+		Number userIdValue = claims.get("userId", Number.class);
+		Long userId = userIdValue != null ? userIdValue.longValue() : null;
+		if (userId == null && claims.getSubject() != null) {
+			userId = Long.parseLong(claims.getSubject());
+		}
+		UserPrincipal principal = new UserPrincipal(userId, email, role);
+		return new UsernamePasswordAuthenticationToken(principal, token, authorities);
 	}
 
 	public boolean validateToken(String token) {
