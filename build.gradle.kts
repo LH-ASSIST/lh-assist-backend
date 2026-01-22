@@ -26,9 +26,11 @@ repositories {
 }
 
 dependencies {
+	testImplementation(platform("org.testcontainers:testcontainers-bom:1.19.8"))
 	implementation("org.springframework.boot:spring-boot-starter-batch")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -55,6 +57,7 @@ dependencies {
 	//test container
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.testcontainers:postgresql")
+	testImplementation("org.testcontainers:testcontainers")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
