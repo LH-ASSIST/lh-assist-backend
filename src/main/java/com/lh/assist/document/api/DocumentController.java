@@ -1,15 +1,15 @@
 package com.lh.assist.document.api;
 
 import com.lh.assist.document.api.docs.*;
-import com.lh.assist.document.api.dto.DocumentResponse;
+import com.lh.assist.document.api.dto.response.DocumentResponse;
 import com.lh.assist.document.api.mapper.DocumentMapper;
-import com.lh.assist.analysis.api.dto.AnalysisRequestResponse;
+import com.lh.assist.analysis.api.dto.response.AnalysisRequestResponse;
 import com.lh.assist.analysis.application.AnalysisService;
 import com.lh.assist.document.application.DocumentService;
 import com.lh.assist.common.model.ApiResponse;
 import com.lh.assist.common.security.UserPrincipal;
-import com.lh.assist.document.domain.Document;
-import com.lh.assist.document.domain.DocumentType;
+import com.lh.assist.regulation.domain.enums.domain.entity.Document;
+import com.lh.assist.regulation.domain.enums.domain.enums.DocumentType;
 import java.util.List;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;

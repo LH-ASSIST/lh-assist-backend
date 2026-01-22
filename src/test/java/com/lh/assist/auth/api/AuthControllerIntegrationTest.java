@@ -8,7 +8,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lh.assist.support.IntegrationTestBase;
 import java.util.Map;
 
-import com.lh.assist.user.domain.*;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.enums.UserDepartment;
+import com.lh.assist.user.domain.enums.UserPosition;
+import com.lh.assist.user.domain.enums.UserRole;
+import com.lh.assist.user.domain.enums.UserStatus;
+import com.lh.assist.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

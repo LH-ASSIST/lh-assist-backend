@@ -5,14 +5,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
-import com.lh.assist.document.domain.Document;
-import com.lh.assist.document.domain.DocumentRepository;
-import com.lh.assist.document.domain.DocumentType;
+import com.lh.assist.regulation.domain.enums.domain.entity.Document;
+import com.lh.assist.regulation.domain.enums.domain.repository.DocumentRepository;
+import com.lh.assist.regulation.domain.enums.domain.enums.DocumentType;
 import com.lh.assist.support.IntegrationTestBase;
 import com.lh.assist.support.TestDataFactory;
-import com.lh.assist.user.domain.User;
-import com.lh.assist.user.domain.UserRepository;
-import com.lh.assist.user.domain.UserRole;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.repository.UserRepository;
+import com.lh.assist.user.domain.enums.UserRole;
 import java.time.LocalDate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;

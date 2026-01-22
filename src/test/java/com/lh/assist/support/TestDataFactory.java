@@ -1,12 +1,12 @@
 package com.lh.assist.support;
 
-import com.lh.assist.suggestion.domain.Suggestion;
-import com.lh.assist.suggestion.domain.SuggestionCategory;
-import com.lh.assist.user.domain.User;
-import com.lh.assist.user.domain.UserDepartment;
-import com.lh.assist.user.domain.UserPosition;
-import com.lh.assist.user.domain.UserRole;
-import com.lh.assist.user.domain.UserStatus;
+import com.lh.assist.suggestion.domain.entity.Suggestion;
+import com.lh.assist.suggestion.domain.enums.SuggestionCategory;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.enums.UserDepartment;
+import com.lh.assist.user.domain.enums.UserPosition;
+import com.lh.assist.user.domain.enums.UserRole;
+import com.lh.assist.user.domain.enums.UserStatus;
 
 public final class TestDataFactory {
 

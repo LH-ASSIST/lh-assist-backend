@@ -1,10 +1,10 @@
 package com.lh.assist.suggestion.api.mapper;
 
 import com.lh.assist.common.security.UserPrincipal;
-import com.lh.assist.suggestion.api.dto.SuggestionListResponse;
-import com.lh.assist.suggestion.api.dto.SuggestionResponse;
-import com.lh.assist.suggestion.domain.Suggestion;
-import com.lh.assist.user.domain.User;
+import com.lh.assist.suggestion.api.dto.response.SuggestionListResponse;
+import com.lh.assist.suggestion.api.dto.response.SuggestionResponse;
+import com.lh.assist.suggestion.domain.entity.Suggestion;
+import com.lh.assist.user.domain.entity.User;
 
 public final class SuggestionMapper {
     private SuggestionMapper() {

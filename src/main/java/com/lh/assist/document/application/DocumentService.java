@@ -3,13 +3,13 @@ package com.lh.assist.document.application;
 import com.lh.assist.common.exception.DocumentException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SystemException;
-import com.lh.assist.audit.domain.AuditLog;
-import com.lh.assist.audit.domain.AuditLogRepository;
-import com.lh.assist.document.domain.Document;
-import com.lh.assist.document.domain.DocumentRepository;
-import com.lh.assist.document.domain.DocumentType;
-import com.lh.assist.user.domain.User;
-import com.lh.assist.user.domain.UserRepository;
+import com.lh.assist.audit.domain.entity.AuditLog;
+import com.lh.assist.audit.domain.repository.AuditLogRepository;
+import com.lh.assist.regulation.domain.enums.domain.entity.Document;
+import com.lh.assist.regulation.domain.enums.domain.repository.DocumentRepository;
+import com.lh.assist.regulation.domain.enums.domain.enums.DocumentType;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.repository.UserRepository;
 import com.lh.assist.infrastructure.aws.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +32,27 @@ public class DocumentService {
 
 	@Transactional
 	public Document uploadDocument(
+			Long userId,
+			DocumentType documentType,
+			LocalDate baseDate,
+			MultipartFile file
+	) {
+		return doUploadDocument(userId, documentType, baseDate, file);
+	}
+
+	@Transactional
+	public Document uploadDocumentByEmail(
+			String email,
+			DocumentType documentType,
+			LocalDate baseDate,
+			MultipartFile file
+	) {
+		User user = getUserByEmail(email);
+
+		return doUploadDocument(user.getUserId(), documentType, baseDate, file);
+	}
+
+	private Document doUploadDocument(
 			Long userId,
 			DocumentType documentType,
 			LocalDate baseDate,
@@ -99,17 +120,6 @@ public class DocumentService {
 			}
 			throw new SystemException(ErrorCode.INTERNAL_SERVER_ERROR, ex);
 		}
-	}
-
-	public Document uploadDocumentByEmail(
-			String email,
-			DocumentType documentType,
-			LocalDate baseDate,
-			MultipartFile file
-	) {
-		User user = getUserByEmail(email);
-
-		return uploadDocument(user.getUserId(), documentType, baseDate, file);
 	}
 
 	@Transactional(readOnly = true)

@@ -3,7 +3,7 @@ package com.lh.assist.admin.suggestion.api;
 import com.lh.assist.common.model.ApiResponse;
 import com.lh.assist.common.security.UserPrincipal;
 import com.lh.assist.admin.suggestion.api.docs.SuggestionAdminListDocs;
-import com.lh.assist.suggestion.api.dto.SuggestionListResponse;
+import com.lh.assist.suggestion.api.dto.response.SuggestionListResponse;
 import com.lh.assist.suggestion.api.mapper.SuggestionMapper;
 import com.lh.assist.admin.suggestion.application.AdminSuggestionService;
 import lombok.RequiredArgsConstructor;

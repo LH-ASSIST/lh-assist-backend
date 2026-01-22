@@ -7,13 +7,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
-import com.lh.assist.suggestion.domain.Suggestion;
-import com.lh.assist.suggestion.domain.SuggestionRepository;
+import com.lh.assist.suggestion.domain.entity.Suggestion;
+import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
 import com.lh.assist.support.IntegrationTestBase;
 import com.lh.assist.support.TestDataFactory;
-import com.lh.assist.user.domain.User;
-import com.lh.assist.user.domain.UserRepository;
-import com.lh.assist.user.domain.UserRole;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.repository.UserRepository;
+import com.lh.assist.user.domain.enums.UserRole;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

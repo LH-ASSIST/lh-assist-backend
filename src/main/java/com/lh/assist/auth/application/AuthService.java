@@ -1,16 +1,16 @@
 package com.lh.assist.auth.application;
 
-import com.lh.assist.auth.api.dto.LoginRequest;
-import com.lh.assist.auth.api.dto.LoginResponse;
-import com.lh.assist.auth.api.dto.SignupRequest;
-import com.lh.assist.auth.api.dto.SignupResponse;
+import com.lh.assist.auth.api.dto.request.LoginRequest;
+import com.lh.assist.auth.api.dto.response.LoginResponse;
+import com.lh.assist.auth.api.dto.request.SignupRequest;
+import com.lh.assist.auth.api.dto.response.SignupResponse;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
-import com.lh.assist.user.domain.User;
-import com.lh.assist.user.domain.UserRepository;
-import com.lh.assist.user.domain.UserRole;
-import com.lh.assist.user.domain.UserStatus;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.repository.UserRepository;
+import com.lh.assist.user.domain.enums.UserRole;
+import com.lh.assist.user.domain.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

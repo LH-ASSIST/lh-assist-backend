@@ -2,11 +2,11 @@ package com.lh.assist.suggestion.application;
 
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SuggestionException;
-import com.lh.assist.suggestion.api.dto.SuggestionCreateRequest;
-import com.lh.assist.suggestion.domain.Suggestion;
-import com.lh.assist.suggestion.domain.SuggestionRepository;
-import com.lh.assist.user.domain.User;
-import com.lh.assist.user.domain.UserRepository;
+import com.lh.assist.suggestion.api.dto.request.SuggestionCreateRequest;
+import com.lh.assist.suggestion.domain.entity.Suggestion;
+import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

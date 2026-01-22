@@ -1,6 +1,6 @@
 package com.lh.assist.suggestion.application;
 
-import com.lh.assist.suggestion.domain.SuggestionRepository;
+import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

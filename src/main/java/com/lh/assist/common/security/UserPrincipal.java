@@ -1,6 +1,6 @@
 package com.lh.assist.common.security;
 
-import com.lh.assist.user.domain.UserRole;
+import com.lh.assist.user.domain.enums.UserRole;
 
 public record UserPrincipal(
         Long userId,

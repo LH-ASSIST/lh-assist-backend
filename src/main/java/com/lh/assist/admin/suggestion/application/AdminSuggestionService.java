@@ -1,7 +1,7 @@
 package com.lh.assist.admin.suggestion.application;
 
-import com.lh.assist.suggestion.domain.Suggestion;
-import com.lh.assist.suggestion.domain.SuggestionRepository;
+import com.lh.assist.suggestion.domain.entity.Suggestion;
+import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

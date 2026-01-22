@@ -1,9 +1,9 @@
 package com.lh.assist.suggestion;
 
 import com.lh.assist.suggestion.application.SuggestionViewCountService;
-import com.lh.assist.suggestion.domain.Suggestion;
-import com.lh.assist.suggestion.domain.SuggestionCategory;
-import com.lh.assist.suggestion.domain.SuggestionRepository;
+import com.lh.assist.suggestion.domain.entity.Suggestion;
+import com.lh.assist.suggestion.domain.enums.SuggestionCategory;
+import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
 import com.lh.assist.support.IntegrationTestBase;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
