@@ -10,4 +10,8 @@ public enum UserRole {
 	USER("사용자");
 
 	private final String description;
+
+	public static boolean isAdmin(String role) {
+		return ADMIN.name().equals(role);
+	}
 }
