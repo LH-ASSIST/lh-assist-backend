@@ -26,16 +26,16 @@ public class AuthService {
 
 	@Transactional
 	public SignupResponse signup(SignupRequest request) {
-		if (userRepository.existsByEmail(request.getEmail())) {
+		if (userRepository.existsByEmail(request.email())) {
 			throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
 		}
 
 		User user = User.builder()
-				.email(request.getEmail())
-				.password(passwordEncoder.encode(request.getPassword()))
-				.name(request.getName())
-				.department(request.getDepartment())
-				.position(request.getPosition())
+				.email(request.email())
+				.password(passwordEncoder.encode(request.password()))
+				.name(request.name())
+				.department(request.department())
+				.position(request.position())
 				.role(UserRole.USER)
 				.status(UserStatus.ACTIVE)
 				.emailVerified(false)
@@ -56,10 +56,10 @@ public class AuthService {
 
 	@Transactional(readOnly = true)
 	public LoginResponse login(LoginRequest request) {
-		User user = userRepository.findByEmail(request.getEmail())
+		User user = userRepository.findByEmail(request.email())
 				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
 
-		if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+		if (!passwordEncoder.matches(request.password(), user.getPassword())) {
 			throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
 		}
 

@@ -85,9 +85,9 @@ public class SuggestionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new SuggestionException(ErrorCode.UNAUTHORIZED));
         Suggestion suggestion = Suggestion.builder()
-                .title(request.getTitle())
-                .content(request.getContent())
-                .category(request.getCategory())
+                .title(request.title())
+                .content(request.content())
+                .category(request.category())
                 .isPrivate(request.isPrivate())
                 .isAnonymous(request.isAnonymous())
                 .user(user)

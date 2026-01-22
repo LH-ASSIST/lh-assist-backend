@@ -14,7 +14,6 @@ import com.lh.assist.suggestion.api.dto.SuggestionCreateRequest;
 import com.lh.assist.suggestion.domain.Suggestion;
 import com.lh.assist.suggestion.domain.SuggestionCategory;
 import com.lh.assist.suggestion.domain.SuggestionRepository;
-import com.lh.assist.support.ReflectionTestUtils;
 import com.lh.assist.user.domain.User;
 import com.lh.assist.user.domain.UserDepartment;
 import com.lh.assist.user.domain.UserPosition;
@@ -163,16 +162,19 @@ class SuggestionServiceTest {
     }
 
     private static SuggestionCreateRequest createRequest(boolean anonymous) {
-        SuggestionCreateRequest request = new SuggestionCreateRequest();
-        ReflectionTestUtils.setField(request, "title", "제목");
-        ReflectionTestUtils.setField(request, "content", "내용");
-        ReflectionTestUtils.setField(request, "category", SuggestionCategory.SYSTEM_ERROR);
-        ReflectionTestUtils.setField(request, "isPrivate", false);
-        ReflectionTestUtils.setField(request, "isAnonymous", anonymous);
-        return request;
+        return new SuggestionCreateRequest(
+                "제목",
+                "내용",
+                SuggestionCategory.SYSTEM_ERROR,
+                false,
+                anonymous
+        );
     }
 
-    private static Suggestion suggestion(boolean isPrivate, User owner) {
+    private static Suggestion suggestion(
+            boolean isPrivate,
+            User owner
+    ) {
         return Suggestion.builder()
                 .title("제목")
                 .content("내용")

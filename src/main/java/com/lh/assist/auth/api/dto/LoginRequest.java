@@ -2,14 +2,12 @@ package com.lh.assist.auth.api.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
 
-@Getter
-public class LoginRequest {
-	@NotBlank
-	@Email
-	private String email;
-
-	@NotBlank
-	private String password;
+public record LoginRequest(
+		@NotBlank
+		@Email
+		String email,
+		@NotBlank
+		String password
+) {
 }
