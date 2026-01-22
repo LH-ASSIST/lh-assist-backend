@@ -12,6 +12,7 @@ import com.lh.assist.auth.api.dto.SignupResponse;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
+import com.lh.assist.support.ReflectionTestUtils;
 import com.lh.assist.user.domain.User;
 import com.lh.assist.user.domain.UserDepartment;
 import com.lh.assist.user.domain.UserPosition;
@@ -149,32 +150,18 @@ class AuthServiceTest {
 		String email
 	) {
 		SignupRequest request = new SignupRequest();
-		setField(request, "email", email);
-		setField(request, "password", "Test1234!");
-		setField(request, "name", "Tester");
-		setField(request, "department", UserDepartment.PUBLIC_HOUSING_HEADQUARTERS);
-		setField(request, "position", UserPosition.STAFF);
+		ReflectionTestUtils.setField(request, "email", email);
+		ReflectionTestUtils.setField(request, "password", "Test1234!");
+		ReflectionTestUtils.setField(request, "name", "Tester");
+		ReflectionTestUtils.setField(request, "department", UserDepartment.PUBLIC_HOUSING_HEADQUARTERS);
+		ReflectionTestUtils.setField(request, "position", UserPosition.STAFF);
 		return request;
 	}
 
 	private static LoginRequest loginRequest(String password) {
 		LoginRequest request = new LoginRequest();
-		setField(request, "email", "login@lh.com");
-		setField(request, "password", password);
+		ReflectionTestUtils.setField(request, "email", "login@lh.com");
+		ReflectionTestUtils.setField(request, "password", password);
 		return request;
-	}
-
-	private static void setField(
-			Object target,
-			String fieldName,
-			Object value
-	) {
-		try {
-			var field = target.getClass().getDeclaredField(fieldName);
-			field.setAccessible(true);
-			field.set(target, value);
-		} catch (NoSuchFieldException | IllegalAccessException ex) {
-			throw new IllegalStateException("Failed to set " + fieldName, ex);
-		}
 	}
 }
