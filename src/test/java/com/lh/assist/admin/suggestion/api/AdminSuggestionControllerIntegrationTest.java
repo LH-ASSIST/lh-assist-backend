@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.AfterEach;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,6 +37,12 @@ class AdminSuggestionControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private JwtTokenProvider tokenProvider;
+
+    @AfterEach
+    void clearData() {
+        suggestionRepository.deleteAll();
+        userRepository.deleteAll();
+    }
 
     @Test
     @DisplayName("관리자 전체 조회는 모든 글을 포함해야 한다")

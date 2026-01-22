@@ -5,19 +5,15 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.containers.GenericContainer;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Testcontainers
 public abstract class IntegrationTestBase {
 
-	// @Container 사용으로 자원관리
 	@SuppressWarnings("resource")
-	@Container
 	static final PostgreSQLContainer<?> POSTGRES =
 		new PostgreSQLContainer<>(
 			DockerImageName.parse("ankane/pgvector:latest")
@@ -29,10 +25,13 @@ public abstract class IntegrationTestBase {
 			.withInitScript("db/init-test.sql");
 
 	@SuppressWarnings("resource")
-	@Container
 	static final GenericContainer<?> REDIS =
 		new GenericContainer<>(DockerImageName.parse("redis:7.4-alpine"))
 			.withExposedPorts(6379);
+
+	static {
+		Startables.deepStart(POSTGRES, REDIS).join();
+	}
 
 	@DynamicPropertySource
 	static void registerDataSourceProperties(DynamicPropertyRegistry registry) {
