@@ -8,6 +8,7 @@ import com.lh.assist.support.IntegrationTestBase;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -31,6 +32,12 @@ class SuggestionViewCountServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private EntityManager entityManager;
+
+    @AfterEach
+    void clearData() {
+        suggestionRepository.deleteAll();
+        clearRedisViewKeys();
+    }
 
     @Test
     @DisplayName("조회수 누적값이 배치 플러시로 DB에 반영되어야 한다")
@@ -84,5 +91,13 @@ class SuggestionViewCountServiceIntegrationTest extends IntegrationTestBase {
         entityManager.clear();
         Suggestion updated = suggestionRepository.findById(saved.getSuggestionId()).orElseThrow();
         assertThat(updated.getViewCount()).isEqualTo(1);
+    }
+
+    private void clearRedisViewKeys() {
+        var keys = stringRedisTemplate.opsForSet().members("suggestion:view:keys");
+        if (keys != null && !keys.isEmpty()) {
+            stringRedisTemplate.delete(keys);
+        }
+        stringRedisTemplate.delete("suggestion:view:keys");
     }
 }

@@ -145,6 +145,18 @@ class AuthServiceTest {
 			.isEqualTo(ErrorCode.INVALID_CREDENTIALS);
 	}
 
+	@Test
+	@DisplayName("사용자를 찾을 수 없으면 인증 오류가 발생해야 한다")
+	void 사용자_없으면_인증_오류() {
+		LoginRequest request = loginRequest("Test1234!");
+		when(userRepository.findByEmail("login@lh.com")).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> authService.login(request))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.INVALID_CREDENTIALS);
+	}
+
 	private static SignupRequest signupRequest(
 		String email
 	) {
