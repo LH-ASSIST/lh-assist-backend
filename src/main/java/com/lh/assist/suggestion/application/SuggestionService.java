@@ -67,8 +67,8 @@ public class SuggestionService {
             boolean isAdmin,
             Pageable pageable
     ) {
-        if (isAdmin) {
-            return suggestionRepository.findAll(pageable);
+        if (userId == null) {
+            return suggestionRepository.findByIsPrivateFalse(pageable);
         }
         return suggestionRepository.findVisibleByUserId(userId, pageable);
     }

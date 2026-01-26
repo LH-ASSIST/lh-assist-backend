@@ -94,17 +94,17 @@ class SuggestionServiceTest {
     }
 
     @Test
-    @DisplayName("관리자는 목록 조회 시 전체 조회를 사용해야 한다")
-    void 관리자_목록은_전체_조회() {
+    @DisplayName("관리자는 일반 사용자와 동일하게 공개/본인 글만 조회해야 한다")
+    void 관리자_목록도_공개와_본인만() {
         UserPrincipal principal = new UserPrincipal(1L, "admin@lh.com", "ADMIN");
         Pageable pageable = PageRequest.of(0, 10);
         Page<Suggestion> expected = new PageImpl<>(java.util.List.of(suggestion(false, owner(1L))));
-        when(suggestionRepository.findAll(pageable)).thenReturn(expected);
+        when(suggestionRepository.findVisibleByUserId(1L, pageable)).thenReturn(expected);
 
         Page<Suggestion> result = suggestionService.getSuggestions(principal.userId(), principal.isAdmin(), pageable);
 
         assertThat(result).isSameAs(expected);
-        verify(suggestionRepository).findAll(pageable);
+        verify(suggestionRepository).findVisibleByUserId(1L, pageable);
     }
 
     @Test

@@ -70,6 +70,20 @@ class SuggestionControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    @DisplayName("비로그인 사용자는 공개 글만 조회할 수 있어야 한다")
+    void 비로그인_공개글만_조회() throws Exception {
+        User owner = userRepository.save(TestDataFactory.user("owner@lh.com"));
+        User other = userRepository.save(TestDataFactory.user("other@lh.com"));
+        suggestionRepository.save(TestDataFactory.suggestion(owner, false));
+        suggestionRepository.save(TestDataFactory.suggestion(owner, true));
+        suggestionRepository.save(TestDataFactory.suggestion(other, true));
+
+        mockMvc.perform(get("/api/v1/qna"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content.length()").value(1));
+    }
+
+    @Test
     @DisplayName("비공개 글은 작성자와 관리자만 조회할 수 있어야 한다")
     void 비공개_글_조회_권한() throws Exception {
         User owner = userRepository.save(TestDataFactory.user("owner@lh.com"));

@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,15 +42,14 @@ public class SuggestionController {
     private final SuggestionService suggestionService;
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
     @SuggestionListDocs
     public ResponseEntity<ApiResponse<Page<SuggestionListResponse>>> listSuggestions(
             @AuthenticationPrincipal UserPrincipal principal,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         Page<Suggestion> suggestions = suggestionService.getSuggestions(
-                principal.userId(),
-                principal.isAdmin(),
+                principal != null ? principal.userId() : null,
+                principal != null && principal.isAdmin(),
                 pageable
         );
         List<Long> ids = suggestions.getContent().stream()

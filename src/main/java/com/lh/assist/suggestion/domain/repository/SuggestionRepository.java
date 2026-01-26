@@ -27,4 +27,8 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     @EntityGraph(attributePaths = "user")
     @Query("select s from Suggestion s where s.isPrivate = false or s.user.userId = :userId")
     Page<Suggestion> findVisibleByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    // 공개글만 조회한다
+    @EntityGraph(attributePaths = "user")
+    Page<Suggestion> findByIsPrivateFalse(Pageable pageable);
 }
