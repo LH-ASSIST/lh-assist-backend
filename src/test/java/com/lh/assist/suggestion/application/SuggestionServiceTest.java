@@ -3,6 +3,7 @@ package com.lh.assist.suggestion.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,6 +12,7 @@ import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.UserPrincipal;
 import com.lh.assist.suggestion.api.dto.request.SuggestionCreateRequest;
+import com.lh.assist.suggestion.api.dto.request.SuggestionUpdateRequest;
 import com.lh.assist.suggestion.domain.entity.Suggestion;
 import com.lh.assist.suggestion.domain.enums.SuggestionCategory;
 import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
@@ -161,6 +163,80 @@ class SuggestionServiceTest {
         verify(suggestionRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("작성자가 건의사항을 수정하면 필드가 갱신되어야 한다")
+    void 작성자_수정시_필드_갱신() {
+        User owner = owner(1L);
+        Suggestion suggestion = suggestion(false, owner);
+        when(suggestionRepository.findById(10L)).thenReturn(Optional.of(suggestion));
+
+        SuggestionUpdateRequest request = new SuggestionUpdateRequest(
+                "수정 제목",
+                "수정 내용",
+                SuggestionCategory.RECOMMENDATION,
+                true,
+                false
+        );
+
+        Suggestion updated = suggestionService.updateSuggestion(1L, false, 10L, request);
+
+        assertThat(updated.getTitle()).isEqualTo("수정 제목");
+        assertThat(updated.getContent()).isEqualTo("수정 내용");
+        assertThat(updated.getCategory()).isEqualTo(SuggestionCategory.RECOMMENDATION);
+        assertThat(updated.isPrivate()).isTrue();
+        assertThat(updated.isAnonymous()).isFalse();
+    }
+
+    @Test
+    @DisplayName("작성자가 아니면 건의사항 수정이 거부되어야 한다")
+    void 작성자_아니면_수정_거부() {
+        User owner = owner(1L);
+        Suggestion suggestion = suggestion(false, owner);
+        when(suggestionRepository.findById(11L)).thenReturn(Optional.of(suggestion));
+
+        SuggestionUpdateRequest request = new SuggestionUpdateRequest(
+                "수정 제목",
+                "수정 내용",
+                SuggestionCategory.RECOMMENDATION,
+                true,
+                false
+        );
+
+        assertThatThrownBy(() -> suggestionService.updateSuggestion(2L, false, 11L, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ACCESS_DENIED);
+    }
+
+    @Test
+    @DisplayName("작성자가 삭제하면 건의사항이 삭제되고 조회수 캐시가 정리되어야 한다")
+    void 작성자_삭제시_삭제_및_캐시_정리() {
+        User owner = owner(1L);
+        Suggestion suggestion = suggestion(false, owner);
+        when(suggestionRepository.findById(12L)).thenReturn(Optional.of(suggestion));
+
+        suggestionService.deleteSuggestion(1L, false, 12L);
+
+        verify(suggestionRepository).delete(suggestion);
+        verify(viewCountService).evict(12L);
+    }
+
+    @Test
+    @DisplayName("작성자가 아니면 삭제가 거부되어야 한다")
+    void 작성자_아니면_삭제_거부() {
+        User owner = owner(1L);
+        Suggestion suggestion = suggestion(false, owner);
+        when(suggestionRepository.findById(13L)).thenReturn(Optional.of(suggestion));
+
+        assertThatThrownBy(() -> suggestionService.deleteSuggestion(2L, false, 13L))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.ACCESS_DENIED);
+
+        verify(suggestionRepository, never()).delete(any());
+        verify(viewCountService, never()).evict(anyLong());
+    }
+
     private static SuggestionCreateRequest createRequest(boolean anonymous) {
         return new SuggestionCreateRequest(
                 "제목",
@@ -191,8 +267,8 @@ class SuggestionServiceTest {
                 .email("user@lh.com")
                 .password("hashed")
                 .name("Tester")
-                .department(UserDepartment.PUBLIC_HOUSING_HEADQUARTERS)
-                .position(UserPosition.DEPUTY_MANAGER)
+                .department(UserDepartment.ETC)
+                .position(UserPosition.ETC)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(true)

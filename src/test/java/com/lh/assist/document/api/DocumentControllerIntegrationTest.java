@@ -12,7 +12,6 @@ import com.lh.assist.support.IntegrationTestBase;
 import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
-import com.lh.assist.user.domain.enums.UserRole;
 import java.time.LocalDate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,7 +50,7 @@ class DocumentControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("지원하지 않는 확장자 업로드 시 400이 반환되어야 한다")
     void 업로드_확장자_검증() throws Exception {
-        User user = userRepository.save(TestDataFactory.user("uploader@lh.com", UserRole.USER));
+        User user = userRepository.save(TestDataFactory.user("uploader@lh.com"));
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "invalid.txt",
@@ -69,8 +68,8 @@ class DocumentControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("다른 사용자의 문서는 조회할 수 없어야 한다")
     void 다른_사용자_문서_조회_거부() throws Exception {
-        User owner = userRepository.save(TestDataFactory.user("owner@lh.com", UserRole.USER));
-        User other = userRepository.save(TestDataFactory.user("other@lh.com", UserRole.USER));
+        User owner = userRepository.save(TestDataFactory.user("owner@lh.com"));
+        User other = userRepository.save(TestDataFactory.user("other@lh.com"));
         Document document = documentRepository.save(Document.builder()
                 .title("문서")
                 .docType(DocumentType.NOTICE)

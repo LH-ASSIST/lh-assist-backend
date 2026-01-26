@@ -73,8 +73,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 "email", "tester1@lh.com",
                 "password", "Test1234!",
                 "name", "Tester",
-                "department", UserDepartment.PUBLIC_HOUSING_HEADQUARTERS,
-                "position", UserPosition.STAFF
+                "department", UserDepartment.ETC,
+                "position", UserPosition.ETC
         );
 
         mockMvc.perform(post("/api/v1/auth/signup")
@@ -93,8 +93,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 .email("tester2@lh.com")
                 .password(passwordEncoder.encode("Test1234!"))
                 .name("LoginTester")
-                .department(UserDepartment.PUBLIC_HOUSING_HEADQUARTERS)
-                .position(UserPosition.TEAM_LEAD)
+                .department(UserDepartment.ETC)
+                .position(UserPosition.ETC)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(false)

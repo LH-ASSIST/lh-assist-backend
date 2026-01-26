@@ -13,17 +13,28 @@ public final class TestDataFactory {
     private TestDataFactory() {
     }
 
-    public static User user(
-            String email,
-            UserRole role
-    ) {
+    public static User user(String email) {
         return User.builder()
                 .email(email)
                 .password("hashed")
                 .name("Tester")
-                .department(UserDepartment.PUBLIC_HOUSING_HEADQUARTERS)
-                .position(UserPosition.DEPUTY_MANAGER)
-                .role(role)
+                .department(UserDepartment.PUBLIC_HOUSING_BUSINESS_OFFICE)
+                .position(UserPosition.STAFF)
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .emailVerified(true)
+                .attemptCount(0)
+                .build();
+    }
+
+    public static User admin(String email) {
+        return User.builder()
+                .email(email)
+                .password("hashed")
+                .name("Admin")
+                .department(UserDepartment.ETC)
+                .position(UserPosition.ETC)
+                .role(UserRole.ADMIN)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(true)
                 .attemptCount(0)
