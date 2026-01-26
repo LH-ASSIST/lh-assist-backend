@@ -2,10 +2,17 @@ package com.lh.assist.admin.suggestion.api;
 
 import com.lh.assist.common.model.ApiResponse;
 import com.lh.assist.common.security.UserPrincipal;
+import com.lh.assist.admin.suggestion.api.docs.SuggestionAnswerDocs;
 import com.lh.assist.admin.suggestion.api.docs.SuggestionAdminListDocs;
+import com.lh.assist.admin.suggestion.api.dto.request.SuggestionAnswerRequest;
 import com.lh.assist.suggestion.api.dto.response.SuggestionListResponse;
+import com.lh.assist.suggestion.api.dto.response.SuggestionResponse;
 import com.lh.assist.suggestion.api.mapper.SuggestionMapper;
 import com.lh.assist.admin.suggestion.application.AdminSuggestionService;
+import com.lh.assist.suggestion.application.SuggestionViewCountService;
+import com.lh.assist.suggestion.domain.entity.Suggestion;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,8 +20,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminSuggestionController {
 
     private final AdminSuggestionService adminSuggestionService;
+    private final SuggestionViewCountService viewCountService;
 
     @GetMapping
     @SuggestionAdminListDocs
@@ -30,8 +42,28 @@ public class AdminSuggestionController {
             @AuthenticationPrincipal UserPrincipal principal,
             Pageable pageable
     ) {
-        Page<SuggestionListResponse> responses = adminSuggestionService.getAllSuggestions(pageable)
-                .map(suggestion -> SuggestionMapper.toListResponse(suggestion, principal));
+        Page<Suggestion> suggestions = adminSuggestionService.getAllSuggestions(pageable);
+        List<Long> ids = suggestions.getContent().stream()
+                .map(Suggestion::getSuggestionId)
+                .toList();
+        Map<Long, Integer> deltas = viewCountService.getViewCountDeltas(ids);
+        Page<SuggestionListResponse> responses = suggestions.map(suggestion -> {
+            int viewCount = suggestion.getViewCount() + deltas.getOrDefault(suggestion.getSuggestionId(), 0);
+            return SuggestionMapper.toListResponse(suggestion, principal, viewCount);
+        });
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @PatchMapping("/{suggestionId}/answer")
+    @SuggestionAnswerDocs
+    public ResponseEntity<ApiResponse<SuggestionResponse>> answerSuggestion(
+            @PathVariable Long suggestionId,
+            @Validated @RequestBody SuggestionAnswerRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        Suggestion answered = adminSuggestionService.answerSuggestion(suggestionId, request.answerContent());
+        int viewCount = viewCountService.getViewCount(suggestionId, answered.getViewCount());
+        SuggestionResponse response = SuggestionMapper.toResponse(answered, principal, viewCount);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
