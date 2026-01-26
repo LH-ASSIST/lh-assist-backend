@@ -1,16 +1,12 @@
 package com.lh.assist.auth.api.dto.response;
 
-import com.lh.assist.user.domain.enums.UserRole;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
-public class LoginResponse {
+public class RefreshResponse {
 	private final String accessToken;
 	private final String refreshToken;
 	private final String tokenType;
-	private final Long userId;
-	private final String email;
-	private final UserRole role;
 }
