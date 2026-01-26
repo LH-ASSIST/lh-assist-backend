@@ -45,6 +45,7 @@ dependencies {
 	implementation("com.amazonaws:aws-java-sdk-sqs:1.12.710")
 	implementation("io.github.cdimascio:dotenv-java:3.0.0")
 	implementation("io.jsonwebtoken:jjwt-api:0.12.5")
+	runtimeOnly("io.netty:netty-resolver-dns-native-macos:4.1.117.Final:osx-aarch_64")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
 	compileOnly("org.projectlombok:lombok")

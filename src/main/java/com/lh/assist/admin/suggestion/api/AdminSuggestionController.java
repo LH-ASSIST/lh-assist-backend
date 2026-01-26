@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequiredArgsConstructor
@@ -40,7 +41,7 @@ public class AdminSuggestionController {
     @SuggestionAdminListDocs
     public ResponseEntity<ApiResponse<Page<SuggestionListResponse>>> listAllSuggestions(
             @AuthenticationPrincipal UserPrincipal principal,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         Page<Suggestion> suggestions = adminSuggestionService.getAllSuggestions(pageable);
         List<Long> ids = suggestions.getContent().stream()
