@@ -12,6 +12,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.lh.assist.common.exception.DocumentException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SystemException;
+import com.lh.assist.support.ReflectionTestUtils;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +35,7 @@ class S3ServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		setField(s3Service);
+		ReflectionTestUtils.setField(s3Service, "bucket", "test-bucket");
 	}
 
 	@Test
@@ -121,13 +122,4 @@ class S3ServiceTest {
 			.isEqualTo(ErrorCode.S3_DELETE_FAILED);
 	}
 
-	private static void setField(Object target) {
-		try {
-			var field = target.getClass().getDeclaredField("bucket");
-			field.setAccessible(true);
-			field.set(target, (Object) "test-bucket");
-		} catch (NoSuchFieldException | IllegalAccessException ex) {
-			throw new IllegalStateException("Failed to set " + "bucket", ex);
-		}
-	}
 }

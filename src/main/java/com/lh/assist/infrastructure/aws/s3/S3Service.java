@@ -23,6 +23,13 @@ public class S3Service {
 	@Value("${spring.cloud.aws.s3.bucket}")
 	private String bucket;
 
+	/**
+	 * 파일을 S3에 업로드하고 저장된 키를 반환한다
+	 *
+	 * @param file 업로드 파일
+	 * @param keyPrefix S3 키 접두사
+	 * @return 저장된 S3 키
+	 */
 	public String uploadFile(
 			MultipartFile file,
 			String keyPrefix
@@ -49,6 +56,11 @@ public class S3Service {
 		}
     }
 
+	/**
+	 * S3 객체를 삭제한다
+	 *
+	 * @param key 삭제할 S3 키
+	 */
 	public void deleteFile(String key) {
 		if (key == null || key.isBlank()) {
 			return;
@@ -61,6 +73,13 @@ public class S3Service {
 		}
 	}
 
+	/**
+	 * 키 접두사와 파일명을 조합해 S3 키를 생성한다
+	 *
+	 * @param keyPrefix S3 키 접두사
+	 * @param originalFilename 원본 파일명
+	 * @return 생성된 S3 키
+	 */
 	private String buildKey(
 			String keyPrefix,
 			String originalFilename

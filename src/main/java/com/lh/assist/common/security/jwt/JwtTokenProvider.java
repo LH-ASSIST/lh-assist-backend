@@ -1,6 +1,6 @@
 package com.lh.assist.common.security.jwt;
 
-import com.lh.assist.user.domain.User;
+import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.common.security.UserPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

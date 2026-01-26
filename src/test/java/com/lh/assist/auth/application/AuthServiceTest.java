@@ -5,19 +5,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.lh.assist.auth.api.dto.LoginRequest;
-import com.lh.assist.auth.api.dto.LoginResponse;
-import com.lh.assist.auth.api.dto.SignupRequest;
-import com.lh.assist.auth.api.dto.SignupResponse;
+import com.lh.assist.auth.api.dto.request.LoginRequest;
+import com.lh.assist.auth.api.dto.response.LoginResponse;
+import com.lh.assist.auth.api.dto.request.SignupRequest;
+import com.lh.assist.auth.api.dto.response.SignupResponse;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
-import com.lh.assist.user.domain.User;
-import com.lh.assist.user.domain.UserDepartment;
-import com.lh.assist.user.domain.UserPosition;
-import com.lh.assist.user.domain.UserRepository;
-import com.lh.assist.user.domain.UserRole;
-import com.lh.assist.user.domain.UserStatus;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.enums.UserDepartment;
+import com.lh.assist.user.domain.enums.UserPosition;
+import com.lh.assist.user.domain.repository.UserRepository;
+import com.lh.assist.user.domain.enums.UserRole;
+import com.lh.assist.user.domain.enums.UserStatus;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -145,36 +145,31 @@ class AuthServiceTest {
 			.isEqualTo(ErrorCode.INVALID_CREDENTIALS);
 	}
 
+	@Test
+	@DisplayName("사용자를 찾을 수 없으면 인증 오류가 발생해야 한다")
+	void 사용자_없으면_인증_오류() {
+		LoginRequest request = loginRequest("Test1234!");
+		when(userRepository.findByEmail("login@lh.com")).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> authService.login(request))
+			.isInstanceOf(BusinessException.class)
+			.extracting("errorCode")
+			.isEqualTo(ErrorCode.INVALID_CREDENTIALS);
+	}
+
 	private static SignupRequest signupRequest(
 		String email
 	) {
-		SignupRequest request = new SignupRequest();
-		setField(request, "email", email);
-		setField(request, "password", "Test1234!");
-		setField(request, "name", "Tester");
-		setField(request, "department", UserDepartment.PUBLIC_HOUSING_HEADQUARTERS);
-		setField(request, "position", UserPosition.STAFF);
-		return request;
+		return new SignupRequest(
+			email,
+			"Test1234!",
+			"Tester",
+			UserDepartment.PUBLIC_HOUSING_HEADQUARTERS,
+			UserPosition.STAFF
+		);
 	}
 
 	private static LoginRequest loginRequest(String password) {
-		LoginRequest request = new LoginRequest();
-		setField(request, "email", "login@lh.com");
-		setField(request, "password", password);
-		return request;
-	}
-
-	private static void setField(
-			Object target,
-			String fieldName,
-			Object value
-	) {
-		try {
-			var field = target.getClass().getDeclaredField(fieldName);
-			field.setAccessible(true);
-			field.set(target, value);
-		} catch (NoSuchFieldException | IllegalAccessException ex) {
-			throw new IllegalStateException("Failed to set " + fieldName, ex);
-		}
+		return new LoginRequest("login@lh.com", password);
 	}
 }
