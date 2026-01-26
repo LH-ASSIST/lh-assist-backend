@@ -21,12 +21,22 @@ public class SuggestionViewCountService {
     private final StringRedisTemplate stringRedisTemplate;
     private final SuggestionRepository suggestionRepository;
 
+    /**
+     * Redis에 조회수 증가를 기록한다
+     *
+     * @param suggestionId 조회 대상 건의 ID
+     */
     public void increment(Long suggestionId) {
         String key = VIEW_KEY_PREFIX + suggestionId;
         stringRedisTemplate.opsForValue().increment(key);
         stringRedisTemplate.opsForSet().add(VIEW_KEY_SET, key);
     }
 
+    /**
+     * Redis에 누적된 조회수를 주기적으로 DB에 반영한다
+     *
+     * 반영 실패 시 해당 키의 증가분을 복구한다
+     */
     @Scheduled(fixedDelayString = "${app.suggestion.view-count.flush-interval-ms:60000}")
     @Transactional
     public void flushToDatabase() {
@@ -50,6 +60,12 @@ public class SuggestionViewCountService {
         }
     }
 
+    /**
+     * 특정 키의 증가분을 DB에 반영한다
+     *
+     * @param key 조회수 키
+     * @param delta 반영할 증가분
+     */
     private void flushKey(String key, int delta) {
         Long suggestionId = parseSuggestionId(key);
         if (suggestionId == null) {
@@ -64,6 +80,12 @@ public class SuggestionViewCountService {
         removeKeyIfEmpty(key);
     }
 
+    /**
+     * Redis에 저장된 증가분 문자열을 정수로 변환한다
+     *
+     * @param value 증가분 문자열
+     * @return 파싱된 증가분 값
+     */
     private int parseDelta(String value) {
         if (value == null || value.isBlank()) {
             return 0;
@@ -75,6 +97,12 @@ public class SuggestionViewCountService {
         }
     }
 
+    /**
+     * 조회수 키에서 건의 ID를 파싱한다
+     *
+     * @param key 조회수 키
+     * @return 파싱된 건의 ID
+     */
     private Long parseSuggestionId(String key) {
         if (key == null || !key.startsWith(VIEW_KEY_PREFIX)) {
             return null;
@@ -87,11 +115,22 @@ public class SuggestionViewCountService {
         }
     }
 
+    /**
+     * 반영 실패한 증가분을 Redis에 복구한다
+     *
+     * @param key 조회수 키
+     * @param delta 복구할 증가분
+     */
     private void restoreDelta(String key, int delta) {
         stringRedisTemplate.opsForValue().increment(key, delta);
         stringRedisTemplate.opsForSet().add(VIEW_KEY_SET, key);
     }
 
+    /**
+     * 증가분이 0이면 조회수 키를 정리한다
+     *
+     * @param key 조회수 키
+     */
     private void removeKeyIfEmpty(String key) {
         String current = stringRedisTemplate.opsForValue().get(key);
         if (current == null || "0".equals(current)) {

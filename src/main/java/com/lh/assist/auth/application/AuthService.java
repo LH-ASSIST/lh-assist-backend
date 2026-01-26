@@ -4,7 +4,7 @@ import com.lh.assist.auth.api.dto.request.LoginRequest;
 import com.lh.assist.auth.api.dto.response.LoginResponse;
 import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
-import com.lh.assist.common.exception.BusinessException;
+import com.lh.assist.common.exception.AuthException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
 import com.lh.assist.user.domain.entity.User;
@@ -24,10 +24,18 @@ public class AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final JwtTokenProvider tokenProvider;
 
+	/**
+	 * 회원가입 요청을 처리하고 신규 사용자를 저장한다
+	 *
+	 * 이미 등록된 이메일이면 예외를 발생시킨다
+	 *
+	 * @param request 회원가입 요청 정보
+	 * @return 저장된 사용자 정보
+	 */
 	@Transactional
 	public SignupResponse signup(SignupRequest request) {
 		if (userRepository.existsByEmail(request.email())) {
-			throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+			throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
 		}
 
 		User user = User.builder()
@@ -54,13 +62,21 @@ public class AuthService {
 				.build();
 	}
 
+	/**
+	 * 로그인 요청을 검증하고 액세스 토큰을 발급한다
+	 *
+	 * 이메일 또는 비밀번호가 일치하지 않으면 예외를 발생시킨다
+	 *
+	 * @param request 로그인 요청 정보
+	 * @return 로그인 응답 정보
+	 */
 	@Transactional(readOnly = true)
 	public LoginResponse login(LoginRequest request) {
 		User user = userRepository.findByEmail(request.email())
-				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
+				.orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
 		if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-			throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+			throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
 		}
 
 		String token = tokenProvider.createToken(user);
