@@ -14,6 +14,14 @@ public final class SuggestionMapper {
             Suggestion suggestion,
             UserPrincipal viewer
     ) {
+        return toResponse(suggestion, viewer, suggestion.getViewCount());
+    }
+
+    public static SuggestionResponse toResponse(
+            Suggestion suggestion,
+            UserPrincipal viewer,
+            int viewCount
+    ) {
         boolean canViewAuthor = canViewAuthor(viewer, suggestion);
         return SuggestionResponse.builder()
                 .suggestionId(suggestion.getSuggestionId())
@@ -24,7 +32,7 @@ public final class SuggestionMapper {
                 .isPrivate(suggestion.isPrivate())
                 .answerContent(suggestion.getAnswerContent())
                 .answeredAt(suggestion.getAnsweredAt())
-                .viewCount(suggestion.getViewCount())
+                .viewCount(viewCount)
                 .isAnonymous(suggestion.isAnonymous())
                 .writerDisplay(buildWriterDisplay(suggestion, canViewAuthor))
                 .userId(canViewAuthor ? extractUserId(suggestion) : null)
@@ -37,6 +45,14 @@ public final class SuggestionMapper {
             Suggestion suggestion,
             UserPrincipal viewer
     ) {
+        return toListResponse(suggestion, viewer, suggestion.getViewCount());
+    }
+
+    public static SuggestionListResponse toListResponse(
+            Suggestion suggestion,
+            UserPrincipal viewer,
+            int viewCount
+    ) {
         boolean canViewAuthor = canViewAuthor(viewer, suggestion);
         return SuggestionListResponse.builder()
                 .suggestionId(suggestion.getSuggestionId())
@@ -44,7 +60,7 @@ public final class SuggestionMapper {
                 .category(suggestion.getCategory())
                 .status(suggestion.getStatus())
                 .isPrivate(suggestion.isPrivate())
-                .viewCount(suggestion.getViewCount())
+                .viewCount(viewCount)
                 .writerDisplay(buildWriterDisplay(suggestion, canViewAuthor))
                 .createdAt(suggestion.getCreatedAt())
                 .build();
@@ -60,6 +76,9 @@ public final class SuggestionMapper {
         User user = suggestion.getUser();
         if (user == null) {
             return "알 수 없음";
+        }
+        if (user.getRole() == com.lh.assist.user.domain.enums.UserRole.ADMIN) {
+            return "관리자";
         }
         String department = user.getDepartment() != null ? user.getDepartment().getDescription() : "";
         String position = user.getPosition() != null ? user.getPosition().getDescription() : "";

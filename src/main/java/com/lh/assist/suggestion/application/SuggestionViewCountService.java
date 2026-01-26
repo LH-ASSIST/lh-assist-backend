@@ -8,6 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -17,6 +22,7 @@ public class SuggestionViewCountService {
 
     private static final String VIEW_KEY_PREFIX = "suggestion:view:";
     private static final String VIEW_KEY_SET = "suggestion:view:keys";
+    private static final Duration VIEW_KEY_TTL = Duration.ofDays(7);
 
     private final StringRedisTemplate stringRedisTemplate;
     private final SuggestionRepository suggestionRepository;
@@ -30,6 +36,36 @@ public class SuggestionViewCountService {
         String key = VIEW_KEY_PREFIX + suggestionId;
         stringRedisTemplate.opsForValue().increment(key);
         stringRedisTemplate.opsForSet().add(VIEW_KEY_SET, key);
+        refreshKeyTtl(key);
+    }
+
+    public int getViewCount(Long suggestionId, int baseCount) {
+        String key = VIEW_KEY_PREFIX + suggestionId;
+        String value = stringRedisTemplate.opsForValue().get(key);
+        int delta = parseDelta(value);
+        return baseCount + Math.max(delta, 0);
+    }
+
+    public Map<Long, Integer> getViewCountDeltas(List<Long> suggestionIds) {
+        if (suggestionIds == null || suggestionIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<String> keys = suggestionIds.stream()
+                .map(id -> VIEW_KEY_PREFIX + id)
+                .toList();
+        List<String> values = stringRedisTemplate.opsForValue().multiGet(keys);
+        Map<Long, Integer> deltas = new HashMap<>();
+        if (values == null) {
+            return deltas;
+        }
+        for (int i = 0; i < keys.size(); i++) {
+            String value = values.get(i);
+            int delta = parseDelta(value);
+            if (delta > 0) {
+                deltas.put(suggestionIds.get(i), delta);
+            }
+        }
+        return deltas;
     }
 
     /**
@@ -49,6 +85,7 @@ public class SuggestionViewCountService {
             String value = stringRedisTemplate.opsForValue().getAndSet(key, "0");
             int delta = parseDelta(value);
             if (delta <= 0) {
+                removeKeyIfEmpty(key);
                 continue;
             }
             try {
@@ -74,7 +111,8 @@ public class SuggestionViewCountService {
         }
         int updated = suggestionRepository.incrementViewCount(suggestionId, delta);
         if (updated == 0) {
-            restoreDelta(key, delta);
+            removeKey(key);
+            log.warn("삭제된 건의사항으로 조회수 반영이 중단되었습니다. key={}", key);
             return;
         }
         removeKeyIfEmpty(key);
@@ -124,6 +162,7 @@ public class SuggestionViewCountService {
     private void restoreDelta(String key, int delta) {
         stringRedisTemplate.opsForValue().increment(key, delta);
         stringRedisTemplate.opsForSet().add(VIEW_KEY_SET, key);
+        refreshKeyTtl(key);
     }
 
     /**
@@ -134,7 +173,21 @@ public class SuggestionViewCountService {
     private void removeKeyIfEmpty(String key) {
         String current = stringRedisTemplate.opsForValue().get(key);
         if (current == null || "0".equals(current)) {
-            stringRedisTemplate.opsForSet().remove(VIEW_KEY_SET, key);
+            removeKey(key);
         }
+    }
+
+    private void removeKey(String key) {
+        stringRedisTemplate.delete(key);
+        stringRedisTemplate.opsForSet().remove(VIEW_KEY_SET, key);
+    }
+
+    private void refreshKeyTtl(String key) {
+        stringRedisTemplate.expire(key, VIEW_KEY_TTL);
+        stringRedisTemplate.expire(VIEW_KEY_SET, VIEW_KEY_TTL);
+    }
+
+    public void evict(Long suggestionId) {
+        removeKey(VIEW_KEY_PREFIX + suggestionId);
     }
 }

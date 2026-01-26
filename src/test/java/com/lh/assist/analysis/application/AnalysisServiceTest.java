@@ -10,12 +10,10 @@ import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.regulation.domain.enums.domain.entity.Document;
 import com.lh.assist.regulation.domain.enums.domain.repository.DocumentRepository;
 import com.lh.assist.infrastructure.aws.sqs.SqsMessageProducer;
+import com.lh.assist.support.ReflectionTestUtils;
+import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
-import com.lh.assist.user.domain.enums.UserDepartment;
-import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.repository.UserRepository;
-import com.lh.assist.user.domain.enums.UserRole;
-import com.lh.assist.user.domain.enums.UserStatus;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -43,8 +41,10 @@ class AnalysisServiceTest {
     @Test
     @DisplayName("문서 소유자가 아니면 접근 거부가 발생해야 한다")
     void 문서_소유자_아니면_거부() {
-        User requester = user(1L);
-        User owner = user(2L);
+        User requester = TestDataFactory.user("user1@lh.com");
+        ReflectionTestUtils.setField(requester, "userId", 1L);
+        User owner = TestDataFactory.user("user2@lh.com");
+        ReflectionTestUtils.setField(owner, "userId", 2L);
         Document document = Document.builder()
                 .title("문서")
                 .s3Key("documents/2/key.pdf")
@@ -67,7 +67,8 @@ class AnalysisServiceTest {
     @Test
     @DisplayName("기준일이 없으면 입력값 오류가 발생해야 한다")
     void 기준일_없으면_입력값_오류() {
-        User requester = user(1L);
+        User requester = TestDataFactory.user("user1@lh.com");
+        ReflectionTestUtils.setField(requester, "userId", 1L);
         Document document = Document.builder()
                 .title("문서")
                 .s3Key("documents/1/key.pdf")
@@ -86,7 +87,8 @@ class AnalysisServiceTest {
     @Test
     @DisplayName("문서 ID가 없으면 입력값 오류가 발생해야 한다")
     void 문서_ID_없으면_입력값_오류() {
-        User requester = user(1L);
+        User requester = TestDataFactory.user("user1@lh.com");
+        ReflectionTestUtils.setField(requester, "userId", 1L);
         when(userRepository.findByEmail("req@lh.com")).thenReturn(Optional.of(requester));
 
         LocalDate baseDate = LocalDate.now();
@@ -110,18 +112,4 @@ class AnalysisServiceTest {
                 .isEqualTo(ErrorCode.UNAUTHORIZED);
     }
 
-    private static User user(Long userId) {
-        return User.builder()
-                .userId(userId)
-                .email("user" + userId + "@lh.com")
-                .password("hashed")
-                .name("Tester")
-                .department(UserDepartment.PUBLIC_HOUSING_HEADQUARTERS)
-                .position(UserPosition.DEPUTY_MANAGER)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build();
-    }
 }

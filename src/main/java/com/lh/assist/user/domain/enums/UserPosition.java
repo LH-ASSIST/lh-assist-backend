@@ -10,7 +10,8 @@ public enum UserPosition {
 	TEAM_LEAD("팀장"),
 	DEPUTY_MANAGER("차장"),
 	MANAGER("과장"),
-	STAFF("사원");
+	STAFF("사원"),
+	ETC("기타");
 
 	private final String description;
 }

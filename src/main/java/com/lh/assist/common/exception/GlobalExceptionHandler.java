@@ -2,6 +2,8 @@ package com.lh.assist.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import com.lh.assist.common.model.ApiResponse;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -59,6 +61,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(
                 ApiResponse.error(ErrorCode.FILE_SIZE_EXCEEDED.getMessage(), ErrorCode.FILE_SIZE_EXCEEDED.getStatus().value()),
                 ErrorCode.FILE_SIZE_EXCEEDED.getStatus()
+        );
+    }
+
+    /**
+     * 권한 부족 예외 처리
+     */
+    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    protected ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(Exception e) {
+        log.warn("접근 권한 없음: {}", e.getMessage());
+        return new ResponseEntity<>(
+                ApiResponse.error(ErrorCode.ACCESS_DENIED.getMessage(), ErrorCode.ACCESS_DENIED.getStatus().value()),
+                ErrorCode.ACCESS_DENIED.getStatus()
         );
     }
 

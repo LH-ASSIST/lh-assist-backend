@@ -3,10 +3,13 @@ package com.lh.assist.suggestion.application;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SuggestionException;
 import com.lh.assist.suggestion.api.dto.request.SuggestionCreateRequest;
+import com.lh.assist.suggestion.api.dto.request.SuggestionUpdateRequest;
 import com.lh.assist.suggestion.domain.entity.Suggestion;
 import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -64,8 +67,8 @@ public class SuggestionService {
             boolean isAdmin,
             Pageable pageable
     ) {
-        if (isAdmin) {
-            return suggestionRepository.findAll(pageable);
+        if (userId == null) {
+            return suggestionRepository.findByIsPrivateFalse(pageable);
         }
         return suggestionRepository.findVisibleByUserId(userId, pageable);
     }
@@ -96,6 +99,63 @@ public class SuggestionService {
     }
 
     /**
+     * QnA 건의사항을 수정한다
+     *
+     * @param userId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
+     * @param suggestionId 수정할 건의 ID
+     * @param request 수정할 건의 정보
+     * @return 수정된 건의 엔티티
+     */
+    @Transactional
+    public Suggestion updateSuggestion(
+            Long userId,
+            boolean isAdmin,
+            Long suggestionId,
+            SuggestionUpdateRequest request
+    ) {
+        Suggestion suggestion = suggestionRepository.findById(suggestionId)
+                .orElseThrow(() -> new SuggestionException(ErrorCode.SUGGESTION_NOT_FOUND));
+        validateEditPermission(userId, isAdmin, suggestion);
+        suggestion.update(
+                request.title(),
+                request.content(),
+                request.category(),
+                request.isPrivate(),
+                request.isAnonymous()
+        );
+        return suggestion;
+    }
+
+    /**
+     * QnA 건의사항을 삭제한다
+     *
+     * @param userId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
+     * @param suggestionId 삭제할 건의 ID
+     */
+    @Transactional
+    public void deleteSuggestion(
+            Long userId,
+            boolean isAdmin,
+            Long suggestionId
+    ) {
+        Suggestion suggestion = suggestionRepository.findById(suggestionId)
+                .orElseThrow(() -> new SuggestionException(ErrorCode.SUGGESTION_NOT_FOUND));
+        validateEditPermission(userId, isAdmin, suggestion);
+        suggestionRepository.delete(suggestion);
+        viewCountService.evict(suggestionId);
+    }
+
+    public int getViewCount(Long suggestionId, int baseCount) {
+        return viewCountService.getViewCount(suggestionId, baseCount);
+    }
+
+    public Map<Long, Integer> getViewCountDeltas(List<Long> suggestionIds) {
+        return viewCountService.getViewCountDeltas(suggestionIds);
+    }
+
+    /**
      * 비공개 글 조회 권한을 확인한다
      *
      * 공개글이면 허용하고, 비공개글은 작성자 또는 관리자만 허용한다
@@ -112,6 +172,28 @@ public class SuggestionService {
         if (!suggestion.isPrivate()) {
             return;
         }
+        if (isAdmin) {
+            return;
+        }
+        if (suggestion.getUser() == null || !suggestion.getUser().getUserId().equals(userId)) {
+            throw new SuggestionException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 수정/삭제 권한을 확인한다
+     *
+     * 작성자 또는 관리자만 허용한다
+     *
+     * @param userId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
+     * @param suggestion 수정 대상 건의
+     */
+    private void validateEditPermission(
+            Long userId,
+            boolean isAdmin,
+            Suggestion suggestion
+    ) {
         if (isAdmin) {
             return;
         }

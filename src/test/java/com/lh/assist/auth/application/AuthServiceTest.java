@@ -99,8 +99,8 @@ class AuthServiceTest {
 			.email("login@lh.com")
 			.password("hashed")
 			.name("Tester")
-			.department(UserDepartment.PUBLIC_HOUSING_HEADQUARTERS)
-			.position(UserPosition.TEAM_LEAD)
+			.department(UserDepartment.ETC)
+			.position(UserPosition.ETC)
 			.role(UserRole.USER)
 			.status(UserStatus.ACTIVE)
 			.emailVerified(false)
@@ -128,8 +128,8 @@ class AuthServiceTest {
 			.email("login@lh.com")
 			.password("hashed")
 			.name("Tester")
-			.department(UserDepartment.PUBLIC_HOUSING_HEADQUARTERS)
-			.position(UserPosition.TEAM_LEAD)
+			.department(UserDepartment.ETC)
+			.position(UserPosition.ETC)
 			.role(UserRole.USER)
 			.status(UserStatus.ACTIVE)
 			.emailVerified(false)
@@ -164,8 +164,8 @@ class AuthServiceTest {
 			email,
 			"Test1234!",
 			"Tester",
-			UserDepartment.PUBLIC_HOUSING_HEADQUARTERS,
-			UserPosition.STAFF
+			UserDepartment.ETC,
+			UserPosition.ETC
 		);
 	}
 

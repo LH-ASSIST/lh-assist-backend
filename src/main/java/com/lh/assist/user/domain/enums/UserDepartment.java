@@ -14,7 +14,8 @@ public enum UserDepartment {
 	PUBLIC_HOUSING_FACILITIES_OFFICE("공공주택설비처"),
 	PUBLIC_HOUSING_ELECTRICAL_OFFICE("공공주택전기처"),
 	RESIDENTIAL_ENVIRONMENT_PLANNING_GROUP("주거환경계획단"),
-	YOUTH_HOUSING_TASKFORCE("청년주택추진단(TFT)");
+	YOUTH_HOUSING_TASKFORCE("청년주택추진단(TFT)"),
+	ETC("기타");
 
 	private final String description;
 }

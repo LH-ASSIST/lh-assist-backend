@@ -18,10 +18,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Getter
 @Entity
 @Table(name = "users")
+@SQLDelete(sql = "UPDATE users SET status = 'DELETED' WHERE user_id = ?")
+@SQLRestriction("status <> 'DELETED'")
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
