@@ -72,3 +72,10 @@ app:
   suggestion:
     view-count:
       flush-interval-ms: 60000
+
+  admin:
+    bootstrap:
+      enabled: ${APP_ADMIN_BOOTSTRAP_ENABLED:false}
+      email: ${APP_ADMIN_EMAIL:}
+      password: ${APP_ADMIN_PASSWORD:}
+      name: ${APP_ADMIN_NAME:}
