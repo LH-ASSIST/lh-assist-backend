@@ -62,7 +62,10 @@ springdoc:
 
 jwt:
   secret: ${JWT_SECRET}
+  issuer: lh-assist
+  audience: lh-assist-client
   access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
 
 app:
   sqs:
