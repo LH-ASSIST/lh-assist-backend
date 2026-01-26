@@ -35,8 +35,22 @@ public class AdminBootstrap {
     @Value("${app.admin.bootstrap.name:}")
     private String name;
 
-    private static final UserDepartment DEFAULT_DEPARTMENT = UserDepartment.ETC;
-    private static final UserPosition DEFAULT_POSITION = UserPosition.ETC;
+    private static final UserDepartment DEFAULT_ADMIN_DEPARTMENT = UserDepartment.ETC;
+    private static final UserPosition DEFAULT_ADMIN_POSITION = UserPosition.ETC;
+    private static final UserDepartment DEFAULT_USER_DEPARTMENT = UserDepartment.PUBLIC_HOUSING_BUSINESS_OFFICE;
+    private static final UserPosition DEFAULT_USER_POSITION = UserPosition.STAFF;
+
+    @Value("${app.admin.bootstrap.test-user.enabled:false}")
+    private boolean testUserEnabled;
+
+    @Value("${app.admin.bootstrap.test-user.email:}")
+    private String testUserEmail;
+
+    @Value("${app.admin.bootstrap.test-user.password:}")
+    private String testUserPassword;
+
+    @Value("${app.admin.bootstrap.test-user.name:}")
+    private String testUserName;
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
@@ -56,8 +70,8 @@ public class AdminBootstrap {
                 .email(email)
                 .password(passwordEncoder.encode(password))
                 .name(name)
-                .department(DEFAULT_DEPARTMENT)
-                .position(DEFAULT_POSITION)
+                .department(DEFAULT_ADMIN_DEPARTMENT)
+                .position(DEFAULT_ADMIN_POSITION)
                 .role(UserRole.ADMIN)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(true)
@@ -65,6 +79,35 @@ public class AdminBootstrap {
                 .build();
         userRepository.save(admin);
         log.info("관리자 계정이 생성되었습니다. email={}", email);
+
+        createTestUserIfNeeded();
+    }
+
+    private void createTestUserIfNeeded() {
+        if (!testUserEnabled) {
+            return;
+        }
+        if (isBlank(testUserEmail) || isBlank(testUserPassword) || isBlank(testUserName)) {
+            log.warn("테스트 사용자 부트스트랩 설정이 누락되었습니다. 테스트 계정을 생성하지 않습니다.");
+            return;
+        }
+        if (userRepository.existsByEmail(testUserEmail)) {
+            return;
+        }
+
+        User user = User.builder()
+                .email(testUserEmail)
+                .password(passwordEncoder.encode(testUserPassword))
+                .name(testUserName)
+                .department(DEFAULT_USER_DEPARTMENT)
+                .position(DEFAULT_USER_POSITION)
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .emailVerified(true)
+                .attemptCount(0)
+                .build();
+        userRepository.save(user);
+        log.info("테스트 계정이 생성되었습니다. email={}", testUserEmail);
     }
 
     private boolean isBlank(String value) {
