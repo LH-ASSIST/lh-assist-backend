@@ -230,7 +230,7 @@ class SuggestionControllerIntegrationTest extends IntegrationTestBase {
     }
 
     private String bearer(User user) {
-        return "Bearer " + tokenProvider.createToken(user);
+        return "Bearer " + tokenProvider.createAccessToken(user);
     }
 
 }

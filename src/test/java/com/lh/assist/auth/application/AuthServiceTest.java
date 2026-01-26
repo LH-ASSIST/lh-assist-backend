@@ -11,7 +11,8 @@ import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
-import com.lh.assist.common.security.jwt.JwtTokenProvider;
+import com.lh.assist.common.security.jwt.TokenPair;
+import com.lh.assist.common.security.jwt.TokenService;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.enums.UserDepartment;
 import com.lh.assist.user.domain.enums.UserPosition;
@@ -37,7 +38,7 @@ class AuthServiceTest {
 	private PasswordEncoder passwordEncoder;
 
 	@Mock
-	private JwtTokenProvider tokenProvider;
+	private TokenService tokenService;
 
 	@InjectMocks
 	private AuthService authService;
@@ -109,11 +110,12 @@ class AuthServiceTest {
 
 		when(userRepository.findByEmail("login@lh.com")).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches("Test1234!", "hashed")).thenReturn(true);
-		when(tokenProvider.createToken(user)).thenReturn("token");
+		when(tokenService.issueLoginTokens(user)).thenReturn(new TokenPair("token", "refresh"));
 
 		LoginResponse response = authService.login(request);
 
 		assertThat(response.getAccessToken()).isEqualTo("token");
+		assertThat(response.getRefreshToken()).isEqualTo("refresh");
 		assertThat(response.getEmail()).isEqualTo("login@lh.com");
 		assertThat(response.getRole()).isEqualTo(UserRole.USER);
 	}
