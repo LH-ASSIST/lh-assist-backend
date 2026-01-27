@@ -17,11 +17,13 @@ class JwtTokenProviderTest {
 	private static final String SECRET = "test-jwt-secret-test-jwt-secret-test-jwt-secret";
 	private static final String ISSUER = "lh-assist";
 	private static final String AUDIENCE = "lh-assist-client";
+	private static final long ACCESS_TTL_MS = 60_000L;
+	private static final long REFRESH_TTL_MS = 120_000L;
 
 	@Test
 	@DisplayName("액세스 토큰에는 필수 클레임이 포함되어야 한다")
 	void accessToken_hasRequiredClaims() {
-		JwtTokenProvider provider = new JwtTokenProvider(SECRET, 1000L, 2000L, ISSUER, AUDIENCE);
+		JwtTokenProvider provider = new JwtTokenProvider(SECRET, ACCESS_TTL_MS, REFRESH_TTL_MS, ISSUER, AUDIENCE);
 		User user = user();
 
 		String token = provider.createAccessToken(user);
@@ -37,7 +39,7 @@ class JwtTokenProviderTest {
 	@Test
 	@DisplayName("리프레시 토큰에는 family 클레임이 포함되어야 한다")
 	void refreshToken_hasFamilyClaim() {
-		JwtTokenProvider provider = new JwtTokenProvider(SECRET, 1000L, 2000L, ISSUER, AUDIENCE);
+		JwtTokenProvider provider = new JwtTokenProvider(SECRET, ACCESS_TTL_MS, REFRESH_TTL_MS, ISSUER, AUDIENCE);
 		User user = user();
 
 		String token = provider.createRefreshToken(user, "family-1");
@@ -50,7 +52,7 @@ class JwtTokenProviderTest {
 	@Test
 	@DisplayName("리프레시 토큰으로는 인증 객체를 만들 수 없다")
 	void refreshToken_cannotAuthenticate() {
-		JwtTokenProvider provider = new JwtTokenProvider(SECRET, 1000L, 2000L, ISSUER, AUDIENCE);
+		JwtTokenProvider provider = new JwtTokenProvider(SECRET, ACCESS_TTL_MS, REFRESH_TTL_MS, ISSUER, AUDIENCE);
 		User user = user();
 
 		String token = provider.createRefreshToken(user, "family-1");
