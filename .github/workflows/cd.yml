@@ -58,4 +58,18 @@ jobs:
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
             sudo docker stop ${{ env.CONTAINER_NAME }} || true
             sudo docker rm ${{ env.CONTAINER_NAME }} || true
-            sudo docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+            sudo docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -e AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }} \
+              -e AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }} \
+              -e AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }} \
+              -e SQS_DOCUMENT_ANALYZE_QUEUE_URL=${{ secrets.SQS_DOCUMENT_ANALYZE_QUEUE_URL }} \
+              -e APP_ADMIN_BOOTSTRAP_ENABLED=true \
+              -e APP_ADMIN_EMAIL=${{ secrets.APP_ADMIN_EMAIL }} \
+              -e APP_ADMIN_PASSWORD=${{ secrets.APP_ADMIN_PASSWORD }} \
+              -e APP_ADMIN_NAME=관리자 \
+              -e APP_TEST_USER_BOOTSTRAP_ENABLED=true \
+              -e APP_TEST_USER_EMAIL=${{ secrets.APP_TEST_USER_EMAIL }} \
+              -e APP_TEST_USER_PASSWORD=${{ secrets.APP_TEST_USER_PASSWORD }} \
+              -e APP_TEST_USER_NAME=테스트 \
+              ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
