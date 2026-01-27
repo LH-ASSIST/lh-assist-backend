@@ -13,6 +13,8 @@ import com.lh.assist.auth.api.dto.response.RefreshResponse;
 import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
 import com.lh.assist.auth.application.AuthService;
+import com.lh.assist.common.exception.AuthException;
+import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.model.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -65,9 +67,16 @@ public class AuthController {
 	}
 
 	private String extractAccessToken(String header) {
-		if (header != null && header.startsWith("Bearer ")) {
-			return header.substring(7);
+		if (header == null || header.isBlank()) {
+			throw new AuthException(ErrorCode.UNAUTHORIZED);
 		}
-		return null;
+		if (!header.startsWith("Bearer ")) {
+			throw new AuthException(ErrorCode.UNAUTHORIZED);
+		}
+		String token = header.substring(7);
+		if (token.isBlank()) {
+			throw new AuthException(ErrorCode.UNAUTHORIZED);
+		}
+		return token;
 	}
 }

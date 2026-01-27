@@ -56,7 +56,6 @@ public class TokenService {
 	 * @return 액세스/리프레시 토큰 쌍
 	 */
 	public TokenPair rotateRefreshToken(String refreshToken) {
-		// refresh 토큰 회전; 재사용 탐지 시 family 전체 폐기.
 		Claims claims = parseClaimsOrUnauthorized(refreshToken);
 		if (!tokenProvider.isRefreshToken(claims)) {
 			throw new AuthException(ErrorCode.UNAUTHORIZED);
@@ -68,7 +67,7 @@ public class TokenService {
 			throw new AuthException(ErrorCode.UNAUTHORIZED);
 		}
 
-		if (!refreshTokenStore.exists(jti)) {
+		if (!refreshTokenStore.consumeToken(jti, familyId)) {
 			refreshTokenStore.revokeFamily(familyId);
 			throw new AuthException(ErrorCode.UNAUTHORIZED);
 		}
@@ -80,7 +79,6 @@ public class TokenService {
 		User user = userRepository.findById(userId)
 				.orElseThrow(() -> new AuthException(ErrorCode.UNAUTHORIZED));
 
-		refreshTokenStore.removeToken(jti, familyId);
 		return issueTokens(user, familyId);
 	}
 
@@ -94,8 +92,22 @@ public class TokenService {
 			String refreshToken,
 			String accessToken
 	) {
-		revokeRefreshFamilyIfPresent(refreshToken);
-		blacklistAccessIfPresent(accessToken);
+		RuntimeException firstException = null;
+		try {
+			blacklistAccessIfPresent(accessToken);
+		} catch (RuntimeException ex) {
+			firstException = ex;
+		}
+		try {
+			revokeRefreshFamilyIfPresent(refreshToken);
+		} catch (RuntimeException ex) {
+			if (firstException == null) {
+				firstException = ex;
+			}
+		}
+		if (firstException != null) {
+			throw firstException;
+		}
 	}
 
 	/**
