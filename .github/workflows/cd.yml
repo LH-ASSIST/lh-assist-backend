@@ -1,0 +1,61 @@
+name: CD - Deploy
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AWS_REGION: us-east-1
+      IMAGE_NAME: lh-assist-backend
+      CONTAINER_NAME: lh-assist-backend
+      EC2_TAG_NAME: lh-assist-backend-server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. AWS 자격 증명 설정
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 2. 동적으로 EC2 퍼블릭 IP 가져오기
+      - name: Get EC2 Public IP
+        id: get-ip
+        run: |
+          IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.EC2_TAG_NAME }}" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+          echo "EC2_IP=$IP" >> $GITHUB_ENV
+
+      # 3. Docker build & push
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+
+      # 4. EC2 접속 및 컨테이너 교체
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.EC2_IP }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+            sudo docker stop ${{ env.CONTAINER_NAME }} || true
+            sudo docker rm ${{ env.CONTAINER_NAME }} || true
+            sudo docker run -d --name ${{ env.CONTAINER_NAME }} -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
