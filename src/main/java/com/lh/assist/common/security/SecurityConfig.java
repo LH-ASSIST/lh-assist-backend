@@ -35,7 +35,9 @@ public class SecurityConfig {
 								"/v3/api-docs/**",
 								"/swagger-ui/**",
 								"/swagger-ui.html",
-								"/api/v1/auth/**"
+								"/api/v1/auth/**",
+								"/actuator/health",
+								"/actuator/health/**"
 						).permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/qna").permitAll()
 						.anyRequest().authenticated()
