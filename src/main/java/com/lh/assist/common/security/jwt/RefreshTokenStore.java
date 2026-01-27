@@ -2,8 +2,10 @@ package com.lh.assist.common.security.jwt;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,6 +13,7 @@ public class RefreshTokenStore {
 
 	private static final String TOKEN_KEY_PREFIX = "auth:refresh:token:";
 	private static final String FAMILY_SET_PREFIX = "auth:refresh:family:";
+	private static final DefaultRedisScript<Long> CONSUME_TOKEN_SCRIPT = createConsumeTokenScript();
 
 	private final StringRedisTemplate stringRedisTemplate;
 
@@ -56,6 +59,22 @@ public class RefreshTokenStore {
 	}
 
 	/**
+	 * 리프레시 토큰 jti를 Redis에서 원자적으로 소비한다
+	 *
+	 * @param jti 리프레시 토큰 식별자
+	 * @param familyId 리프레시 토큰 family 식별자
+	 * @return 소비 성공 여부
+	 */
+	public boolean consumeToken(String jti, String familyId) {
+		Long result = stringRedisTemplate.execute(
+				CONSUME_TOKEN_SCRIPT,
+				List.of(tokenKey(jti), familyKey(familyId)),
+				jti
+		);
+		return Long.valueOf(1L).equals(result);
+	}
+
+	/**
 	 * 리프레시 토큰 family에 속한 모든 jti를 조회한다
 	 *
 	 * @param familyId 리프레시 토큰 family 식별자
@@ -85,5 +104,19 @@ public class RefreshTokenStore {
 
 	private String familyKey(String familyId) {
 		return FAMILY_SET_PREFIX + familyId;
+	}
+
+	private static DefaultRedisScript<Long> createConsumeTokenScript() {
+		DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+		script.setResultType(Long.class);
+		script.setScriptText(
+				"if redis.call('EXISTS', KEYS[1]) == 1 then " +
+				"redis.call('DEL', KEYS[1]); " +
+				"redis.call('SREM', KEYS[2], ARGV[1]); " +
+				"return 1; " +
+				"end; " +
+				"return 0;"
+		);
+		return script;
 	}
 }
