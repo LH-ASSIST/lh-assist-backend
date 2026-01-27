@@ -4,6 +4,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.Tag;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerImageName;
@@ -11,6 +12,7 @@ import org.testcontainers.containers.GenericContainer;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Tag("integration")
 public abstract class IntegrationTestBase {
 
 	@SuppressWarnings("resource")
