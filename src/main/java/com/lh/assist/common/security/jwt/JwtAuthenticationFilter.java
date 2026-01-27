@@ -17,9 +17,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtTokenProvider tokenProvider;
+	private final TokenBlacklistService tokenBlacklistService;
 
-	public JwtAuthenticationFilter(JwtTokenProvider tokenProvider) {
+	public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, TokenBlacklistService tokenBlacklistService) {
 		this.tokenProvider = tokenProvider;
+		this.tokenBlacklistService = tokenBlacklistService;
 	}
 
 	@Override
@@ -33,8 +35,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		if (header != null && header.startsWith("Bearer ")) {
 			String token = header.substring(7);
 			if (tokenProvider.validateToken(token)) {
-				Authentication authentication = tokenProvider.getAuthentication(token);
-				SecurityContextHolder.getContext().setAuthentication(authentication);
+				var claims = tokenProvider.parseClaims(token);
+				if (tokenProvider.isAccessToken(claims) && !tokenBlacklistService.isBlacklisted(claims.getId())) {
+					Authentication authentication = tokenProvider.createAuthentication(claims, token);
+					SecurityContextHolder.getContext().setAuthentication(authentication);
+				}
 			}
 		}
 		filterChain.doFilter(request, response);

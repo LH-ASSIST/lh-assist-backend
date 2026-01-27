@@ -66,6 +66,29 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 
+tasks.test {
+	useJUnitPlatform {
+		excludeTags("integration")
+	}
+}
+
+val integrationTest by tasks.registering(Test::class) {
+	description = "Runs integration tests that require Testcontainers."
+	group = "verification"
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	useJUnitPlatform {
+		includeTags("integration")
+	}
+	shouldRunAfter(tasks.test)
+}
+
+tasks.check {
+	if (System.getenv("CI") == "true") {
+		dependsOn(integrationTest)
+	}
+}
+
 //jacoco {
 //	toolVersion = "0.8.12"
 //}

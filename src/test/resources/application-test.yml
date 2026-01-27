@@ -24,4 +24,7 @@ spring:
 
 jwt:
   secret: test-jwt-secret-test-jwt-secret-test-jwt-secret
+  issuer: lh-assist
+  audience: lh-assist-client
   access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000

@@ -2,11 +2,13 @@ package com.lh.assist.auth.application;
 
 import com.lh.assist.auth.api.dto.request.LoginRequest;
 import com.lh.assist.auth.api.dto.response.LoginResponse;
+import com.lh.assist.auth.api.dto.response.RefreshResponse;
 import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
 import com.lh.assist.common.exception.AuthException;
 import com.lh.assist.common.exception.ErrorCode;
-import com.lh.assist.common.security.jwt.JwtTokenProvider;
+import com.lh.assist.common.security.jwt.TokenPair;
+import com.lh.assist.common.security.jwt.TokenService;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import com.lh.assist.user.domain.enums.UserRole;
@@ -22,7 +24,7 @@ public class AuthService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
-	private final JwtTokenProvider tokenProvider;
+	private final TokenService tokenService;
 
 	/**
 	 * 회원가입 요청을 처리하고 신규 사용자를 저장한다
@@ -79,13 +81,29 @@ public class AuthService {
 			throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
 		}
 
-		String token = tokenProvider.createToken(user);
+		TokenPair tokenPair = tokenService.issueLoginTokens(user);
 		return LoginResponse.builder()
-				.accessToken(token)
+				.accessToken(tokenPair.accessToken())
+				.refreshToken(tokenPair.refreshToken())
 				.tokenType("Bearer")
 				.userId(user.getUserId())
 				.email(user.getEmail())
 				.role(user.getRole())
 				.build();
+	}
+
+	@Transactional(readOnly = true)
+	public RefreshResponse refresh(String refreshToken) {
+		TokenPair tokenPair = tokenService.rotateRefreshToken(refreshToken);
+		return RefreshResponse.builder()
+				.accessToken(tokenPair.accessToken())
+				.refreshToken(tokenPair.refreshToken())
+				.tokenType("Bearer")
+				.build();
+	}
+
+	@Transactional
+	public void logout(String refreshToken, String accessToken) {
+		tokenService.logout(refreshToken, accessToken);
 	}
 }
