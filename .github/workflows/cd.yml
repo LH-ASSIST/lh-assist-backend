@@ -52,7 +52,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.EC2_IP }}
-          username: ${{ secrets.USERNAME }}
+          username: ubuntu
           key: ${{ secrets.KEY }}
           script: |
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
