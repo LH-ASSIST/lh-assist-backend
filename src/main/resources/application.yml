@@ -2,26 +2,6 @@ spring:
   application:
     name: lh-assist-backend
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/lh_assist_db
-    username: postgres
-    password: jiny0609
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-
   cloud:
     aws:
       credentials:
