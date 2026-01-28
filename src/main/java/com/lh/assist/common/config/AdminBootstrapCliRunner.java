@@ -9,22 +9,23 @@ import com.lh.assist.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AdminBootstrap {
+@ConditionalOnProperty(prefix = "app.admin.bootstrap.cli", name = "enabled", havingValue = "true")
+public class AdminBootstrapCliRunner implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
-    @Value("${app.admin.bootstrap.enabled:false}")
-    private boolean enabled;
+    private final ApplicationContext applicationContext;
 
     @Value("${app.admin.bootstrap.email:}")
     private String email;
@@ -34,11 +35,6 @@ public class AdminBootstrap {
 
     @Value("${app.admin.bootstrap.name:}")
     private String name;
-
-    private static final UserDepartment DEFAULT_ADMIN_DEPARTMENT = UserDepartment.ETC;
-    private static final UserPosition DEFAULT_ADMIN_POSITION = UserPosition.ETC;
-    private static final UserDepartment DEFAULT_USER_DEPARTMENT = UserDepartment.PUBLIC_HOUSING_BUSINESS_OFFICE;
-    private static final UserPosition DEFAULT_USER_POSITION = UserPosition.STAFF;
 
     @Value("${app.admin.bootstrap.test-user.enabled:false}")
     private boolean testUserEnabled;
@@ -52,35 +48,39 @@ public class AdminBootstrap {
     @Value("${app.admin.bootstrap.test-user.name:}")
     private String testUserName;
 
-    @EventListener(ApplicationReadyEvent.class)
+    private static final UserDepartment DEFAULT_ADMIN_DEPARTMENT = UserDepartment.ETC;
+    private static final UserPosition DEFAULT_ADMIN_POSITION = UserPosition.ETC;
+    private static final UserDepartment DEFAULT_USER_DEPARTMENT = UserDepartment.PUBLIC_HOUSING_BUSINESS_OFFICE;
+    private static final UserPosition DEFAULT_USER_POSITION = UserPosition.STAFF;
+
+    @Override
     @Transactional
-    public void createAdminIfNeeded() {
-        if (!enabled) {
-            return;
-        }
+    public void run(ApplicationArguments args) {
         if (isBlank(email) || isBlank(password) || isBlank(name)) {
             log.warn("관리자 부트스트랩 설정이 누락되었습니다. 관리자 계정을 생성하지 않습니다.");
+            exit(1);
             return;
         }
         if (userRepository.existsByEmail(email)) {
-            return;
+            log.info("관리자 계정이 이미 존재합니다. email={}", email);
+        } else {
+            User admin = User.builder()
+                    .email(email)
+                    .password(passwordEncoder.encode(password))
+                    .name(name)
+                    .department(DEFAULT_ADMIN_DEPARTMENT)
+                    .position(DEFAULT_ADMIN_POSITION)
+                    .role(UserRole.ADMIN)
+                    .status(UserStatus.ACTIVE)
+                    .emailVerified(true)
+                    .attemptCount(0)
+                    .build();
+            userRepository.save(admin);
+            log.info("관리자 계정이 생성되었습니다. email={}", email);
         }
 
-        User admin = User.builder()
-                .email(email)
-                .password(passwordEncoder.encode(password))
-                .name(name)
-                .department(DEFAULT_ADMIN_DEPARTMENT)
-                .position(DEFAULT_ADMIN_POSITION)
-                .role(UserRole.ADMIN)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build();
-        userRepository.save(admin);
-        log.info("관리자 계정이 생성되었습니다. email={}", email);
-
         createTestUserIfNeeded();
+        exit(0);
     }
 
     private void createTestUserIfNeeded() {
@@ -92,6 +92,7 @@ public class AdminBootstrap {
             return;
         }
         if (userRepository.existsByEmail(testUserEmail)) {
+            log.info("테스트 계정이 이미 존재합니다. email={}", testUserEmail);
             return;
         }
 
@@ -108,6 +109,11 @@ public class AdminBootstrap {
                 .build();
         userRepository.save(user);
         log.info("테스트 계정이 생성되었습니다. email={}", testUserEmail);
+    }
+
+    private void exit(int code) {
+        int exitCode = org.springframework.boot.SpringApplication.exit(applicationContext, () -> code);
+        System.exit(exitCode);
     }
 
     private boolean isBlank(String value) {
