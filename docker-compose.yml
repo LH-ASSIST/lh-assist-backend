@@ -29,6 +29,7 @@ services:
       start_period: 60s
     networks:
       - backend_network
+    restart: unless-stopped
 
   db:
     image: ankane/pgvector:latest
@@ -48,6 +49,7 @@ services:
       retries: 10
     networks:
       - backend_network
+    restart: unless-stopped
 
   redis:
     image: redis:latest
@@ -61,6 +63,7 @@ services:
       retries: 10
     networks:
       - backend_network
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest
@@ -69,6 +72,7 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - backend_network
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:latest
@@ -77,6 +81,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     networks:
       - backend_network
+    restart: unless-stopped
 
 networks:
   backend_network:

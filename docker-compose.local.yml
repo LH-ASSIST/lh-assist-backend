@@ -1,16 +1,20 @@
 services:
   db:
+    restart: "no"
     ports:
       - "5432:5432"
 
   redis:
+    restart: "no"
     ports:
       - "6379:6379"
 
   prometheus:
+    restart: "no"
     ports:
       - "9090:9090"
 
   grafana:
+    restart: "no"
     ports:
       - "3000:3000"
