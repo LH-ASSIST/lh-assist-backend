@@ -1,0 +1,22 @@
+services:
+  spring-app:
+    build: .
+    image: lh-assist-backend-local
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  grafana:
+    ports:
+      - "3000:3000"
