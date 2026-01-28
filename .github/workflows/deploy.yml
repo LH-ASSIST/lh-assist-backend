@@ -71,7 +71,7 @@ jobs:
             export AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
             export SQS_DOCUMENT_ANALYZE_QUEUE_URL=${{ secrets.SQS_DOCUMENT_ANALYZE_QUEUE_URL }}
             cd /home/ubuntu/lh-assist-backend
-            sudo docker compose pull
-            sudo docker compose up -d
-            sudo docker compose ps
-            sudo docker compose logs --tail=200 spring-app
+            sudo -E docker compose pull
+            sudo -E docker compose up -d
+            sudo -E docker compose ps
+            sudo -E docker compose logs --tail=200 spring-app
