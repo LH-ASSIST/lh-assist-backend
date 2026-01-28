@@ -1,10 +1,4 @@
 services:
-  spring-app:
-    build: .
-    image: lh-assist-backend-local
-    environment:
-      SPRING_PROFILES_ACTIVE: local
-
   db:
     ports:
       - "5432:5432"

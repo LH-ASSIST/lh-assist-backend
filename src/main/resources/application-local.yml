@@ -20,4 +20,4 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
-    baseline-on-migrate: true
+    enabled: false
