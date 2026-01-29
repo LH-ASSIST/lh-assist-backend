@@ -39,6 +39,7 @@ public class NoticeController {
     private final NoticeService noticeService;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     @NoticeListDocs
     public ResponseEntity<ApiResponse<Page<NoticeResponse>>> listNotices(
             @ParameterObject Pageable pageable
