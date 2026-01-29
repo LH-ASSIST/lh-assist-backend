@@ -1,4 +1,15 @@
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: local/lh-assist-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+
   db:
     restart: "no"
     ports:
