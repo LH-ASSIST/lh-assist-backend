@@ -2,6 +2,17 @@ spring:
   application:
     name: lh-assist-backend
 
+  mail:
+    host: smtp.naver.com
+    port: 465
+    username: ${EMAIL_ADDRESS}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.ssl.trust: smtp.naver.com
+    sender: ${EMAIL_ADDRESS}
+
   cloud:
     aws:
       credentials:
@@ -15,6 +26,9 @@ spring:
         auto: false
 
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -48,6 +62,11 @@ jwt:
   refresh-token-expiration: 1209600000
 
 app:
+  email:
+    verification:
+      ttl-minutes: 5
+      resend-limit: 5
+      pepper: ${EMAIL_VERIFICATION_PEPPER:}
   sqs:
     document-analyze-queue-url: ${SQS_DOCUMENT_ANALYZE_QUEUE_URL:}
     max-attempts: 3
