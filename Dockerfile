@@ -1,7 +1,7 @@
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
 COPY . .
-RUN ./gradlew clean bootJar -x test
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew clean bootJar -x test
 
 FROM eclipse-temurin:21-jre
 ARG JAR_FILE=/workspace/build/libs/*.jar
