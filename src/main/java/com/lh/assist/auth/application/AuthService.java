@@ -5,6 +5,9 @@ import com.lh.assist.auth.api.dto.response.LoginResponse;
 import com.lh.assist.auth.api.dto.response.RefreshResponse;
 import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
+import com.lh.assist.auth.domain.entity.EmailVerification;
+import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
+import com.lh.assist.auth.domain.repository.EmailVerificationRepository;
 import com.lh.assist.common.exception.AuthException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.jwt.TokenPair;
@@ -13,6 +16,7 @@ import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,6 +29,7 @@ public class AuthService {
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final TokenService tokenService;
+	private final EmailVerificationRepository emailVerificationRepository;
 
 	/**
 	 * 회원가입 요청을 처리하고 신규 사용자를 저장한다
@@ -39,6 +44,7 @@ public class AuthService {
 		if (userRepository.existsByEmail(request.email())) {
 			throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
 		}
+		ensureEmailVerifiedForSignup(request.email());
 
 		User user = User.builder()
 				.email(request.email())
@@ -48,7 +54,7 @@ public class AuthService {
 				.position(request.position())
 				.role(UserRole.USER)
 				.status(UserStatus.ACTIVE)
-				.emailVerified(false)
+				.emailVerified(true)
 				.attemptCount(0)
 				.build();
 
@@ -62,6 +68,20 @@ public class AuthService {
 				.status(saved.getStatus())
 				.createdAt(saved.getCreatedAt())
 				.build();
+	}
+
+	private void ensureEmailVerifiedForSignup(String email) {
+		EmailVerification verification = emailVerificationRepository
+			.findTopByEmailAndPurposeOrderByCreatedAtDesc(email, EmailVerificationPurpose.SIGNUP)
+			.orElseThrow(() -> new AuthException(ErrorCode.EMAIL_NOT_VERIFIED));
+
+		LocalDateTime now = LocalDateTime.now();
+		if (verification.getVerifiedAt() == null) {
+			throw new AuthException(ErrorCode.EMAIL_NOT_VERIFIED);
+		}
+		if (verification.isExpired(now)) {
+			throw new AuthException(ErrorCode.EMAIL_VERIFICATION_EXPIRED);
+		}
 	}
 
 	/**
@@ -79,6 +99,9 @@ public class AuthService {
 
 		if (!passwordEncoder.matches(request.password(), user.getPassword())) {
 			throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+		}
+		if (!user.isEmailVerified()) {
+			throw new AuthException(ErrorCode.EMAIL_NOT_VERIFIED);
 		}
 
 		TokenPair tokenPair = tokenService.issueLoginTokens(user);
@@ -103,7 +126,10 @@ public class AuthService {
 	}
 
 	@Transactional
-	public void logout(String refreshToken, String accessToken) {
+	public void logout(
+			String refreshToken,
+			String accessToken
+	) {
 		tokenService.logout(refreshToken, accessToken);
 	}
 }

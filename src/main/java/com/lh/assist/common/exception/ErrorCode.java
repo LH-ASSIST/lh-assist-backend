@@ -16,6 +16,12 @@ public enum ErrorCode {
 
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "U001", "이미 사용 중인 이메일입니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "U002", "이메일 또는 비밀번호가 올바르지 않습니다."),
+    EMAIL_NOT_VERIFIED(HttpStatus.FORBIDDEN, "U003", "이메일 인증이 필요합니다."),
+    EMAIL_ALREADY_VERIFIED(HttpStatus.CONFLICT, "U004", "이미 인증된 이메일입니다."),
+    EMAIL_VERIFICATION_EXPIRED(HttpStatus.GONE, "U005", "이메일 인증 코드가 만료되었습니다."),
+    EMAIL_VERIFICATION_INVALID_CODE(HttpStatus.BAD_REQUEST, "U006", "이메일 인증 코드가 올바르지 않습니다."),
+    EMAIL_VERIFICATION_RESEND_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "U007", "이메일 인증 재발송 횟수를 초과했습니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U008", "사용자를 찾을 수 없습니다."),
 
     REGULATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 기준일의 유효한 규정을 찾을 수 없습니다."),
     DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "D001", "문서를 찾을 수 없습니다."),
