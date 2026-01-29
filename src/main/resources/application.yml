@@ -55,6 +55,9 @@ app:
   suggestion:
     view-count:
       flush-interval-ms: 60000
+  notice:
+    view-count:
+      flush-interval-ms: 60000
 
   admin:
     bootstrap:
