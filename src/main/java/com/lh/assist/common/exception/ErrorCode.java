@@ -20,6 +20,7 @@ public enum ErrorCode {
     REGULATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "해당 기준일의 유효한 규정을 찾을 수 없습니다."),
     DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "D001", "문서를 찾을 수 없습니다."),
     SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "건의사항을 찾을 수 없습니다."),
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "공지사항을 찾을 수 없습니다."),
 
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "S001", "권한이 없습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "S002", "인증 정보가 유효하지 않습니다.");

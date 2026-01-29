@@ -75,6 +75,6 @@ public class Regulation extends BaseTimeEntity {
 
 	@Override
 	public int hashCode() {
-		return getClass().hashCode();
+		return regId != null ? regId.hashCode() : getClass().hashCode();
 	}
 }

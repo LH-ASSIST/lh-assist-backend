@@ -72,6 +72,6 @@ public class AnalysisJob extends BaseTimeEntity {
 
 	@Override
 	public int hashCode() {
-		return getClass().hashCode();
+		return jobId != null ? jobId.hashCode() : getClass().hashCode();
 	}
 }

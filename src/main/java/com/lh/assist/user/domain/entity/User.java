@@ -79,6 +79,6 @@ public class User extends BaseTimeEntity {
 
 	@Override
 	public int hashCode() {
-		return getClass().hashCode();
+		return userId != null ? userId.hashCode() : getClass().hashCode();
 	}
 }

@@ -2,6 +2,7 @@ package com.lh.assist.support;
 
 import com.lh.assist.suggestion.domain.entity.Suggestion;
 import com.lh.assist.suggestion.domain.enums.SuggestionCategory;
+import com.lh.assist.notice.domain.entity.Notice;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.enums.UserDepartment;
 import com.lh.assist.user.domain.enums.UserPosition;
@@ -52,6 +53,13 @@ public final class TestDataFactory {
                 .isPrivate(isPrivate)
                 .isAnonymous(true)
                 .user(owner)
+                .build();
+    }
+
+    public static Notice notice(String title, String content) {
+        return Notice.builder()
+                .title(title)
+                .content(content)
                 .build();
     }
 }

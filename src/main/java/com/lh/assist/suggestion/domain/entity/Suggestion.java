@@ -104,6 +104,6 @@ public class Suggestion extends BaseTimeEntity {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return suggestionId != null ? suggestionId.hashCode() : getClass().hashCode();
     }
 }

@@ -94,6 +94,6 @@ public class RegItem extends BaseTimeEntity {
 
 	@Override
 	public int hashCode() {
-		return getClass().hashCode();
+		return itemId != null ? itemId.hashCode() : getClass().hashCode();
 	}
 }
