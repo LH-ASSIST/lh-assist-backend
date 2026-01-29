@@ -5,6 +5,8 @@ import com.lh.assist.auth.api.docs.AuthLoginDocs;
 import com.lh.assist.auth.api.docs.AuthSignupDocs;
 import com.lh.assist.auth.api.docs.AuthLogoutDocs;
 import com.lh.assist.auth.api.docs.AuthRefreshDocs;
+import com.lh.assist.auth.api.docs.AuthEmailVerificationSendDocs;
+import com.lh.assist.auth.api.docs.AuthEmailVerificationVerifyDocs;
 import com.lh.assist.auth.api.dto.request.LoginRequest;
 import com.lh.assist.auth.api.dto.request.LogoutRequest;
 import com.lh.assist.auth.api.dto.request.RefreshRequest;
@@ -12,7 +14,11 @@ import com.lh.assist.auth.api.dto.response.LoginResponse;
 import com.lh.assist.auth.api.dto.response.RefreshResponse;
 import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
+import com.lh.assist.auth.api.dto.request.SendEmailVerificationRequest;
+import com.lh.assist.auth.api.dto.request.VerifyEmailRequest;
+import com.lh.assist.auth.api.dto.response.SendEmailVerificationResponse;
 import com.lh.assist.auth.application.AuthService;
+import com.lh.assist.auth.application.EmailVerificationService;
 import com.lh.assist.common.exception.AuthException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.model.ApiResponse;
@@ -33,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
 	private final AuthService authService;
+	private final EmailVerificationService emailVerificationService;
 
 	@PostMapping("/signup")
 	@AuthSignupDocs
@@ -46,6 +53,25 @@ public class AuthController {
 	public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
 		LoginResponse response = authService.login(request);
 		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
+	@PostMapping("/email/verification/send")
+	@AuthEmailVerificationSendDocs
+	public ResponseEntity<ApiResponse<SendEmailVerificationResponse>> sendEmailVerification(
+			@Valid @RequestBody SendEmailVerificationRequest request
+	) {
+		SendEmailVerificationResponse response = emailVerificationService
+			.sendVerification(request.email(), request.purpose());
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
+	@PostMapping("/email/verification/verify")
+	@AuthEmailVerificationVerifyDocs
+	public ResponseEntity<ApiResponse<Void>> verifyEmail(
+			@Valid @RequestBody VerifyEmailRequest request
+	) {
+		emailVerificationService.verifyCode(request.email(), request.purpose(), request.code());
+		return ResponseEntity.ok(ApiResponse.success(null));
 	}
 
 	@PostMapping("/refresh")
