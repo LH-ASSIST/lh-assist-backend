@@ -58,7 +58,7 @@ class NoticeControllerIntegrationTest extends IntegrationTestBase {
     @DisplayName("공지사항 목록 조회는 인증이 필요해야 한다")
     void 목록_조회_인증_필요() throws Exception {
         mockMvc.perform(get("/api/v1/notice"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -80,7 +80,7 @@ class NoticeControllerIntegrationTest extends IntegrationTestBase {
         Notice notice = noticeRepository.save(TestDataFactory.notice("공지", "내용"));
 
         mockMvc.perform(get("/api/v1/notice/{id}", notice.getNoticeId()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
