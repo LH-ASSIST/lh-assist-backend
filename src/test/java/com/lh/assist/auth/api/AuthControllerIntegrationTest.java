@@ -7,6 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lh.assist.auth.domain.entity.EmailVerification;
+import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
+import com.lh.assist.auth.domain.repository.EmailVerificationRepository;
 import com.lh.assist.support.IntegrationTestBase;
 import java.util.Map;
 
@@ -28,6 +31,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import java.time.LocalDateTime;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -44,6 +48,9 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailVerificationRepository emailVerificationRepository;
 
     @Autowired
     private SuggestionRepository suggestionRepository;
@@ -78,6 +85,16 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("회원가입이 성공하면 201을 반환해야 한다")
     void 회원가입_성공하면_201_반환() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        emailVerificationRepository.save(EmailVerification.builder()
+                .email("tester1@lh.com")
+                .purpose(EmailVerificationPurpose.SIGNUP)
+                .code("123456")
+                .expiresAt(now.plusMinutes(5))
+                .verifiedAt(now)
+                .attemptCount(0)
+                .build());
+
         Map<String, Object> payload = Map.of(
                 "email", "tester1@lh.com",
                 "password", "Test1234!",
@@ -106,7 +123,7 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 .position(UserPosition.ETC)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
-                .emailVerified(false)
+                .emailVerified(true)
                 .attemptCount(0)
                 .build();
         userRepository.save(user);
@@ -138,7 +155,7 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 .position(UserPosition.ETC)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
-                .emailVerified(false)
+                .emailVerified(true)
                 .attemptCount(0)
                 .build());
 
@@ -171,7 +188,7 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 .position(UserPosition.ETC)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
-                .emailVerified(false)
+                .emailVerified(true)
                 .attemptCount(0)
                 .build());
 
@@ -201,7 +218,7 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 .position(UserPosition.ETC)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
-                .emailVerified(false)
+                .emailVerified(true)
                 .attemptCount(0)
                 .build());
 
@@ -234,7 +251,7 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 .position(UserPosition.ETC)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
-                .emailVerified(false)
+                .emailVerified(true)
                 .attemptCount(0)
                 .build());
 

@@ -66,6 +66,10 @@ public class User extends BaseTimeEntity {
 	@Column(name = "attempt_count", nullable = false)
 	private int attemptCount;
 
+	public void markEmailVerified() {
+		this.emailVerified = true;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {

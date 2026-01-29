@@ -9,6 +9,9 @@ import com.lh.assist.auth.api.dto.request.LoginRequest;
 import com.lh.assist.auth.api.dto.response.LoginResponse;
 import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
+import com.lh.assist.auth.domain.entity.EmailVerification;
+import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
+import com.lh.assist.auth.domain.repository.EmailVerificationRepository;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.jwt.TokenPair;
@@ -19,6 +22,7 @@ import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.repository.UserRepository;
 import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +44,9 @@ class AuthServiceTest {
 	@Mock
 	private TokenService tokenService;
 
+	@Mock
+	private EmailVerificationRepository emailVerificationRepository;
+
 	@InjectMocks
 	private AuthService authService;
 
@@ -51,6 +58,9 @@ class AuthServiceTest {
 		);
 
 		when(userRepository.existsByEmail("new@lh.com")).thenReturn(false);
+		when(emailVerificationRepository.findTopByEmailAndPurposeOrderByCreatedAtDesc(
+			"new@lh.com", EmailVerificationPurpose.SIGNUP
+		)).thenReturn(Optional.of(verifiedEmail("new@lh.com")));
 		when(passwordEncoder.encode("Test1234!")).thenReturn("hashed");
 		when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
 			User input = invocation.getArgument(0);
@@ -104,7 +114,7 @@ class AuthServiceTest {
 			.position(UserPosition.ETC)
 			.role(UserRole.USER)
 			.status(UserStatus.ACTIVE)
-			.emailVerified(false)
+			.emailVerified(true)
 			.attemptCount(0)
 			.build();
 
@@ -173,5 +183,17 @@ class AuthServiceTest {
 
 	private static LoginRequest loginRequest(String password) {
 		return new LoginRequest("login@lh.com", password);
+	}
+
+	private static EmailVerification verifiedEmail(String email) {
+		LocalDateTime now = LocalDateTime.now();
+		return EmailVerification.builder()
+			.email(email)
+			.purpose(EmailVerificationPurpose.SIGNUP)
+			.code("123456")
+			.expiresAt(now.plusMinutes(5))
+			.verifiedAt(now)
+			.attemptCount(0)
+			.build();
 	}
 }
