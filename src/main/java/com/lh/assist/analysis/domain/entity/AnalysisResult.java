@@ -60,6 +60,6 @@ public class AnalysisResult extends BaseTimeEntity {
 
 	@Override
 	public int hashCode() {
-		return getClass().hashCode();
+		return analysisId != null ? analysisId.hashCode() : getClass().hashCode();
 	}
 }

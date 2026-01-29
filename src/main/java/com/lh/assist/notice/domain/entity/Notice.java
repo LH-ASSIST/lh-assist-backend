@@ -55,6 +55,6 @@ public class Notice extends BaseTimeEntity {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return noticeId != null ? noticeId.hashCode() : getClass().hashCode();
     }
 }

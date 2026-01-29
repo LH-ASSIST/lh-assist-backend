@@ -88,6 +88,6 @@ public class Document extends BaseTimeEntity {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return docId != null ? docId.hashCode() : getClass().hashCode();
     }
 }

@@ -71,6 +71,6 @@ public class AuditLog extends BaseTimeEntity {
 
 	@Override
 	public int hashCode() {
-		return getClass().hashCode();
+		return logId != null ? logId.hashCode() : getClass().hashCode();
 	}
 }
