@@ -16,8 +16,10 @@ import java.lang.annotation.Target;
         description = "FastAPI 응답을 SSE로 중계하여 실시간 답변을 전송합니다. 비로그인도 사용 가능합니다."
 )
 @ApiResponse(responseCode = "200", description = "스트리밍 시작",
-        content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
+        content = @Content(mediaType = "text/event-stream"))
 @ApiResponse(responseCode = "400", description = "입력값 오류",
+        content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
+@ApiResponse(responseCode = "429", description = "요청 과다",
         content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
 @ApiResponse(responseCode = "500", description = "서버 오류",
         content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
