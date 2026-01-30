@@ -11,9 +11,11 @@ import static org.mockito.Mockito.when;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.notice.api.dto.request.NoticeCreateRequest;
+import com.lh.assist.notice.api.dto.request.NoticeSearchType;
 import com.lh.assist.notice.api.dto.request.NoticeUpdateRequest;
 import com.lh.assist.notice.domain.entity.Notice;
 import com.lh.assist.notice.domain.repository.NoticeRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class NoticeServiceTest {
@@ -116,4 +121,64 @@ class NoticeServiceTest {
                 .content(content)
                 .build();
     }
+
+    @Test
+    @DisplayName("검색 타입이 TITLE이면 제목만 검색해야 한다")
+    void 검색_제목() {
+        Page<Notice> page = new PageImpl<>(List.of(notice("공지", "내용")));
+        when(noticeRepository.findByTitleContainingIgnoreCase("공지", Pageable.ofSize(10)))
+                .thenReturn(page);
+
+        Page<Notice> result = noticeService.searchNotices(NoticeSearchType.TITLE, "공지", Pageable.ofSize(10));
+
+        assertThat(result).isSameAs(page);
+    }
+
+    @Test
+    @DisplayName("검색 타입이 CONTENT이면 내용만 검색해야 한다")
+    void 검색_내용() {
+        Page<Notice> page = new PageImpl<>(List.of(notice("공지", "내용")));
+        when(noticeRepository.findByContentContainingIgnoreCase("내용", Pageable.ofSize(10)))
+                .thenReturn(page);
+
+        Page<Notice> result = noticeService.searchNotices(NoticeSearchType.CONTENT, "내용", Pageable.ofSize(10));
+
+        assertThat(result).isSameAs(page);
+    }
+
+    @Test
+    @DisplayName("검색 타입이 ALL이면 제목+내용으로 검색해야 한다")
+    void 검색_전체() {
+        Page<Notice> page = new PageImpl<>(List.of(notice("공지", "내용")));
+        when(noticeRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase("공지", "공지", Pageable.ofSize(10)))
+                .thenReturn(page);
+
+        Page<Notice> result = noticeService.searchNotices(NoticeSearchType.ALL, "공지", Pageable.ofSize(10));
+
+        assertThat(result).isSameAs(page);
+    }
+
+    @Test
+    @DisplayName("검색 타입이 null이면 제목+내용으로 검색해야 한다")
+    void 검색_타입_널() {
+        Page<Notice> page = new PageImpl<>(List.of(notice("공지", "내용")));
+        when(noticeRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase("공지", "공지", Pageable.ofSize(10)))
+                .thenReturn(page);
+
+        Page<Notice> result = noticeService.searchNotices(null, "공지", Pageable.ofSize(10));
+
+        assertThat(result).isSameAs(page);
+    }
+
+    @Test
+    @DisplayName("검색어가 비어있으면 전체 목록을 반환해야 한다")
+    void 검색어_비어있음() {
+        Page<Notice> page = new PageImpl<>(List.of(notice("공지", "내용")));
+        when(noticeRepository.findAll(Pageable.ofSize(10))).thenReturn(page);
+
+        Page<Notice> result = noticeService.searchNotices(NoticeSearchType.ALL, "  ", Pageable.ofSize(10));
+
+        assertThat(result).isSameAs(page);
+    }
+
 }

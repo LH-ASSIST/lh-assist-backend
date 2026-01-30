@@ -9,9 +9,8 @@ import com.lh.assist.common.exception.ErrorCode;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -39,6 +39,7 @@ public class ChatStreamService {
 
     private final WebClient chatbotWebClient;
     private final ObjectMapper objectMapper;
+    private final TaskScheduler chatStreamTaskScheduler;
 
     @Value("${app.chatbot.fastapi.stream-path:/generate-stream}")
     private String streamPath;
@@ -68,16 +69,16 @@ public class ChatStreamService {
         AtomicReference<List<RagReference>> ragReferences = new AtomicReference<>(null);
         AtomicReference<Disposable> subscriptionRef = new AtomicReference<>(null);
         AtomicBoolean finished = new AtomicBoolean(false);
-        ScheduledExecutorService heartbeatScheduler = startHeartbeat(emitter, finished);
+        ScheduledFuture<?> heartbeatFuture = startHeartbeat(emitter, finished);
 
-        emitter.onCompletion(() -> cleanup(subscriptionRef, heartbeatScheduler, false, emitter));
-        emitter.onTimeout(() -> cleanup(subscriptionRef, heartbeatScheduler, true, emitter));
+        emitter.onCompletion(() -> cleanup(subscriptionRef, heartbeatFuture, false, emitter));
+        emitter.onTimeout(() -> cleanup(subscriptionRef, heartbeatFuture, true, emitter));
 
         try {
             Flux<ServerSentEvent<String>> stream = createStream(request);
             Disposable subscription = stream.subscribe(
                     event -> handleStreamEvent(emitter, event, answerBuffer, ragReferences),
-                    error -> handleStreamError(emitter, error, finished, heartbeatScheduler),
+                    error -> handleStreamError(emitter, error, finished, heartbeatFuture),
                     () -> handleStreamComplete(emitter, userId, request, answerBuffer, ragReferences, finished)
             );
             subscriptionRef.set(subscription);
@@ -87,7 +88,7 @@ public class ChatStreamService {
                 sendErrorEvent(emitter);
                 emitter.completeWithError(ex);
             }
-            heartbeatScheduler.shutdownNow();
+            heartbeatFuture.cancel(true);
             return emitter;
         }
 
@@ -182,9 +183,6 @@ public class ChatStreamService {
      * @param references RAG 근거 리스트
      */
     private void validateReferences(@NonNull List<RagReference> references) {
-        if (references == null) {
-            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
-        }
         for (RagReference reference : references) {
             if (reference == null) {
                 throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
@@ -231,12 +229,11 @@ public class ChatStreamService {
      * @param finished 스트리밍 완료 여부
      * @return 하트비트 스케줄러
      */
-    private ScheduledExecutorService startHeartbeat(
+    private ScheduledFuture<?> startHeartbeat(
             @NonNull SseEmitter emitter,
             @NonNull AtomicBoolean finished
     ) {
-        ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
-        heartbeatScheduler.scheduleAtFixedRate(() -> {
+        return chatStreamTaskScheduler.scheduleAtFixedRate(() -> {
             if (finished.get()) {
                 return;
             }
@@ -245,8 +242,7 @@ public class ChatStreamService {
             } catch (IOException ex) {
                 emitter.completeWithError(ex);
             }
-        }, heartbeatMs, heartbeatMs, TimeUnit.MILLISECONDS);
-        return heartbeatScheduler;
+        }, Duration.ofMillis(heartbeatMs));
     }
 
     /**
@@ -280,18 +276,15 @@ public class ChatStreamService {
             @NonNull StringBuilder answerBuffer,
             @NonNull AtomicReference<List<RagReference>> ragReferences
     ) {
-        Objects.requireNonNull(emitter, "emitter");
-        Objects.requireNonNull(event, "event");
-        Objects.requireNonNull(answerBuffer, "answerBuffer");
-        Objects.requireNonNull(ragReferences, "ragReferences");
         handleEvent(event, answerBuffer, ragReferences);
         try {
             if (event.data() == null) {
                 return;
             }
             SseEmitter.SseEventBuilder builder = SseEmitter.event();
-            if (event.event() != null) {
-                builder.name(event.event());
+            String eventName = event.event();
+            if (eventName != null) {
+                builder.name(eventName);
             }
             builder.data(event.data());
             emitter.send(builder);
@@ -306,19 +299,19 @@ public class ChatStreamService {
      * @param emitter SSE emitter
      * @param error 오류
      * @param finished 스트리밍 완료 여부
-     * @param heartbeatScheduler 하트비트 스케줄러
+     * @param heartbeatFuture 하트비트
      */
     private void handleStreamError(
             @NonNull SseEmitter emitter,
             @NonNull Throwable error,
             @NonNull AtomicBoolean finished,
-            @NonNull ScheduledExecutorService heartbeatScheduler
+            @NonNull ScheduledFuture<?> heartbeatFuture
     ) {
         if (finished.compareAndSet(false, true)) {
             log.warn("챗봇 스트리밍 중 오류 발생: {}", error.getMessage(), error);
             sendErrorEvent(emitter);
             emitter.completeWithError(error);
-            heartbeatScheduler.shutdownNow();
+            heartbeatFuture.cancel(true);
         }
     }
 
@@ -350,13 +343,13 @@ public class ChatStreamService {
      * 구독과 하트비트 스케줄러를 정리한다
      *
      * @param subscriptionRef 스트림 구독 참조
-     * @param heartbeatScheduler 하트비트 스케줄러
+     * @param heartbeatFuture 하트비트
      * @param completeEmitter emitter 완료 여부
      * @param emitter SSE emitter
      */
     private void cleanup(
             @NonNull AtomicReference<Disposable> subscriptionRef,
-            @NonNull ScheduledExecutorService heartbeatScheduler,
+            @NonNull ScheduledFuture<?> heartbeatFuture,
             boolean completeEmitter,
             @NonNull SseEmitter emitter
     ) {
@@ -364,7 +357,7 @@ public class ChatStreamService {
         if (subscription != null) {
             subscription.dispose();
         }
-        heartbeatScheduler.shutdownNow();
+        heartbeatFuture.cancel(true);
         if (completeEmitter) {
             emitter.complete();
         }

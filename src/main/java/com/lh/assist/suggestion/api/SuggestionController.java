@@ -41,7 +41,7 @@ public class SuggestionController {
 
     private final SuggestionService suggestionService;
 
-    @GetMapping
+    @GetMapping("/all")
     @SuggestionListDocs
     public ResponseEntity<ApiResponse<Page<SuggestionListResponse>>> listSuggestions(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -49,7 +49,6 @@ public class SuggestionController {
     ) {
         Page<Suggestion> suggestions = suggestionService.getSuggestions(
                 principal != null ? principal.userId() : null,
-                principal != null && principal.isAdmin(),
                 pageable
         );
         List<Long> ids = suggestions.getContent().stream()

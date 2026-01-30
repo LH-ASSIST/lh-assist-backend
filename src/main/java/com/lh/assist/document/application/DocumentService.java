@@ -161,7 +161,10 @@ public class DocumentService {
 	 * @return 조회된 문서 엔티티
 	 */
 	@Transactional(readOnly = true)
-	public Document getDocumentByEmail(String email, Long docId) {
+	public Document getDocumentByEmail(
+			String email,
+			Long docId
+	) {
 		User user = getUserByEmail(email);
 		Document document = getDocumentById(docId);
 		if (!document.getUser().equals(user)) {
@@ -191,7 +194,10 @@ public class DocumentService {
 	 * @param docId 문서 ID
 	 */
 	@Transactional
-	public void deleteDocumentByEmail(String email, Long docId) {
+	public void deleteDocumentByEmail(
+			String email,
+			Long docId
+	) {
 		User user = getUserByEmail(email);
 		Document document = getDocumentById(docId);
 		if (!document.getUser().equals(user)) {
