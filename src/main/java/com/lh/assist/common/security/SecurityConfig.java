@@ -57,7 +57,9 @@ public class SecurityConfig {
 						"/actuator/health",
 						"/actuator/health/**"
 				).permitAll()
-						.requestMatchers(HttpMethod.GET, "/api/v1/qna").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/v1/qna/all").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/v1/notice/search").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/v1/notice/all").permitAll()
 						.anyRequest().authenticated()
 				)
 				.addFilterBefore(chatRateLimitFilter, UsernamePasswordAuthenticationFilter.class)

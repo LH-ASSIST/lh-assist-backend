@@ -41,7 +41,7 @@ public class SuggestionController {
 
     private final SuggestionService suggestionService;
 
-    @GetMapping
+    @GetMapping("/all")
     @SuggestionListDocs
     public ResponseEntity<ApiResponse<Page<SuggestionListResponse>>> listSuggestions(
             @AuthenticationPrincipal UserPrincipal principal,

@@ -63,7 +63,7 @@ class SuggestionControllerIntegrationTest extends IntegrationTestBase {
         suggestionRepository.save(TestDataFactory.suggestion(owner, true));
         suggestionRepository.save(TestDataFactory.suggestion(other, true));
 
-        mockMvc.perform(get("/api/v1/qna")
+        mockMvc.perform(get("/api/v1/qna/all")
                 .header(HttpHeaders.AUTHORIZATION, bearer(owner)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.content.length()").value(2));
@@ -78,7 +78,7 @@ class SuggestionControllerIntegrationTest extends IntegrationTestBase {
         suggestionRepository.save(TestDataFactory.suggestion(owner, true));
         suggestionRepository.save(TestDataFactory.suggestion(other, true));
 
-        mockMvc.perform(get("/api/v1/qna"))
+        mockMvc.perform(get("/api/v1/qna/all"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.content.length()").value(1));
     }
