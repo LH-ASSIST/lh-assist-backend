@@ -101,8 +101,8 @@ jobs:
               exit 1
             fi
             cd /home/ubuntu/lh-assist-backend
-            sudo -E docker rm -f lh-assist-backend || true
-            sudo -E docker compose pull spring-app
-            sudo -E docker compose up -d spring-app
-            sudo -E docker compose ps
-            sudo -E docker compose logs --tail=200 spring-app
+            docker rm -f lh-assist-backend || true
+            docker compose pull spring-app
+            docker compose up -d spring-app
+            docker compose ps
+            docker compose logs --tail=200 spring-app
