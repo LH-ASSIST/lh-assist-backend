@@ -4,6 +4,7 @@ import com.lh.assist.common.security.jwt.JwtAuthenticationFilter;
 import com.lh.assist.chatbot.api.filter.ChatRateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -14,6 +15,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.http.HttpMethod;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -22,15 +29,22 @@ public class SecurityConfig {
 
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 	private final ChatRateLimitFilter chatRateLimitFilter;
+	private final Environment environment;
 
-	public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ChatRateLimitFilter chatRateLimitFilter) {
+	public SecurityConfig(
+			JwtAuthenticationFilter jwtAuthenticationFilter,
+			ChatRateLimitFilter chatRateLimitFilter,
+			Environment environment
+	) {
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
 		this.chatRateLimitFilter = chatRateLimitFilter;
+		this.environment = environment;
 	}
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
@@ -50,6 +64,29 @@ public class SecurityConfig {
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
+	}
+
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		String[] allowedOrigins = environment.getProperty(
+				"app.cors.allowed-origins",
+				String[].class,
+				new String[0]
+		);
+		List<String> originList = Arrays.stream(allowedOrigins)
+				.map(String::trim)
+				.filter(value -> !value.isEmpty())
+				.toList();
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(originList);
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+		configuration.setAllowCredentials(true);
+		configuration.setMaxAge(3600L);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
 	}
 
 	@Bean
