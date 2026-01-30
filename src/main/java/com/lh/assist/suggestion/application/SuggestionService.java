@@ -57,14 +57,12 @@ public class SuggestionService {
      * 관리자는 전체 QnA를 확인할 수 있다
      *
      * @param userId 요청 사용자 ID
-     * @param isAdmin 관리자 여부
      * @param pageable 페이징할 단위
      * @return 조회된 건의 엔티티
      */
     @Transactional(readOnly = true)
     public Page<Suggestion> getSuggestions(
             Long userId,
-            boolean isAdmin,
             Pageable pageable
     ) {
         if (userId == null) {
@@ -147,7 +145,10 @@ public class SuggestionService {
         viewCountService.evict(suggestionId);
     }
 
-    public int getViewCount(Long suggestionId, int baseCount) {
+    public int getViewCount(
+            Long suggestionId,
+            int baseCount
+    ) {
         return viewCountService.getViewCount(suggestionId, baseCount);
     }
 

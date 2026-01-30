@@ -49,7 +49,6 @@ public class SuggestionController {
     ) {
         Page<Suggestion> suggestions = suggestionService.getSuggestions(
                 principal != null ? principal.userId() : null,
-                principal != null && principal.isAdmin(),
                 pageable
         );
         List<Long> ids = suggestions.getContent().stream()
