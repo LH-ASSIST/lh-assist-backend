@@ -51,7 +51,7 @@ public class SwaggerConfig {
     public GroupedOpenApi ragGroup() {
         return GroupedOpenApi.builder()
                 .group("AI 어시스턴트 및 규정 (AI & Regulation)")
-                .pathsToMatch("/api/v1/chatbot/**", "/api/v1/regulation/**")
+                .pathsToMatch("/api/v1/chat/**", "/api/v1/regulation/**")
                 .build();
     }
 
