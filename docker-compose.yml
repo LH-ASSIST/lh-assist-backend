@@ -1,6 +1,6 @@
 services:
   spring-app:
-    image: ${DOCKER_USERNAME:-local}/lh-assist-backend
+    image: ${DOCKER_USERNAME:-local}/lh-assist-backend:latest
     container_name: lh-assist-backend
     ports:
       - "8080:8080"
