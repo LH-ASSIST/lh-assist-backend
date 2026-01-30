@@ -5,8 +5,10 @@ import com.lh.assist.notice.api.docs.NoticeCreateDocs;
 import com.lh.assist.notice.api.docs.NoticeDeleteDocs;
 import com.lh.assist.notice.api.docs.NoticeGetDocs;
 import com.lh.assist.notice.api.docs.NoticeListDocs;
+import com.lh.assist.notice.api.docs.NoticeSearchDocs;
 import com.lh.assist.notice.api.docs.NoticeUpdateDocs;
 import com.lh.assist.notice.api.dto.request.NoticeCreateRequest;
+import com.lh.assist.notice.api.dto.request.NoticeSearchType;
 import com.lh.assist.notice.api.dto.request.NoticeUpdateRequest;
 import com.lh.assist.notice.api.dto.response.NoticeResponse;
 import com.lh.assist.notice.api.mapper.NoticeMapper;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -38,13 +41,31 @@ public class NoticeController {
 
     private final NoticeService noticeService;
 
-    @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/all")
     @NoticeListDocs
     public ResponseEntity<ApiResponse<Page<NoticeResponse>>> listNotices(
             @ParameterObject Pageable pageable
     ) {
         Page<Notice> notices = noticeService.getNotices(pageable);
+        List<Long> ids = notices.getContent().stream()
+                .map(Notice::getNoticeId)
+                .toList();
+        Map<Long, Integer> deltas = noticeService.getViewCountDeltas(ids);
+        Page<NoticeResponse> responses = notices.map(notice -> {
+            int viewCount = notice.getViewCount() + deltas.getOrDefault(notice.getNoticeId(), 0);
+            return NoticeMapper.toResponse(notice, viewCount);
+        });
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/search")
+    @NoticeSearchDocs
+    public ResponseEntity<ApiResponse<Page<NoticeResponse>>> searchNotices(
+            @RequestParam(defaultValue = "ALL") NoticeSearchType type,
+            @RequestParam(required = false) String keyword,
+            @ParameterObject Pageable pageable
+    ) {
+        Page<Notice> notices = noticeService.searchNotices(type, keyword, pageable);
         List<Long> ids = notices.getContent().stream()
                 .map(Notice::getNoticeId)
                 .toList();

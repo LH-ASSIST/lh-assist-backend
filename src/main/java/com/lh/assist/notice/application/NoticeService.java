@@ -3,6 +3,7 @@ package com.lh.assist.notice.application;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.NoticeException;
 import com.lh.assist.notice.api.dto.request.NoticeCreateRequest;
+import com.lh.assist.notice.api.dto.request.NoticeSearchType;
 import com.lh.assist.notice.api.dto.request.NoticeUpdateRequest;
 import com.lh.assist.notice.domain.entity.Notice;
 import com.lh.assist.notice.domain.repository.NoticeRepository;
@@ -114,5 +115,41 @@ public class NoticeService {
      */
     public Map<Long, Integer> getViewCountDeltas(List<Long> noticeIds) {
         return viewCountService.getViewCountDeltas(noticeIds);
+    }
+
+    /**
+     * 공지사항을 검색한다
+     *
+     * @param type 검색 타입
+     * @param keyword 검색어
+     * @param pageable 페이징 정보
+     * @return 검색된 공지사항 페이지
+     */
+    @Transactional(readOnly = true)
+    public Page<Notice> searchNotices(
+            NoticeSearchType type,
+            String keyword,
+            Pageable pageable
+    ) {
+        if (keyword == null || keyword.isBlank()) {
+            return noticeRepository.findAll(pageable);
+        }
+        String term = keyword.trim();
+        if (type == null) {
+            return noticeRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
+                    term,
+                    term,
+                    pageable
+            );
+        }
+        return switch (type) {
+            case TITLE -> noticeRepository.findByTitleContainingIgnoreCase(term, pageable);
+            case CONTENT -> noticeRepository.findByContentContainingIgnoreCase(term, pageable);
+            case ALL -> noticeRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
+                    term,
+                    term,
+                    pageable
+            );
+        };
     }
 }
