@@ -90,6 +90,16 @@ jobs:
           proxy_key: ${{ secrets.KEY }}
           envs: DOCKER_USERNAME,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,SPRING_REDIS_HOST,SPRING_REDIS_PORT,JWT_SECRET,EMAIL_ADDRESS,EMAIL_PASSWORD,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_S3_BUCKET,SQS_DOCUMENT_ANALYZE_QUEUE_URL
           script: |
+            missing=0
+            for v in DOCKER_USERNAME POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD SPRING_REDIS_HOST SPRING_REDIS_PORT JWT_SECRET EMAIL_ADDRESS EMAIL_PASSWORD AWS_ACCESS_KEY AWS_SECRET_KEY AWS_S3_BUCKET SQS_DOCUMENT_ANALYZE_QUEUE_URL; do
+              if ! printenv "$v" >/dev/null; then
+                echo "Missing env: $v"
+                missing=1
+              fi
+            done
+            if [ "$missing" -eq 1 ]; then
+              exit 1
+            fi
             cd /home/ubuntu/lh-assist-backend
             sudo -E docker rm -f lh-assist-backend || true
             sudo -E docker compose pull spring-app
