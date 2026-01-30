@@ -32,18 +32,20 @@ public class Notice extends BaseTimeEntity {
     private int viewCount = 0;
 
     @Builder
-    public Notice(String title, String content) {
+    public Notice(
+            String title,
+            String content
+    ) {
         this.title = title;
         this.content = content;
     }
 
-    public void update(String title, String content) {
+    public void update(
+            String title,
+            String content
+    ) {
         this.title = title;
         this.content = content;
-    }
-
-    public void incrementViewCount() {
-        this.viewCount++;
     }
 
     @Override
