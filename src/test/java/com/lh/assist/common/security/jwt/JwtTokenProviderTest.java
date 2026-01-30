@@ -84,6 +84,7 @@ class JwtTokenProviderTest {
 		if (aud instanceof java.util.Collection<?> collection) {
 			return collection.contains(AUDIENCE);
 		}
-		return AUDIENCE.equals(claims.getAudience());
+        claims.getAudience();
+        return false;
 	}
 }

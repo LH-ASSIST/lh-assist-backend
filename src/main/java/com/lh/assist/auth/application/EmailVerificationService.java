@@ -50,7 +50,10 @@ public class EmailVerificationService {
 	 * @return 발송된 인증 정보
 	 */
 	@Transactional
-	public SendEmailVerificationResponse sendVerification(String email, EmailVerificationPurpose purpose) {
+	public SendEmailVerificationResponse sendVerification(
+			String email,
+			EmailVerificationPurpose purpose
+	) {
 		if (purpose == EmailVerificationPurpose.SIGNUP || purpose == EmailVerificationPurpose.EMAIL_CHANGE) {
 			if (userRepository.existsByEmail(email)) {
 				throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
@@ -95,7 +98,11 @@ public class EmailVerificationService {
 	 * @param code 사용자가 입력한 인증 코드
 	 */
 	@Transactional
-	public void verifyCode(String email, EmailVerificationPurpose purpose, String code) {
+	public void verifyCode(
+			String email,
+			EmailVerificationPurpose purpose,
+			String code
+	) {
 		EmailVerification verification = emailVerificationRepository
 			.findTopByEmailAndPurposeOrderByCreatedAtDesc(email, purpose)
 			.orElseThrow(() -> new AuthException(ErrorCode.EMAIL_VERIFICATION_INVALID_CODE));
@@ -127,7 +134,10 @@ public class EmailVerificationService {
 	 * @param email 인증 대상 이메일
 	 * @param purpose 인증 목적
 	 */
-	private void enforceResendLimit(String email, EmailVerificationPurpose purpose) {
+	private void enforceResendLimit(
+			String email,
+			EmailVerificationPurpose purpose
+	) {
 		String key = resendKey(email, purpose);
 		Long count = stringRedisTemplate.opsForValue().increment(key);
 		if (count != null && count == 1L) {
@@ -154,7 +164,10 @@ public class EmailVerificationService {
 	 * @param email 수신자 이메일
 	 * @param code 발송할 인증 코드
 	 */
-	private void sendMail(String email, String code) {
+	private void sendMail(
+			String email,
+			String code
+	) {
 		SimpleMailMessage message = new SimpleMailMessage();
 		message.setTo(email);
 		if (sender != null && !sender.isBlank()) {
@@ -172,7 +185,10 @@ public class EmailVerificationService {
 	 * @param purpose 인증 목적
 	 * @return Redis 키
 	 */
-	private String resendKey(String email, EmailVerificationPurpose purpose) {
+	private String resendKey(
+			String email,
+			EmailVerificationPurpose purpose
+	) {
 		return RESEND_KEY_PREFIX + ":" + purpose + ":" + email;
 	}
 }
