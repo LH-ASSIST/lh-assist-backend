@@ -70,6 +70,9 @@ public class ChatStreamService {
         AtomicBoolean finished = new AtomicBoolean(false);
         ScheduledExecutorService heartbeatScheduler = startHeartbeat(emitter, finished);
 
+        emitter.onCompletion(() -> cleanup(subscriptionRef, heartbeatScheduler, false, emitter));
+        emitter.onTimeout(() -> cleanup(subscriptionRef, heartbeatScheduler, true, emitter));
+
         try {
             Flux<ServerSentEvent<String>> stream = createStream(request);
             Disposable subscription = stream.subscribe(
@@ -87,9 +90,6 @@ public class ChatStreamService {
             heartbeatScheduler.shutdownNow();
             return emitter;
         }
-
-        emitter.onCompletion(() -> cleanup(subscriptionRef, heartbeatScheduler, false, emitter));
-        emitter.onTimeout(() -> cleanup(subscriptionRef, heartbeatScheduler, true, emitter));
 
         return emitter;
     }
