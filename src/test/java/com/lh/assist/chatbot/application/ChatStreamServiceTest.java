@@ -39,6 +39,19 @@ class ChatStreamServiceTest {
     }
 
     @Test
+    @DisplayName("요청이 null이면 INVALID_INPUT_VALUE가 발생해야 한다")
+    void 요청_널() {
+        ChatStreamService service = new ChatStreamService(webClient, objectMapper);
+        ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
+        ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
+
+        assertThatThrownBy(() -> service.streamChat(null, null))
+                .isInstanceOf(ChatbotException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    @Test
     @DisplayName("세션 아이디가 비어있으면 INVALID_INPUT_VALUE가 발생해야 한다")
     void 세션_아이디_누락() {
         ChatStreamService service = new ChatStreamService(webClient, objectMapper);
