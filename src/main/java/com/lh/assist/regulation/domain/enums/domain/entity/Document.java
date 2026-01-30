@@ -27,7 +27,7 @@ public class Document extends BaseTimeEntity {
     @Column(name = "doc_type")
     private DocumentType docType;
 
-    @Column(nullable = false, length = 500)
+    @Column(name = "s3_key", nullable = false, length = 500)
     private String s3Key;
 
     @Column(nullable = false)
