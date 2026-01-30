@@ -82,6 +82,8 @@ jobs:
             export SPRING_REDIS_HOST=${{ secrets.SPRING_REDIS_HOST }}
             export SPRING_REDIS_PORT=${{ secrets.SPRING_REDIS_PORT }}
             export JWT_SECRET=${{ secrets.JWT_SECRET }}
+            export EMAIL_ADDRESS=${{ secrets.EMAIL_ADDRESS }}
+            export EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
             export AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
             export AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
             export AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
