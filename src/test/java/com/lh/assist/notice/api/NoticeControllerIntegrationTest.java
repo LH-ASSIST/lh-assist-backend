@@ -55,20 +55,24 @@ class NoticeControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    @DisplayName("공지사항 목록 조회는 인증이 필요해야 한다")
-    void 목록_조회_인증_필요() throws Exception {
-        mockMvc.perform(get("/api/v1/notice"))
-                .andExpect(status().isForbidden());
+    @DisplayName("공지사항 목록 조회는 비로그인 사용자에게도 반환되어야 한다")
+    void 목록_조회_비로그인_성공() throws Exception {
+        noticeRepository.save(TestDataFactory.notice("공지 1", "내용 1"));
+        noticeRepository.save(TestDataFactory.notice("공지 2", "내용 2"));
+
+        mockMvc.perform(get("/api/v1/notice/all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content.length()").value(2));
     }
 
     @Test
-    @DisplayName("공지사항 목록 조회는 로그인 사용자에게 반환되어야 한다")
+    @DisplayName("공지사항 목록 조회는 로그인 사용자에게도 반환되어야 한다")
     void 목록_조회_로그인_성공() throws Exception {
         User user = userRepository.save(TestDataFactory.user("user@lh.com"));
         noticeRepository.save(TestDataFactory.notice("공지 1", "내용 1"));
         noticeRepository.save(TestDataFactory.notice("공지 2", "내용 2"));
 
-        mockMvc.perform(get("/api/v1/notice")
+        mockMvc.perform(get("/api/v1/notice/all")
                 .header(HttpHeaders.AUTHORIZATION, bearer(user)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.content.length()").value(2));
@@ -161,6 +165,19 @@ class NoticeControllerIntegrationTest extends IntegrationTestBase {
 
         Optional<Notice> deleted = noticeRepository.findById(notice.getNoticeId());
         org.assertj.core.api.Assertions.assertThat(deleted).isEmpty();
+    }
+
+    @Test
+    @DisplayName("공지사항 검색은 비로그인 사용자에게도 반환되어야 한다")
+    void 공지사항_검색_비로그인_성공() throws Exception {
+        noticeRepository.save(TestDataFactory.notice("점검 안내", "내용 1"));
+        noticeRepository.save(TestDataFactory.notice("기타", "점검 일정"));
+
+        mockMvc.perform(get("/api/v1/notice/search")
+                .param("type", "TITLE")
+                .param("keyword", "점검"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.content.length()").value(1));
     }
 
     private String bearer(User user) {

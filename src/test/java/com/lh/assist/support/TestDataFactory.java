@@ -56,7 +56,10 @@ public final class TestDataFactory {
                 .build();
     }
 
-    public static Notice notice(String title, String content) {
+    public static Notice notice(
+            String title,
+            String content
+    ) {
         return Notice.builder()
                 .title(title)
                 .content(content)
