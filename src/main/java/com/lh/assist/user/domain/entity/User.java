@@ -66,8 +66,8 @@ public class User extends BaseTimeEntity {
 	@Column(name = "attempt_count", nullable = false)
 	private int attemptCount;
 
-	public void markEmailVerified() {
-		this.emailVerified = true;
+	public void changePassword(String encodedPassword) {
+		this.password = encodedPassword;
 	}
 
 	@Override
