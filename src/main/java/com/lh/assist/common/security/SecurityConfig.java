@@ -48,8 +48,8 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(
-								"/v3/api-docs/**",
+				.requestMatchers(
+						"/v3/api-docs/**",
 						"/swagger-ui/**",
 						"/swagger-ui.html",
 						"/api/v1/auth/**",
@@ -57,6 +57,7 @@ public class SecurityConfig {
 						"/actuator/health",
 						"/actuator/health/**"
 				).permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/user/password/reset").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/qna/all").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/notice/search").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/notice/all").permitAll()
