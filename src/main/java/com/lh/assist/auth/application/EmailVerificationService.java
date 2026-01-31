@@ -3,21 +3,18 @@ package com.lh.assist.auth.application;
 import com.lh.assist.auth.api.dto.response.SendEmailVerificationResponse;
 import com.lh.assist.auth.domain.entity.EmailVerification;
 import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
+import com.lh.assist.auth.application.event.EmailVerificationIssuedEvent;
 import com.lh.assist.auth.domain.repository.EmailVerificationRepository;
 import com.lh.assist.common.exception.AuthException;
 import com.lh.assist.common.exception.ErrorCode;
-import com.lh.assist.common.mail.EmailTemplateBuilder;
 import com.lh.assist.user.domain.repository.UserRepository;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,11 +27,8 @@ public class EmailVerificationService {
 
 	private final UserRepository userRepository;
 	private final EmailVerificationRepository emailVerificationRepository;
-	private final JavaMailSender mailSender;
 	private final StringRedisTemplate stringRedisTemplate;
-
-	@Value("${spring.mail.sender:}")
-	private String sender;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Value("${app.email.verification.ttl-minutes:5}")
 	private long ttlMinutes;
@@ -82,7 +76,7 @@ public class EmailVerificationService {
 			.build();
 		emailVerificationRepository.save(verification);
 
-		sendMail(email, code);
+		eventPublisher.publishEvent(new EmailVerificationIssuedEvent(email, code));
 
 		return SendEmailVerificationResponse.builder()
 			.email(email)
@@ -159,31 +153,6 @@ public class EmailVerificationService {
 	private String generateCode() {
 		int value = RANDOM.nextInt(1_000_000);
 		return String.format("%06d", value);
-	}
-
-	/**
-	 * 이메일로 인증 코드를 발송한다
-	 *
-	 * @param email 수신자 이메일
-	 * @param code 발송할 인증 코드
-	 */
-	private void sendMail(
-			String email,
-			String code
-	) {
-		MimeMessage message = mailSender.createMimeMessage();
-		try {
-			MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
-			helper.setTo(email);
-			if (sender != null && !sender.isBlank()) {
-				helper.setFrom(sender);
-			}
-			helper.setSubject("[LH Assist] 이메일 인증 코드");
-			helper.setText(EmailTemplateBuilder.buildVerificationEmail(code), true);
-			mailSender.send(message);
-		} catch (MessagingException e) {
-			throw new AuthException(ErrorCode.INTERNAL_SERVER_ERROR, e);
-		}
 	}
 
 	/**

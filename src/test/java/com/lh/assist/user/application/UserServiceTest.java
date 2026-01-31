@@ -9,22 +9,22 @@ import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.UserException;
 import com.lh.assist.user.api.dto.request.UserPasswordChangeRequest;
 import com.lh.assist.user.api.dto.request.UserPasswordResetRequest;
+import com.lh.assist.user.application.event.TempPasswordIssuedEvent;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.enums.UserDepartment;
 import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
 import com.lh.assist.user.domain.repository.UserRepository;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +37,7 @@ class UserServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private JavaMailSender mailSender;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private UserService userService;
@@ -101,7 +101,6 @@ class UserServiceTest {
     void 비밀번호_찾기_성공() {
         User user = user();
         when(userRepository.findByEmail("tester@lh.com")).thenReturn(Optional.of(user));
-        when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
         when(passwordEncoder.encode(org.mockito.ArgumentMatchers.anyString())).thenReturn("tempEncoded");
 
         UserPasswordResetRequest request = new UserPasswordResetRequest("tester@lh.com");
@@ -109,7 +108,9 @@ class UserServiceTest {
         userService.resetPassword(request);
 
         verify(passwordEncoder).encode(org.mockito.ArgumentMatchers.anyString());
-        verify(mailSender).send(org.mockito.ArgumentMatchers.any(MimeMessage.class));
+        ArgumentCaptor<TempPasswordIssuedEvent> captor = ArgumentCaptor.forClass(TempPasswordIssuedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().email()).isEqualTo("tester@lh.com");
     }
 
     private static User user() {
