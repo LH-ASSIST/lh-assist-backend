@@ -8,6 +8,8 @@ import com.lh.assist.common.exception.AuthException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.UserException;
 import com.lh.assist.user.api.dto.request.UserPasswordChangeRequest;
+import com.lh.assist.user.api.dto.request.UserPasswordResetRequest;
+import com.lh.assist.user.application.event.TempPasswordIssuedEvent;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.enums.UserDepartment;
 import com.lh.assist.user.domain.enums.UserPosition;
@@ -18,9 +20,11 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +35,9 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private UserService userService;
@@ -74,6 +81,36 @@ class UserServiceTest {
         userService.changePassword(1L, request);
 
         verify(passwordEncoder).encode("New1234!");
+    }
+
+    @Test
+    @DisplayName("비밀번호 찾기 시 사용자가 없으면 NOT_FOUND가 발생해야 한다")
+    void 비밀번호_찾기_사용자_없음() {
+        when(userRepository.findByEmail("missing@lh.com")).thenReturn(Optional.empty());
+
+        UserPasswordResetRequest request = new UserPasswordResetRequest("missing@lh.com");
+
+        assertThatThrownBy(() -> userService.resetPassword(request))
+                .isInstanceOf(UserException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.USER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("비밀번호 찾기 시 임시 비밀번호가 저장되고 메일이 발송되어야 한다")
+    void 비밀번호_찾기_성공() {
+        User user = user();
+        when(userRepository.findByEmail("tester@lh.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(org.mockito.ArgumentMatchers.anyString())).thenReturn("tempEncoded");
+
+        UserPasswordResetRequest request = new UserPasswordResetRequest("tester@lh.com");
+
+        userService.resetPassword(request);
+
+        verify(passwordEncoder).encode(org.mockito.ArgumentMatchers.anyString());
+        ArgumentCaptor<TempPasswordIssuedEvent> captor = ArgumentCaptor.forClass(TempPasswordIssuedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().email()).isEqualTo("tester@lh.com");
     }
 
     private static User user() {
