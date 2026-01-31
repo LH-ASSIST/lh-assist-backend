@@ -1,10 +1,10 @@
-package com.lh.assist.regulation.domain.enums.domain.entity;
+package com.lh.assist.document.domain.entity;
 
 import com.lh.assist.common.entity.BaseTimeEntity;
-import com.lh.assist.regulation.domain.enums.domain.enums.AnalysisStatus;
-import com.lh.assist.regulation.domain.enums.domain.enums.ApprovalStatus;
-import com.lh.assist.regulation.domain.enums.domain.enums.DocumentType;
-import com.lh.assist.regulation.domain.enums.domain.enums.MetadataStatus;
+import com.lh.assist.document.domain.enums.AnalysisStatus;
+import com.lh.assist.document.domain.enums.ApprovalStatus;
+import com.lh.assist.document.domain.enums.DocumentType;
+import com.lh.assist.document.domain.enums.MetadataStatus;
 import com.lh.assist.user.domain.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

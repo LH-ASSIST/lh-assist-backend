@@ -1,7 +1,7 @@
 package com.lh.assist.document.api.mapper;
 
 import com.lh.assist.document.api.dto.response.DocumentResponse;
-import com.lh.assist.regulation.domain.enums.domain.entity.Document;
+import com.lh.assist.document.domain.entity.Document;
 
 public final class DocumentMapper {
 	private DocumentMapper() {

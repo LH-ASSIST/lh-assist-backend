@@ -2,7 +2,7 @@ package com.lh.assist.analysis.domain.entity;
 
 import com.lh.assist.analysis.domain.enums.AnalysisJobStatus;
 import com.lh.assist.common.entity.BaseTimeEntity;
-import com.lh.assist.regulation.domain.enums.domain.entity.Document;
+import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.user.domain.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

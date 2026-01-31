@@ -1,9 +1,9 @@
 package com.lh.assist.document.api.dto.response;
 
-import com.lh.assist.regulation.domain.enums.domain.enums.AnalysisStatus;
-import com.lh.assist.regulation.domain.enums.domain.enums.ApprovalStatus;
-import com.lh.assist.regulation.domain.enums.domain.enums.DocumentType;
-import com.lh.assist.regulation.domain.enums.domain.enums.MetadataStatus;
+import com.lh.assist.document.domain.enums.AnalysisStatus;
+import com.lh.assist.document.domain.enums.ApprovalStatus;
+import com.lh.assist.document.domain.enums.DocumentType;
+import com.lh.assist.document.domain.enums.MetadataStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.Builder;

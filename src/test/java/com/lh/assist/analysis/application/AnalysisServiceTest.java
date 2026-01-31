@@ -7,8 +7,8 @@ import static org.mockito.Mockito.when;
 
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
-import com.lh.assist.regulation.domain.enums.domain.entity.Document;
-import com.lh.assist.regulation.domain.enums.domain.repository.DocumentRepository;
+import com.lh.assist.document.domain.entity.Document;
+import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.infrastructure.aws.sqs.SqsMessageProducer;
 import com.lh.assist.support.ReflectionTestUtils;
 import com.lh.assist.support.TestDataFactory;

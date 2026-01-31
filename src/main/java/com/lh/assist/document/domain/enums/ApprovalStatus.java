@@ -1,4 +1,4 @@
-package com.lh.assist.regulation.domain.enums.domain.enums;
+package com.lh.assist.document.domain.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
