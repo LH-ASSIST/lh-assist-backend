@@ -15,14 +15,21 @@ import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
 import com.lh.assist.user.domain.repository.UserRepository;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Multipart;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,6 +48,9 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @MockBean
+    private JavaMailSender mailSender;
 
     @Test
     @DisplayName("마이페이지 조회는 로그인 사용자 정보를 반환해야 한다")
@@ -117,6 +127,47 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty());
     }
 
+    @Test
+    @DisplayName("비밀번호 찾기 시 임시 비밀번호로 로그인할 수 있어야 한다")
+    void 비밀번호_찾기_임시_비밀번호_로그인() throws Exception {
+        User user = userRepository.save(User.builder()
+                .email("reset@lh.com")
+                .password(passwordEncoder.encode("Old1234!"))
+                .name("Reset")
+                .department(UserDepartment.ETC)
+                .position(UserPosition.ETC)
+                .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .emailVerified(true)
+                .attemptCount(0)
+                .build());
+
+        Map<String, Object> payload = Map.of("email", user.getEmail());
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        org.mockito.Mockito.when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
+
+        mockMvc.perform(post("/api/v1/user/password/reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(mailSender).send(captor.capture());
+        MimeMessage message = captor.getValue();
+        String tempPassword = extractTempPassword(extractBody(message));
+
+        Map<String, Object> loginPayload = Map.of(
+                "email", user.getEmail(),
+                "password", tempPassword
+        );
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginPayload)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty());
+    }
+
     private TokenPair loginAndGetTokens(
             String email,
             String password
@@ -144,6 +195,36 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
                 data.get("accessToken").asText(),
                 data.get("refreshToken").asText()
         );
+    }
+
+    private String extractTempPassword(String text) {
+        int label = text.indexOf("임시 비밀번호:");
+        if (label < 0) {
+            return "";
+        }
+        int spanStart = text.indexOf("<span", label);
+        if (spanStart < 0) {
+            return "";
+        }
+        int valueStart = text.indexOf(">", spanStart);
+        int valueEnd = text.indexOf("</span>", valueStart);
+        if (valueStart < 0 || valueEnd < 0) {
+            return "";
+        }
+        return text.substring(valueStart + 1, valueEnd).trim();
+    }
+
+    private String extractBody(MimeMessage message) throws Exception {
+        Object content = message.getContent();
+        if (content instanceof String text) {
+            return text;
+        }
+        if (content instanceof Multipart multipart) {
+            BodyPart part = multipart.getBodyPart(0);
+            Object partContent = part.getContent();
+            return partContent instanceof String ? (String) partContent : partContent.toString();
+        }
+        return content != null ? content.toString() : "";
     }
 
     private record TokenPair(
