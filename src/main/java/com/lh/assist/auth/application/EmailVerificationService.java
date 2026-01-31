@@ -6,15 +6,18 @@ import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
 import com.lh.assist.auth.domain.repository.EmailVerificationRepository;
 import com.lh.assist.common.exception.AuthException;
 import com.lh.assist.common.exception.ErrorCode;
+import com.lh.assist.common.mail.EmailTemplateBuilder;
 import com.lh.assist.user.domain.repository.UserRepository;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,10 +43,10 @@ public class EmailVerificationService {
 	private int resendLimit;
 
 	/**
-	 * 이메일 인증 코드를 생성하여 발송하고 저장한다.
+	 * 이메일 인증 코드를 생성하여 발송하고 저장한다
 	 *
 	 * 회원가입/이메일 변경은 미가입 이메일만 허용하고,
-	 * 비밀번호 재설정은 기존 사용자만 허용한다.
+	 * 비밀번호 재설정은 기존 사용자만 허용한다
 	 *
 	 * @param email 인증 대상 이메일
 	 * @param purpose 인증 목적
@@ -89,9 +92,9 @@ public class EmailVerificationService {
 	}
 
 	/**
-	 * 사용자가 입력한 인증 코드를 검증하고 인증 완료 처리한다.
+	 * 사용자가 입력한 인증 코드를 검증하고 인증 완료 처리한다
 	 *
-	 * 만료/중복 인증/코드 불일치에 따라 예외를 발생시킨다.
+	 * 만료/중복 인증/코드 불일치에 따라 예외를 발생시킨다
 	 *
 	 * @param email 인증 대상 이메일
 	 * @param purpose 인증 목적
@@ -127,9 +130,9 @@ public class EmailVerificationService {
 	}
 
 	/**
-	 * 동일 이메일/목적에 대한 재발송 횟수를 제한한다.
+	 * 동일 이메일/목적에 대한 재발송 횟수를 제한한다
 	 *
-	 * 제한을 초과하면 예외를 발생시킨다.
+	 * 제한을 초과하면 예외를 발생시킨다
 	 *
 	 * @param email 인증 대상 이메일
 	 * @param purpose 인증 목적
@@ -159,7 +162,7 @@ public class EmailVerificationService {
 	}
 
 	/**
-	 * 이메일로 인증 코드를 발송한다.
+	 * 이메일로 인증 코드를 발송한다
 	 *
 	 * @param email 수신자 이메일
 	 * @param code 발송할 인증 코드
@@ -168,18 +171,23 @@ public class EmailVerificationService {
 			String email,
 			String code
 	) {
-		SimpleMailMessage message = new SimpleMailMessage();
-		message.setTo(email);
-		if (sender != null && !sender.isBlank()) {
-			message.setFrom(sender);
+		MimeMessage message = mailSender.createMimeMessage();
+		try {
+			MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+			helper.setTo(email);
+			if (sender != null && !sender.isBlank()) {
+				helper.setFrom(sender);
+			}
+			helper.setSubject("[LH Assist] 이메일 인증 코드");
+			helper.setText(EmailTemplateBuilder.buildVerificationEmail(code), true);
+			mailSender.send(message);
+		} catch (MessagingException e) {
+			throw new AuthException(ErrorCode.INTERNAL_SERVER_ERROR, e);
 		}
-		message.setSubject("[LH Assist] 이메일 인증 코드");
-		message.setText("인증 코드는 " + code + " 입니다. 5분 이내에 입력해주세요.");
-		mailSender.send(message);
 	}
 
 	/**
-	 * 재발송 제한을 위한 Redis 키를 생성한다.
+	 * 재발송 제한을 위한 Redis 키를 생성한다
 	 *
 	 * @param email 인증 대상 이메일
 	 * @param purpose 인증 목적
