@@ -63,7 +63,7 @@ jwt:
 
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
   email:
     verification:
       ttl-minutes: 5
