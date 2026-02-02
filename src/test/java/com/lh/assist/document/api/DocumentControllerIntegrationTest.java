@@ -5,9 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
-import com.lh.assist.regulation.domain.enums.domain.entity.Document;
-import com.lh.assist.regulation.domain.enums.domain.repository.DocumentRepository;
-import com.lh.assist.regulation.domain.enums.domain.enums.DocumentType;
+import com.lh.assist.document.domain.entity.Document;
+import com.lh.assist.document.domain.repository.DocumentRepository;
+import com.lh.assist.document.domain.enums.DocumentType;
 import com.lh.assist.support.IntegrationTestBase;
 import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;

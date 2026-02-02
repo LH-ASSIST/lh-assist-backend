@@ -1,6 +1,6 @@
-package com.lh.assist.regulation.domain.enums.domain.repository;
+package com.lh.assist.document.domain.repository;
 
-import com.lh.assist.regulation.domain.enums.domain.entity.Document;
+import com.lh.assist.document.domain.entity.Document;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 

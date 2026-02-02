@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>LH 문서 리스크 분석 테스트</title>
+    <style>
+        body { font-family: "Noto Sans KR", Arial, sans-serif; background-color: #f5f7fa; margin: 0; display: flex; height: 100vh; }
+        .sidebar { width: 250px; background: #ffffff; border-right: 1px solid #ddd; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #9BC24D; margin-bottom: 30px; }
+        .main-content { flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
+        .header-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .viewer-container { display: flex; gap: 20px; height: 100%; }
+        .doc-panel { flex: 2; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow-y: auto; line-height: 1.8; font-size: 15px; color: #111; }
+        .page-wrapper { position: relative; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .highlight-box { position: absolute; border: 2px solid #FF5252; background: rgba(255, 82, 82, 0.25); cursor: pointer; }
+        .highlight-box.high { border-color: #FF5252; background: rgba(255, 82, 82, 0.25); }
+        .highlight-box.medium { border-color: #FFC107; background: rgba(255, 193, 7, 0.25); }
+        .highlight-box.low { border-color: #2196F3; background: rgba(33, 150, 243, 0.25); }
+        .risk-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .risk-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .risk-title { font-weight: bold; margin-bottom: 10px; display: block; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: #111; background: #e9f2d6; }
+        .badge.high { background-color: #FF5252; color: #fff; }
+        .badge.medium { background-color: #FFC107; color: #111; }
+        .badge.low { background-color: #2196F3; color: #fff; }
+        #detail-box { min-height: 150px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #777; }
+        #detail-content { display: none; text-align: left; width: 100%; }
+        button { padding: 8px 10px; background: #f1f1f1; border: none; border-radius: 6px; text-align: left; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">LH Assist</div>
+        <button>대시보드</button>
+        <button>문서 업로드</button>
+        <button style="background:#eee; font-weight:bold;">문서 목록 페이지</button>
+    </div>
+
+    <div class="main-content">
+        <div class="header-card">
+            <div>
+                <h2 th:text="${'📄 ' + documentTitle}">📄 공공주택 사업계획서_2024.pdf</h2>
+                <div style="color:gray; font-size:14px;">
+                    문서 유형: <span th:text="${documentType}">사업계획서</span>
+                    <span style="margin: 0 6px;">|</span>
+                    업로드일: <span th:text="${uploadedAt}">2024-01-05</span>
+                </div>
+                <div style="color:gray; font-size:14px; margin-top:4px;">
+                    분석 상태: <span th:text="${analysisStatus}">분석 완료</span>
+                </div>
+            </div>
+            <div style="text-align:right;">
+                <div style="margin-bottom:8px;">
+                    리스크 등급:
+                    <span class="badge medium" th:class="'badge ' + ${riskLevelClass}" th:text="${riskLevel}">중간</span>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button title="원본 내용은 변경되지 않으며, 주석이 표시된 검토본입니다.">주석 반영 PDF 다운로드</button>
+                    <button title="분석 요약 및 상세 결과가 포함된 보고서입니다.">분석 보고서 다운로드</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-card" style="gap:20px;">
+            <div style="font-weight:bold;">위험도 표시:</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <span class="badge high">높음</span>
+                <span class="badge medium">중간</span>
+                <span class="badge low">낮음</span>
+            </div>
+            <div style="color:#666; font-size:12px;">하이라이팅된 문장을 클릭하면 상세 정보를 확인할 수 있습니다.</div>
+        </div>
+
+        <div class="header-card" style="gap:20px; align-items:flex-start;">
+            <div style="min-width:120px; font-weight:bold;">문서 승인 상태</div>
+            <div style="flex:1;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span class="badge low" th:text="${approvalStatus}">승인</span>
+                    <div style="font-size:13px; color:#666;">
+                        검토자:
+                        <span th:text="${reviewerName}">박차장</span>
+                        (<span th:text="${reviewerTitle}">차장</span> /
+                        <span th:text="${reviewerDept}">규정준수팀</span>)
+                    </div>
+                </div>
+                <div style="margin-top:8px; font-size:13px; color:#555;">
+                    <div style="font-weight:bold;" th:text="${reviewerName}">박차장</div>
+                    <div style="color:#777;">(<span th:text="${reviewerTitle}">차장</span> /
+                        <span th:text="${reviewerDept}">규정준수팀</span>)</div>
+                    <div style="margin-top:6px; color:#999;" th:text="${reviewedAt}">2024-01-06 15:30:00</div>
+                    <div style="margin-top:8px; line-height:1.6;" th:text="${reviewComment}">
+                        하자담보책임 조항을 주택법 제46조에 맞게 수정 완료 확인했습니다. 승인합니다. 다만 향후 유사 사업계획서 작성 시 선급금 지급 조건도 보다 구체적으로 명시해주시기 바랍니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="viewer-container">
+            <div class="doc-panel">
+                <div style="display:flex; justify-content: space-between; align-items: center;">
+                    <h3>문서 내용</h3>
+                    <div style="font-size:12px; color:#666;">PDF 좌표 검증</div>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
+                <div id="pdf-container"></div>
+            </div>
+
+            <div class="risk-panel">
+                <div class="risk-card">
+                    <span class="risk-title">리스크 상세 정보</span>
+                    <div id="detail-box">
+                        <div id="placeholder">
+                            ⚠️<br>하이라이팅된 문장을 클릭하여<br>상세 정보를 확인하세요.
+                        </div>
+                        <div id="detail-content">
+                            <h3 id="d-title">제목</h3>
+                            <span id="d-badge" class="badge">등급</span>
+                            <p id="d-text" style="margin-top:12px; color:#333; font-weight:600;">"문장"</p>
+                            <div style="margin-top:12px;">
+                                <div style="font-size:12px; color:#666; margin-bottom:4px;">위험 내용</div>
+                                <div id="d-risk" style="color:#555;">설명</div>
+                            </div>
+                            <div style="margin-top:12px;">
+                                <div style="font-size:12px; color:#666; margin-bottom:4px;">개선 권장사항</div>
+                                <div id="d-reco" style="color:#555;">권장사항</div>
+                            </div>
+                            <div style="margin-top:12px; font-size:12px; color:#666;">
+                                페이지: <span id="d-page">-</span>
+                                <span style="margin: 0 6px;">|</span>
+                                점수: <span id="d-score">-</span>
+                            </div>
+                            <div style="margin-top:6px; font-size:12px; color:#666;">
+                                좌표: <span id="d-bbox">-</span>
+                            </div>
+                            <div style="margin-top:12px;">
+                                <div style="font-size:12px; color:#666; margin-bottom:6px;">근거</div>
+                                <div id="evidence-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="risk-card" style="flex:1; overflow-y:auto;">
+                    <span class="risk-title">검출된 리스크 (<span th:text="${sections.size()}">0</span>건)</span>
+                    <div th:each="risk : ${sections}"
+                         th:attr="data-section-id=${risk.sectionId},data-title=${risk.title},data-level=${risk.level},data-text=${risk.text},data-risk=${risk.desc},data-reco=${risk.recommendation},data-bbox=${risk.bbox},data-page=${risk.page},data-score=${risk.score}"
+                         onclick="showDetailFromList(this)"
+                         style="margin-bottom: 15px; padding-bottom:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <strong th:text="${risk.title}">제목</strong>
+                            <span th:class="'badge ' + ${risk.level.toLowerCase()}" th:text="${risk.level}">LEVEL</span>
+                        </div>
+                        <p th:text="${risk.text}" style="font-size:12px; color:#666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">내용...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script th:inline="javascript">
+        const highlights = JSON.parse(/*[[${highlightsJson}]]*/ '[]');
+        const evidencesMap = JSON.parse(/*[[${evidencesJson}]]*/ '{}');
+        const pdfUrl = '/test/pdf-file';
+
+        let pdfDoc = null;
+        let scale = 1.5;
+        let maxPages = 5;
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        pdfjsLib.getDocument(pdfUrl).promise.then(function(pdf) {
+            pdfDoc = pdf;
+            maxPages = Math.min(pdfDoc.numPages, 5);
+            renderPages();
+        });
+
+        function renderPages() {
+            const container = document.getElementById('pdf-container');
+            container.innerHTML = '';
+            for (let num = 1; num <= maxPages; num++) {
+                renderPage(num, container);
+            }
+        }
+
+        function renderPage(num, container) {
+            pdfDoc.getPage(num).then(function(page) {
+                const viewport = page.getViewport({scale: scale});
+                const wrapper = document.createElement('div');
+                wrapper.className = 'page-wrapper';
+                wrapper.style.width = viewport.width + 'px';
+                wrapper.style.height = viewport.height + 'px';
+                wrapper.dataset.page = String(num);
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                wrapper.appendChild(canvas);
+                container.appendChild(wrapper);
+
+                const renderContext = { canvasContext: ctx, viewport: viewport };
+                page.render(renderContext);
+
+                drawHighlights(num, wrapper);
+            });
+        }
+
+        function drawHighlights(currentPage, wrapper) {
+            const pageHighlights = highlights.filter(h => h.page === currentPage);
+
+            pageHighlights.forEach(h => {
+                const div = document.createElement('div');
+                div.className = 'highlight-box ' + h.level.toLowerCase();
+                div.style.left = (h.x * scale) + 'px';
+                div.style.top = (h.y * scale) + 'px';
+                div.style.width = (h.width * scale) + 'px';
+                div.style.height = (h.height * scale) + 'px';
+                div.onclick = () => showDetail(
+                    h.title,
+                    h.level,
+                    h.text,
+                    h.riskContent,
+                    h.recommendation,
+                    h.bbox,
+                    h.page,
+                    h.score,
+                    h.sectionId
+                );
+                wrapper.appendChild(div);
+            });
+        }
+
+        function showDetail(title, level, text, riskContent, recommendation, bbox, page, score, sectionId) {
+            document.getElementById('placeholder').style.display = 'none';
+            const contentBox = document.getElementById('detail-content');
+            contentBox.style.display = 'block';
+
+            document.getElementById('d-title').innerText = title;
+            document.getElementById('d-text').innerText = text ? `"${text}"` : '-';
+            document.getElementById('d-risk').innerText = riskContent || '-';
+            document.getElementById('d-reco').innerText = recommendation || '-';
+            document.getElementById('d-bbox').innerText = bbox || '-';
+            document.getElementById('d-page').innerText = page ?? '-';
+            document.getElementById('d-score').innerText = score ?? '-';
+
+            const badge = document.getElementById('d-badge');
+            badge.innerText = level;
+            badge.className = 'badge ' + level.toLowerCase();
+            renderEvidence(sectionId);
+        }
+
+        function showDetailFromList(el) {
+            const title = el.dataset.title;
+            const level = el.dataset.level;
+            const text = el.dataset.text;
+            const riskContent = el.dataset.risk;
+            const recommendation = el.dataset.reco;
+            const bbox = el.dataset.bbox;
+            const page = parseInt(el.dataset.page, 10);
+            const score = parseInt(el.dataset.score, 10);
+            const sectionId = parseInt(el.dataset.sectionId, 10);
+            const target = document.querySelector(`.page-wrapper[data-page="${page}"]`);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            showDetail(title, level, text, riskContent, recommendation, bbox, page, score, sectionId);
+        }
+
+        function renderEvidence(sectionId) {
+            const list = document.getElementById('evidence-list');
+            if (!list) {
+                return;
+            }
+            list.innerHTML = '';
+            const items = evidencesMap[sectionId] || [];
+            if (items.length === 0) {
+                list.innerHTML = '<div style="font-size:12px; color:#999;">근거가 없습니다.</div>';
+                return;
+            }
+            items.forEach(ev => {
+                const row = document.createElement('div');
+                row.style.marginBottom = '8px';
+                const meta = document.createElement('div');
+                meta.style.fontSize = '12px';
+                meta.style.color = '#666';
+                meta.textContent = `[${ev.sourceType}] ${ev.sourceId || ''}`;
+                const quote = document.createElement('div');
+                quote.style.fontSize = '13px';
+                quote.style.color = '#333';
+                quote.textContent = ev.quote ?? '';
+                row.appendChild(meta);
+                row.appendChild(quote);
+                list.appendChild(row);
+            });
+        }
+    </script>
+
+    <div style="margin-top:16px; color:#888; font-size:12px;">
+        ※ 본 분석 결과는 참고용이며 최종 판단의 책임은 사용자에게 있음
+    </div>
+</body>
+</html>
