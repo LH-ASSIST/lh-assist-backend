@@ -84,7 +84,11 @@ public class SecurityConfig {
 
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(originList);
-		configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+		configuration.setAllowedOrigins(List.of(
+				"https://lh-assist.cloud",
+				"https://d1v7ka3ykr3zod.cloudfront.net",
+				"http://localhost:5173"
+		));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
 		configuration.setAllowedHeaders(List.of("*"));
