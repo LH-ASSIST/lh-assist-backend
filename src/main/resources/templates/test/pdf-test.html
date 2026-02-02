@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>PDF 좌표 하이라이팅 테스트</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body { background: #525659; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .controls { background: white; padding: 10px; width: 100%; text-align: center; position: fixed; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        #pdf-container { margin-top: 60px; position: relative; }
+
+        .tooltip {
+            visibility: hidden;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 20;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -60px;
+            width: 120px;
+            font-size: 12px;
+        }
+        .highlight-box:hover .tooltip { visibility: visible; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button onclick="changePage(-1)">◀ 이전</button>
+        <span id="page-num">Page: 1</span>
+        <button onclick="changePage(1)">다음 ▶</button>
+        <span>(좌표 검증용 모드)</span>
+    </div>
+
+    <div id="pdf-container"></div>
+
+    <script th:inline="javascript">
+        const highlights = JSON.parse(/*[[${highlightsJson}]]*/ '[]');
+        const pdfUrl = '/test/pdf-file';
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        let scale = 1.5;
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        pdfjsLib.getDocument(pdfUrl).promise.then(function(pdf) {
+            pdfDoc = pdf;
+            renderPage(pageNum);
+        });
+
+        function renderPage(num) {
+            pdfDoc.getPage(num).then(function(page) {
+                const container = document.getElementById('pdf-container');
+                container.innerHTML = '';
+
+                const viewport = page.getViewport({scale: scale});
+                const wrapper = document.createElement('div');
+                wrapper.className = 'page-wrapper';
+                wrapper.style.width = viewport.width + 'px';
+                wrapper.style.height = viewport.height + 'px';
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                wrapper.appendChild(canvas);
+                container.appendChild(wrapper);
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                page.render(renderContext);
+
+                drawHighlights(num, wrapper, viewport);
+
+                document.getElementById('page-num').textContent = 'Page: ' + num + ' / ' + pdfDoc.numPages;
+            });
+        }
+
+        function drawHighlights(currentPage, wrapper, viewport) {
+            const pageHighlights = highlights.filter(h => h.page === currentPage);
+
+            pageHighlights.forEach(h => {
+                const div = document.createElement('div');
+                div.className = 'highlight-box';
+
+                div.style.left = (h.x * scale) + 'px';
+                div.style.top = (h.y * scale) + 'px';
+                div.style.width = (h.width * scale) + 'px';
+                div.style.height = (h.height * scale) + 'px';
+
+                div.innerHTML = `<span class="tooltip">${h.msg}</span>`;
+                wrapper.appendChild(div);
+            });
+        }
+
+        function changePage(offset) {
+            if (pageNum + offset >= 1 && pageNum + offset <= pdfDoc.numPages) {
+                pageNum += offset;
+                renderPage(pageNum);
+            }
+        }
+    </script>
+</body>
+</html>
