@@ -7,8 +7,12 @@ import com.lh.assist.user.api.dto.request.UserPasswordResetRequest;
 import com.lh.assist.user.api.dto.request.UserPasswordChangeRequest;
 import com.lh.assist.user.application.event.TempPasswordIssuedEvent;
 import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.enums.UserDepartment;
+import com.lh.assist.user.domain.enums.UserRole;
+import com.lh.assist.user.domain.enums.UserStatus;
 import com.lh.assist.user.domain.repository.UserRepository;
 import java.security.SecureRandom;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -78,8 +82,60 @@ public class UserService {
             throw new AuthException(ErrorCode.CURRENT_PASSWORD_INVALID);
         }
 
-        user.changePassword(passwordEncoder.encode(request.newPassword()));
+		user.changePassword(passwordEncoder.encode(request.newPassword()));
     }
+
+	/**
+	 * 일반 사용자의 부서별 사용자 목록을 조회한다
+	 *
+	 * 일반 사용자는 본인 부서의 ACTIVE 사용자만 조회한다
+	 *
+	 * @param requesterId 요청 사용자 ID
+	 * @return 같은 부서의 활성 사용자 목록
+	 */
+	@Transactional(readOnly = true)
+	public List<User> getUsersByDepartment(Long requesterId) {
+		if (requesterId == null) {
+			throw new UserException(ErrorCode.UNAUTHORIZED);
+		}
+		User requester = userRepository.findById(requesterId)
+				.orElseThrow(() -> new UserException(ErrorCode.USER_NOT_FOUND));
+
+		UserDepartment resolvedDepartment = requester.getDepartment();
+		if (resolvedDepartment == null) {
+			throw new UserException(ErrorCode.INVALID_INPUT_VALUE);
+		}
+
+		return userRepository.findAllByDepartmentAndStatus(resolvedDepartment, UserStatus.ACTIVE);
+	}
+
+	/**
+	 * 관리자 전용 사용자 목록 조회
+	 *
+	 * 부서가 지정되면 해당 부서만 조회한다
+	 *
+	 * @param requesterId 요청 사용자 ID
+	 * @param department 필터 부서
+	 * @return 사용자 목록
+	 */
+	@Transactional(readOnly = true)
+	public List<User> getAllUsersForAdmin(
+			Long requesterId,
+			UserDepartment department
+	) {
+		if (requesterId == null) {
+			throw new UserException(ErrorCode.UNAUTHORIZED);
+		}
+		User requester = userRepository.findById(requesterId)
+				.orElseThrow(() -> new UserException(ErrorCode.USER_NOT_FOUND));
+		if (requester.getRole() != UserRole.ADMIN) {
+			throw new UserException(ErrorCode.ACCESS_DENIED);
+		}
+		if (department == null) {
+			return userRepository.findAll();
+		}
+		return userRepository.findAllByDepartment(department);
+	}
 
 	/**
 	 * 임시 비밀번호 발급용 랜덤 문자열을 생성한다
