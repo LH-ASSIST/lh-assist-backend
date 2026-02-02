@@ -37,9 +37,11 @@ public class SqsMessageProducer {
 
 	public void sendAnalysisRequested(
 			Long jobId,
-			Long userId
+			Long userId,
+			Long docId,
+			String s3Key
 	) {
-		String payload = toJson(jobId);
+		String payload = toJson(jobId, userId, docId, s3Key);
 		int attempt = 0;
 		while (true) {
 			try {
@@ -58,9 +60,23 @@ public class SqsMessageProducer {
 		}
 	}
 
-	private String toJson(Long jobId) {
+	private String toJson(
+			Long jobId,
+			Long userId,
+			Long docId,
+			String s3Key
+	) {
 		try {
-			return objectMapper.writeValueAsString(Map.of("jobId", jobId));
+			return objectMapper.writeValueAsString(Map.ofEntries(
+					Map.entry("jobId", jobId),
+					Map.entry("job_id", jobId),
+					Map.entry("userId", userId),
+					Map.entry("user_id", userId),
+					Map.entry("docId", docId),
+					Map.entry("doc_id", docId),
+					Map.entry("s3Key", s3Key),
+					Map.entry("s3_key", s3Key)
+			));
 		} catch (JsonProcessingException ex) {
 			throw new SystemException(ErrorCode.INTERNAL_SERVER_ERROR, ex);
 		}

@@ -350,7 +350,12 @@ class AnalysisServiceTest {
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.ACCESS_DENIED);
 
-        verify(sqsMessageProducer, never()).sendAnalysisRequested(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong());
+        verify(sqsMessageProducer, never()).sendAnalysisRequested(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyString()
+        );
     }
 
     @Test

@@ -92,7 +92,9 @@ public class AnalysisService {
 			public void afterCommit() {
 				sqsMessageProducer.sendAnalysisRequested(
 						analysisJob.getJobId(),
-						user.getUserId()
+						user.getUserId(),
+						document.getDocId(),
+						document.getS3Key()
 				);
 			}
 		});
