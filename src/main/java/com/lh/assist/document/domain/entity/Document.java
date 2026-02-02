@@ -18,9 +18,10 @@ public class Document extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "doc_id")
     private Long docId;
 
-    @Column(nullable = false, length = 200)
+    @Column(name = "title", nullable = false, length = 200)
     private String title;
 
     @Enumerated(EnumType.STRING)
@@ -30,7 +31,7 @@ public class Document extends BaseTimeEntity {
     @Column(name = "s3_key", nullable = false, length = 500)
     private String s3Key;
 
-    @Column(nullable = false)
+    @Column(name = "base_date", nullable = false)
     private LocalDate baseDate;
 
     @Enumerated(EnumType.STRING)
@@ -49,12 +50,8 @@ public class Document extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approver_id")
-    private User approver;
-
     @Version
-    @Column(nullable = false)
+    @Column(name = "version", nullable = false)
     private Long version;
 
     @Builder
@@ -72,11 +69,11 @@ public class Document extends BaseTimeEntity {
         this.user = user;
     }
 
-    public void assignApprover(User approver) {
-        if (this.approvalStatus != ApprovalStatus.WAITING) {
-            throw new IllegalStateException("승인 대기 상태에서만 승인자 지정 가능");
+    public void updateApprovalStatus(ApprovalStatus approvalStatus) {
+        if (approvalStatus == null) {
+            throw new IllegalArgumentException("승인 상태는 null일 수 없습니다.");
         }
-        this.approver = approver;
+        this.approvalStatus = approvalStatus;
     }
 
     @Override
