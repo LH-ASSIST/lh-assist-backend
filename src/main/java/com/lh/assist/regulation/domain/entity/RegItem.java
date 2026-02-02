@@ -67,7 +67,7 @@ public class RegItem extends BaseTimeEntity {
 	private String embeddingModel;
 
 	@Convert(converter = VectorStringConverter.class)
-	@Column(name = "vector_index", columnDefinition = "vector")
+	@Column(name = "vector_index", columnDefinition = "vector(1536)")
 	private float[] embedding;
 
 	@ManyToOne(fetch = FetchType.LAZY)
