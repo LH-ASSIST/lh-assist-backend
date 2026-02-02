@@ -3,7 +3,7 @@ package com.lh.assist.analysis.application;
 import com.lh.assist.analysis.api.dto.response.AnalysisRequestResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSectionResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSummaryResponse;
-import com.lh.assist.analysis.api.dto.response.AnalysisRiskItemResponse;
+import com.lh.assist.analysis.api.mapper.AnalysisMapper;
 import com.lh.assist.analysis.domain.entity.AnalysisJob;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
 import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
@@ -81,14 +81,11 @@ public class AnalysisService {
 				.requestedBy(user)
 				.build());
 
-		AnalysisRequestResponse response = AnalysisRequestResponse.builder()
-				.analysisId(analysisResult.getAnalysisId())
-				.jobId(analysisJob.getJobId())
-				.analysisStatus(analysisResult.getStatus())
-				.jobStatus(analysisJob.getStatus())
-				.baseDate(resolvedBaseDate)
-				.createdAt(analysisJob.getCreatedAt())
-				.build();
+		AnalysisRequestResponse response = AnalysisMapper.toRequestResponse(
+				analysisResult,
+				analysisJob,
+				resolvedBaseDate
+		);
 
 		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 			@Override
@@ -127,12 +124,12 @@ public class AnalysisService {
 		int totalViolations = (int) analysisSectionRepository
 				.countByAnalysisResult_AnalysisIdAndIsViolationTrue(result.getAnalysisId());
 
-		return AnalysisSummaryResponse.builder()
-				.analysisId(result.getAnalysisId())
-				.totalRiskScore(totalRiskScore)
-				.riskLevel(level)
-				.totalViolations(totalViolations)
-				.build();
+		return AnalysisMapper.toSummaryResponse(
+				result,
+				totalRiskScore,
+				level,
+				totalViolations
+		);
 	}
 
 	/**
@@ -168,26 +165,10 @@ public class AnalysisService {
 				));
 
 		return sections.stream()
-				.map(section -> AnalysisSectionResponse.builder()
-						.sectionId(section.getSectionId())
-						.page(section.getPageNumber())
-						.bbox(section.getBbox())
-						.isViolation(section.isViolation())
-						.riskScore(section.getRiskScore())
-						.reasoning(section.getReasoning())
-						.riskItems(riskItemMap.getOrDefault(section.getSectionId(), List.of())
-								.stream()
-								.map(item -> AnalysisRiskItemResponse.builder()
-										.riskId(item.getRiskId())
-										.riskType(item.getRiskType())
-										.detectedText(item.getDetectedText())
-										.guideMessage(item.getGuideMessage())
-										.priority(item.getPriority())
-										.similarCaseContent(item.getSimilarCaseContent())
-										.reasoning(item.getReasoning())
-										.build())
-								.toList())
-						.build())
+				.map(section -> AnalysisMapper.toSectionResponse(
+						section,
+						riskItemMap.getOrDefault(section.getSectionId(), List.of())
+				))
 				.toList();
 	}
 
