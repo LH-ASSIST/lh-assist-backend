@@ -19,6 +19,7 @@ import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.enums.DocumentType;
 import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.support.IntegrationTestBase;
+import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.enums.UserDepartment;
 import com.lh.assist.user.domain.enums.UserPosition;
@@ -275,17 +276,16 @@ class AnalysisControllerIntegrationTest extends IntegrationTestBase {
     }
 
     private User createUser(String email) {
-        return userRepository.save(User.builder()
-                .email(email)
-                .password(passwordEncoder.encode("Test1234!"))
-                .name("Tester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        return userRepository.save(TestDataFactory.userWith(
+                email,
+                passwordEncoder.encode("Test1234!"),
+                "Tester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
     }
 
     private Document createDocument(

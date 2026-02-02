@@ -4,10 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lh.assist.user.domain.entity.User;
-import com.lh.assist.user.domain.enums.UserDepartment;
-import com.lh.assist.user.domain.enums.UserPosition;
-import com.lh.assist.user.domain.enums.UserRole;
-import com.lh.assist.user.domain.enums.UserStatus;
+import com.lh.assist.support.TestDataFactory;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,18 +59,7 @@ class JwtTokenProviderTest {
 	}
 
 	private User user() {
-		return User.builder()
-				.userId(1L)
-				.email("tester@lh.com")
-				.password("hashed")
-				.name("Tester")
-				.department(UserDepartment.ETC)
-				.position(UserPosition.ETC)
-				.role(UserRole.USER)
-				.status(UserStatus.ACTIVE)
-				.emailVerified(true)
-				.attemptCount(0)
-				.build();
+		return TestDataFactory.userWithId("tester@lh.com", 1L);
 	}
 
 	private boolean audienceContains(Claims claims) {

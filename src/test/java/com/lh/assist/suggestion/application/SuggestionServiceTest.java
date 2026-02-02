@@ -16,12 +16,9 @@ import com.lh.assist.suggestion.api.dto.request.SuggestionUpdateRequest;
 import com.lh.assist.suggestion.domain.entity.Suggestion;
 import com.lh.assist.suggestion.domain.enums.SuggestionCategory;
 import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
+import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
-import com.lh.assist.user.domain.enums.UserDepartment;
-import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.repository.UserRepository;
-import com.lh.assist.user.domain.enums.UserRole;
-import com.lh.assist.user.domain.enums.UserStatus;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -262,18 +259,7 @@ class SuggestionServiceTest {
     }
 
     private static User owner(Long userId) {
-        return User.builder()
-                .userId(userId)
-                .email("user@lh.com")
-                .password("hashed")
-                .name("Tester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build();
+        return TestDataFactory.userWithId("user@lh.com", userId);
     }
 
 }
