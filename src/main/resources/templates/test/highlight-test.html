@@ -282,8 +282,16 @@
             items.forEach(ev => {
                 const row = document.createElement('div');
                 row.style.marginBottom = '8px';
-                row.innerHTML = `<div style="font-size:12px; color:#666;">[${ev.sourceType}] ${ev.sourceId || ''}</div>`
-                    + `<div style="font-size:13px; color:#333;">${ev.quote}</div>`;
+                const meta = document.createElement('div');
+                meta.style.fontSize = '12px';
+                meta.style.color = '#666';
+                meta.textContent = `[${ev.sourceType}] ${ev.sourceId || ''}`;
+                const quote = document.createElement('div');
+                quote.style.fontSize = '13px';
+                quote.style.color = '#333';
+                quote.textContent = ev.quote ?? '';
+                row.appendChild(meta);
+                row.appendChild(quote);
                 list.appendChild(row);
             });
         }

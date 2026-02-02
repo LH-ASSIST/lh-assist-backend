@@ -34,7 +34,9 @@ public class PdfHighlightTestController {
     @ResponseBody
     public byte[] getPdfFile() throws IOException {
         ClassPathResource pdfFile = new ClassPathResource("static/test.pdf");
-        return pdfFile.getInputStream().readAllBytes();
+        try (var inputStream = pdfFile.getInputStream()) {
+            return inputStream.readAllBytes();
+        }
     }
 
     private record MockHighlight(
