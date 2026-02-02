@@ -115,6 +115,16 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("로그인이 성공하면 토큰을 반환해야 한다")
     void 로그인_성공하면_토큰_반환() throws Exception {
+        userRepository.save(TestDataFactory.userWith(
+                "tester2@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "LoginTester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         Map<String, Object> payload = Map.of(
                 "email", "tester2@lh.com",
