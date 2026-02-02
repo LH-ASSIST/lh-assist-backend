@@ -30,5 +30,5 @@ spring:
 app:
   cors:
     allowed-origins:
-      - https://d1v7ka3ykr3zod.cloudfront.net
-      - https://lh-assist.cloud
+      - "https://d1v7ka3ykr3zod.cloudfront.net"
+      - "https://lh-assist.cloud"

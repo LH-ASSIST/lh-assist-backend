@@ -81,10 +81,14 @@ public class SecurityConfig {
 				.map(String::trim)
 				.filter(value -> !value.isEmpty())
 				.toList();
+
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(originList);
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+
+		configuration.setAllowedHeaders(List.of("*"));
+		configuration.setExposedHeaders(List.of("Authorization"));
+
 		configuration.setAllowCredentials(true);
 		configuration.setMaxAge(3600L);
 
