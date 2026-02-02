@@ -115,18 +115,16 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("로그인이 성공하면 토큰을 반환해야 한다")
     void 로그인_성공하면_토큰_반환() throws Exception {
-        User user = User.builder()
-                .email("tester2@lh.com")
-                .password(passwordEncoder.encode("Test1234!"))
-                .name("LoginTester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build();
-        userRepository.save(user);
+        userRepository.save(TestDataFactory.userWith(
+                "tester2@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "LoginTester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         Map<String, Object> payload = Map.of(
                 "email", "tester2@lh.com",
@@ -147,17 +145,16 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("리프레시 토큰으로 재발급 시 새로운 토큰이 발급되어야 한다")
     void 리프레시_재발급_성공() throws Exception {
-        User user = userRepository.save(User.builder()
-                .email("refresh1@lh.com")
-                .password(passwordEncoder.encode("Test1234!"))
-                .name("RefreshTester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        User user = userRepository.save(TestDataFactory.userWith(
+                "refresh1@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "RefreshTester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         TokenPair tokens = loginAndGetTokens(user.getEmail(), "Test1234!");
 
@@ -180,17 +177,16 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("폐기된 리프레시 토큰 재사용 시 인증이 거부되어야 한다")
     void 리프레시_재사용_차단() throws Exception {
-        User user = userRepository.save(User.builder()
-                .email("refresh2@lh.com")
-                .password(passwordEncoder.encode("Test1234!"))
-                .name("RefreshReuseTester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        User user = userRepository.save(TestDataFactory.userWith(
+                "refresh2@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "RefreshReuseTester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         TokenPair tokens = loginAndGetTokens(user.getEmail(), "Test1234!");
 
@@ -210,17 +206,16 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("로그아웃 후 리프레시 토큰이 더 이상 유효하지 않아야 한다")
     void 로그아웃_후_리프레시_무효() throws Exception {
-        User user = userRepository.save(User.builder()
-                .email("logout1@lh.com")
-                .password(passwordEncoder.encode("Test1234!"))
-                .name("LogoutTester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        User user = userRepository.save(TestDataFactory.userWith(
+                "logout1@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "LogoutTester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         TokenPair tokens = loginAndGetTokens(user.getEmail(), "Test1234!");
 
@@ -243,17 +238,16 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("로그아웃된 액세스 토큰으로 보호된 API에 접근하면 거부되어야 한다")
     void 로그아웃_후_액세스_토큰_차단() throws Exception {
-        User user = userRepository.save(User.builder()
-                .email("logout2@lh.com")
-                .password(passwordEncoder.encode("Test1234!"))
-                .name("LogoutAccessTester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        User user = userRepository.save(TestDataFactory.userWith(
+                "logout2@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "LogoutAccessTester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         Suggestion suggestion = suggestionRepository.save(
                 TestDataFactory.suggestion(user, false)

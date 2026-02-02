@@ -14,12 +14,9 @@ import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.document.domain.enums.DocumentType;
 import com.lh.assist.infrastructure.aws.s3.S3Service;
+import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
-import com.lh.assist.user.domain.enums.UserDepartment;
-import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.repository.UserRepository;
-import com.lh.assist.user.domain.enums.UserRole;
-import com.lh.assist.user.domain.enums.UserStatus;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -72,7 +69,7 @@ class DocumentServiceTest {
                 "application/pdf",
                 "data".getBytes()
         );
-        User user = user(1L);
+        User user = TestDataFactory.userWithId("user1@lh.com", 1L);
         LocalDate baseDate = LocalDate.now();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(s3Service.uploadFile(file, "documents/1")).thenReturn("documents/1/key.pdf");
@@ -89,8 +86,8 @@ class DocumentServiceTest {
     @Test
     @DisplayName("다른 사용자의 문서를 조회하면 접근 거부가 발생해야 한다")
     void 다른_사용자_문서_조회_거부() {
-        User owner = user(1L);
-        User requester = user(2L);
+        User owner = TestDataFactory.userWithId("user1@lh.com", 1L);
+        User requester = TestDataFactory.userWithId("user2@lh.com", 2L);
         Document document = Document.builder()
                 .title("문서")
                 .docType(DocumentType.NOTICE)
@@ -110,7 +107,7 @@ class DocumentServiceTest {
     @Test
     @DisplayName("S3 삭제 실패 시 문서 삭제가 예외를 전달해야 한다")
     void S3_삭제_실패시_예외_전달() {
-        User owner = user(1L);
+        User owner = TestDataFactory.userWithId("user1@lh.com", 1L);
         Document document = Document.builder()
                 .title("문서")
                 .docType(DocumentType.NOTICE)
@@ -131,18 +128,4 @@ class DocumentServiceTest {
         verify(documentRepository).delete(document);
     }
 
-    private static User user(Long userId) {
-        return User.builder()
-                .userId(userId)
-                .email("user" + userId + "@lh.com")
-                .password("hashed")
-                .name("Tester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build();
-    }
 }

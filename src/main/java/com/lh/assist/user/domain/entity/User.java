@@ -33,34 +33,35 @@ public class User extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "user_id")
 	private Long userId;
 
-	@Column(nullable = false, unique = true, length = 100)
+	@Column(name = "email", nullable = false, unique = true, length = 100)
 	private String email;
 
-	@Column()
+	@Column(name = "password")
 	private String password;
 
-	@Column(nullable = false, length = 50)
+	@Column(name = "name", nullable = false, length = 50)
 	private String name;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
+	@Column(name = "role", nullable = false, length = 20)
 	private UserRole role;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
+	@Column(name = "position", nullable = false, length = 20)
 	private UserPosition position;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 50)
+	@Column(name = "department", nullable = false, length = 50)
 	private UserDepartment department;
 
 	@Column(name = "email_verified", nullable = false)
 	private boolean emailVerified;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
+	@Column(name = "status", nullable = false, length = 20)
 	private UserStatus status;
 
 	@Column(name = "attempt_count", nullable = false)

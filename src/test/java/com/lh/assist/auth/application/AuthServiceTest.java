@@ -16,6 +16,7 @@ import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.jwt.TokenPair;
 import com.lh.assist.common.security.jwt.TokenService;
+import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.enums.UserDepartment;
 import com.lh.assist.user.domain.enums.UserPosition;
@@ -105,18 +106,16 @@ class AuthServiceTest {
 	void 로그인_성공하면_토큰과_사용자_반환() {
 		LoginRequest request = loginRequest("Test1234!");
 
-		User user = User.builder()
-			.userId(10L)
-			.email("login@lh.com")
-			.password("hashed")
-			.name("Tester")
-			.department(UserDepartment.ETC)
-			.position(UserPosition.ETC)
-			.role(UserRole.USER)
-			.status(UserStatus.ACTIVE)
-			.emailVerified(true)
-			.attemptCount(0)
-			.build();
+		User user = TestDataFactory.userWith(
+			"login@lh.com",
+			"hashed",
+			"Tester",
+			UserRole.USER,
+			com.lh.assist.user.domain.enums.UserDepartment.ETC,
+			com.lh.assist.user.domain.enums.UserPosition.ETC,
+			UserStatus.ACTIVE,
+			true
+		);
 
 		when(userRepository.findByEmail("login@lh.com")).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches("Test1234!", "hashed")).thenReturn(true);
@@ -135,18 +134,16 @@ class AuthServiceTest {
 	void 비밀번호가_틀리면_예외_발생() {
 		LoginRequest request = loginRequest("bad");
 
-		User user = User.builder()
-			.userId(10L)
-			.email("login@lh.com")
-			.password("hashed")
-			.name("Tester")
-			.department(UserDepartment.ETC)
-			.position(UserPosition.ETC)
-			.role(UserRole.USER)
-			.status(UserStatus.ACTIVE)
-			.emailVerified(false)
-			.attemptCount(0)
-			.build();
+		User user = TestDataFactory.userWith(
+			"login@lh.com",
+			"hashed",
+			"Tester",
+			UserRole.USER,
+			com.lh.assist.user.domain.enums.UserDepartment.ETC,
+			com.lh.assist.user.domain.enums.UserPosition.ETC,
+			UserStatus.ACTIVE,
+			false
+		);
 
 		when(userRepository.findByEmail("login@lh.com")).thenReturn(Optional.of(user));
 		when(passwordEncoder.matches("bad", "hashed")).thenReturn(false);

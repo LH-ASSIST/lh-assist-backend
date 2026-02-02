@@ -26,10 +26,10 @@ public class ChatMessage extends BaseTimeEntity {
     @Column(name = "session_id", nullable = false, length = 100)
     private String sessionId;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "question", nullable = false, columnDefinition = "TEXT")
     private String question;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "answer", nullable = false, columnDefinition = "TEXT")
     private String answer;
 
     /**

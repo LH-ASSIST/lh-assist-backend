@@ -30,11 +30,11 @@ public class EmailVerification extends BaseTimeEntity {
 	@Column(name = "verify_id")
 	private Long verifyId;
 
-	@Column(nullable = false, length = 100)
+	@Column(name = "email", nullable = false, length = 100)
 	private String email;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 30)
+	@Column(name = "purpose", nullable = false, length = 30)
 	private EmailVerificationPurpose purpose;
 
 	@Column(name = "token_hash", nullable = false, length = 255)

@@ -19,20 +19,21 @@ public class Suggestion extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "suggestion_id")
     private Long suggestionId;
 
-    @Column(nullable = false, length = 200)
+    @Column(name = "title", nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "category", nullable = false)
     private SuggestionCategory category;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private SuggestionStatus status = SuggestionStatus.WAITING;
 
     @Column(name = "is_private", nullable = false)
@@ -89,10 +90,6 @@ public class Suggestion extends BaseTimeEntity {
         this.category = category;
         this.isPrivate = isPrivate;
         this.isAnonymous = isAnonymous;
-    }
-
-    public void incrementViewCount() {
-        this.viewCount++;
     }
 
     @Override

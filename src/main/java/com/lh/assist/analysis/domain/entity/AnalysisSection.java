@@ -25,25 +25,29 @@ public class AnalysisSection {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "section_id")
     private Long sectionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "analysis_id", nullable = false)
     private AnalysisResult analysisResult;
 
-    @Column(nullable = false)
+    @Column(name = "external_section_id", nullable = false)
     private String externalSectionId;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "bbox", columnDefinition = "TEXT")
     private String bbox;
 
+    @Column(name = "page_number")
     private Integer pageNumber;
 
+    @Column(name = "is_violation")
     private boolean isViolation;
 
+    @Column(name = "risk_score")
     private Integer riskScore;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "reasoning", columnDefinition = "TEXT")
     private String reasoning;
 
     @Override
