@@ -10,6 +10,7 @@ CREATE TABLE document_approvals (
     review_comment TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT fk_document_approvals_document FOREIGN KEY (doc_id) REFERENCES documents(doc_id),
+    CONSTRAINT fk_document_approvals_document FOREIGN KEY (doc_id) REFERENCES documents(doc_id) ON DELETE CASCADE,
+    CONSTRAINT fk_document_approvals_approver FOREIGN KEY (approver_id) REFERENCES users(user_id),
     CONSTRAINT uk_document_approvals_doc UNIQUE (doc_id)
 );

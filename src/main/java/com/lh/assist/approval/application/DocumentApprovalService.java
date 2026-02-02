@@ -111,6 +111,10 @@ public class DocumentApprovalService {
         DocumentApproval approval = approvalRepository.findByDocument_DocId(docId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
 
+        if (approval.getStatus() != ApprovalStatus.WAITING) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
         if (approval.getApproverId() == null || !approval.getApproverId().equals(principal.userId())) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED);
         }

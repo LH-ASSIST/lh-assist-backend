@@ -68,6 +68,12 @@ public class DocumentApproval extends BaseTimeEntity {
             LocalDateTime reviewedAt,
             String reviewComment
     ) {
+        if (document == null) {
+            throw new IllegalArgumentException("문서는 null일 수 없습니다.");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("승인 상태는 null일 수 없습니다.");
+        }
         this.document = document;
         this.approverId = approverId;
         this.reviewerName = reviewerName;
