@@ -3,10 +3,13 @@ package com.lh.assist.analysis.application;
 import com.lh.assist.analysis.api.dto.response.AnalysisRequestResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSectionResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSummaryResponse;
+import com.lh.assist.analysis.api.dto.response.AnalysisRiskItemResponse;
 import com.lh.assist.analysis.domain.entity.AnalysisJob;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
+import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
 import com.lh.assist.analysis.domain.repository.AnalysisJobRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
+import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
 import com.lh.assist.analysis.domain.enums.AnalysisJobStatus;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
@@ -33,6 +36,7 @@ public class AnalysisService {
 	private final AnalysisResultRepository analysisResultRepository;
 	private final AnalysisJobRepository analysisJobRepository;
 	private final AnalysisSectionRepository analysisSectionRepository;
+	private final AnalysisRiskItemRepository analysisRiskItemRepository;
 	private final DocumentRepository documentRepository;
 	private final UserRepository userRepository;
 	private final SqsMessageProducer sqsMessageProducer;
@@ -152,6 +156,16 @@ public class AnalysisService {
 		AnalysisResult result = getLatestSucceeded(docId);
 		List<AnalysisSection> sections = analysisSectionRepository
 				.findAllByAnalysisResult_AnalysisId(result.getAnalysisId());
+		List<Long> sectionIds = sections.stream()
+				.map(AnalysisSection::getSectionId)
+				.toList();
+		List<AnalysisRiskItem> riskItems = sectionIds.isEmpty()
+				? List.of()
+				: analysisRiskItemRepository.findAllByAnalysisSection_SectionIdIn(sectionIds);
+		var riskItemMap = riskItems.stream()
+				.collect(java.util.stream.Collectors.groupingBy(
+						item -> item.getAnalysisSection().getSectionId()
+				));
 
 		return sections.stream()
 				.map(section -> AnalysisSectionResponse.builder()
@@ -161,6 +175,18 @@ public class AnalysisService {
 						.isViolation(section.isViolation())
 						.riskScore(section.getRiskScore())
 						.reasoning(section.getReasoning())
+						.riskItems(riskItemMap.getOrDefault(section.getSectionId(), List.of())
+								.stream()
+								.map(item -> AnalysisRiskItemResponse.builder()
+										.riskId(item.getRiskId())
+										.riskType(item.getRiskType())
+										.detectedText(item.getDetectedText())
+										.guideMessage(item.getGuideMessage())
+										.priority(item.getPriority())
+										.similarCaseContent(item.getSimilarCaseContent())
+										.reasoning(item.getReasoning())
+										.build())
+								.toList())
 						.build())
 				.toList();
 	}
