@@ -3,10 +3,13 @@ package com.lh.assist.analysis.application;
 import com.lh.assist.analysis.api.dto.response.AnalysisRequestResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSectionResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSummaryResponse;
+import com.lh.assist.analysis.api.mapper.AnalysisMapper;
 import com.lh.assist.analysis.domain.entity.AnalysisJob;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
+import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
 import com.lh.assist.analysis.domain.repository.AnalysisJobRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
+import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
 import com.lh.assist.analysis.domain.enums.AnalysisJobStatus;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
@@ -33,6 +36,7 @@ public class AnalysisService {
 	private final AnalysisResultRepository analysisResultRepository;
 	private final AnalysisJobRepository analysisJobRepository;
 	private final AnalysisSectionRepository analysisSectionRepository;
+	private final AnalysisRiskItemRepository analysisRiskItemRepository;
 	private final DocumentRepository documentRepository;
 	private final UserRepository userRepository;
 	private final SqsMessageProducer sqsMessageProducer;
@@ -77,14 +81,11 @@ public class AnalysisService {
 				.requestedBy(user)
 				.build());
 
-		AnalysisRequestResponse response = AnalysisRequestResponse.builder()
-				.analysisId(analysisResult.getAnalysisId())
-				.jobId(analysisJob.getJobId())
-				.analysisStatus(analysisResult.getStatus())
-				.jobStatus(analysisJob.getStatus())
-				.baseDate(resolvedBaseDate)
-				.createdAt(analysisJob.getCreatedAt())
-				.build();
+		AnalysisRequestResponse response = AnalysisMapper.toRequestResponse(
+				analysisResult,
+				analysisJob,
+				resolvedBaseDate
+		);
 
 		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 			@Override
@@ -123,12 +124,12 @@ public class AnalysisService {
 		int totalViolations = (int) analysisSectionRepository
 				.countByAnalysisResult_AnalysisIdAndIsViolationTrue(result.getAnalysisId());
 
-		return AnalysisSummaryResponse.builder()
-				.analysisId(result.getAnalysisId())
-				.totalRiskScore(totalRiskScore)
-				.riskLevel(level)
-				.totalViolations(totalViolations)
-				.build();
+		return AnalysisMapper.toSummaryResponse(
+				result,
+				totalRiskScore,
+				level,
+				totalViolations
+		);
 	}
 
 	/**
@@ -152,16 +153,22 @@ public class AnalysisService {
 		AnalysisResult result = getLatestSucceeded(docId);
 		List<AnalysisSection> sections = analysisSectionRepository
 				.findAllByAnalysisResult_AnalysisId(result.getAnalysisId());
+		List<Long> sectionIds = sections.stream()
+				.map(AnalysisSection::getSectionId)
+				.toList();
+		List<AnalysisRiskItem> riskItems = sectionIds.isEmpty()
+				? List.of()
+				: analysisRiskItemRepository.findAllByAnalysisSection_SectionIdIn(sectionIds);
+		var riskItemMap = riskItems.stream()
+				.collect(java.util.stream.Collectors.groupingBy(
+						item -> item.getAnalysisSection().getSectionId()
+				));
 
 		return sections.stream()
-				.map(section -> AnalysisSectionResponse.builder()
-						.sectionId(section.getSectionId())
-						.page(section.getPageNumber())
-						.bbox(section.getBbox())
-						.isViolation(section.isViolation())
-						.riskScore(section.getRiskScore())
-						.reasoning(section.getReasoning())
-						.build())
+				.map(section -> AnalysisMapper.toSectionResponse(
+						section,
+						riskItemMap.getOrDefault(section.getSectionId(), List.of())
+				))
 				.toList();
 	}
 

@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,84 +38,101 @@ public class HighlightTestController {
         List<MockSection> sections = new ArrayList<>();
         sections.add(new MockSection(
                 101L,
-                "절차",
-                "MEDIUM",
-                "계약 체결 후 선급금 30%를 지급하고, 나머지는 공정률에 따라 분할 지급한다.",
-                "선급금 지급 조건이 구체적이지 않아 분쟁 소지가 있을 수 있습니다.",
-                "선급금 지급 시기와 기준 공정률을 명확히 규정해야 합니다.",
                 1,
                 "[120, 310, 420, 340]",
+                true,
                 55,
-                120,
-                310,
-                300,
-                30
+                "선급금 지급 조건이 불명확하여 분쟁 위험이 있습니다.",
+                List.of(
+                        new MockRiskItem(
+                                201L,
+                                "MISSING",
+                                "선급금 30%를 지급한다.",
+                                "선급금 지급 기준과 시기를 구체적으로 명시하세요.",
+                                2,
+                                "유사 계약에서 선급금 지급 시기가 명확하지 않아 분쟁 발생.",
+                                "선급금 지급 기준이 누락됨."
+                        ),
+                        new MockRiskItem(
+                                202L,
+                                "CLARITY",
+                                "나머지는 공정률에 따라 분할 지급한다.",
+                                "공정률 산정 기준을 명시하세요.",
+                                3,
+                                null,
+                                "공정률 기준이 모호함."
+                        )
+                )
         ));
         sections.add(new MockSection(
                 102L,
-                "책임소재",
-                "HIGH",
-                "공사 완료 후 발생하는 하자에 대해서는 시공사가 책임지고 보수한다.",
-                "하자담보책임 기간 및 범위가 '공사 완료 후'로만 명시되어 있어 불명확합니다.",
-                "주택법 제46조에 따른 하자담보책임 기간을 명시하고, 보증금 예치 조항을 추가해야 합니다.",
                 2,
                 "[80, 220, 520, 260]",
+                true,
                 88,
-                80,
-                220,
-                440,
-                40
+                "하자담보책임 기간 및 범위가 불명확합니다.",
+                List.of(
+                        new MockRiskItem(
+                                203L,
+                                "APPROPRIATENESS",
+                                "공사 완료 후 발생하는 하자에 대해서는 시공사가 책임지고 보수한다.",
+                                "주택법 제46조 기준에 맞는 하자담보책임 기간을 명시하세요.",
+                                1,
+                                "하자담보책임 기간이 누락되어 책임 분쟁이 발생한 사례.",
+                                "책임 범위가 광범위하고 기준이 모호함."
+                        )
+                )
         ));
         sections.add(new MockSection(
                 103L,
-                "공정성",
-                "LOW",
-                "입찰 공고는 사업 착공 60일 전까지 공고한다.",
-                "입찰 공고 기한은 통상 기준에 맞지만, 예외 조건이 명시되어 있지 않습니다.",
-                "긴급 사업 예외 기준을 별도로 명시해 투명성을 확보해야 합니다.",
                 3,
                 "[100, 410, 520, 440]",
+                false,
                 20,
-                100,
-                410,
-                420,
-                30
+                "입찰 공고 기한은 적정하지만 예외 조건이 없습니다.",
+                List.of(
+                        new MockRiskItem(
+                                204L,
+                                "PROCEDURE_COMPLIANCE",
+                                "입찰 공고는 사업 착공 60일 전까지 공고한다.",
+                                "긴급 사업 예외 기준을 별도로 명시해 절차 준수 여부를 명확히 하세요.",
+                                4,
+                                null,
+                                "예외 절차 기준이 누락됨."
+                        )
+                )
         ));
 
-        List<MockEvidence> evidences = List.of(
-                new MockEvidence(201L, 101L, "REGULATION", "REG-2024-001", "대금은 60일 이내 지급이 원칙이다."),
-                new MockEvidence(202L, 101L, "AUDIT", "AUD-2023-014", "장기 지급은 분쟁 가능성이 높다."),
-                new MockEvidence(203L, 102L, "CASE", "CASE-2021-008", "손해배상 범위가 과도한 사례가 문제됨."),
-                new MockEvidence(204L, 103L, "REGULATION", "REG-2022-004", "관할 합의는 가능하나 불균형 주의.")
-        );
-
         List<MockHighlight> highlights = sections.stream()
-                .map(section -> new MockHighlight(
-                        section.sectionId(),
-                        section.page(),
-                        section.x(),
-                        section.y(),
-                        section.width(),
-                        section.height(),
-                        section.level(),
-                        section.text(),
-                        section.desc(),
-                        section.recommendation(),
-                        section.title(),
-                        section.score(),
-                        section.bbox()
-                ))
+                .map(this::toHighlight)
                 .toList();
-
-        Map<Long, List<MockEvidence>> evidenceMap = evidences.stream()
-                .collect(Collectors.groupingBy(MockEvidence::sectionId));
 
         model.addAttribute("highlightsJson", objectMapper.writeValueAsString(highlights));
         model.addAttribute("sectionsJson", objectMapper.writeValueAsString(sections));
-        model.addAttribute("evidencesJson", objectMapper.writeValueAsString(evidenceMap));
-        model.addAttribute("sections", sections);
 
         return "test/highlight-test";
+    }
+
+    private record MockSection(
+            long sectionId,
+            int page,
+            String bbox,
+            boolean isViolation,
+            int riskScore,
+            String reasoning,
+            List<MockRiskItem> riskItems
+    ) {
+    }
+
+    private record MockRiskItem(
+            long riskId,
+            String riskType,
+            String detectedText,
+            String guideMessage,
+            int priority,
+            String similarCaseContent,
+            String reasoning
+    ) {
     }
 
     private record MockHighlight(
@@ -126,41 +141,36 @@ public class HighlightTestController {
             double x,
             double y,
             double width,
-            double height,
-            String level,
-            String text,
-            String riskContent,
-            String recommendation,
-            String title,
-            int score,
-            String bbox
-    ) {
-    }
-
-    private record MockSection(
-            long sectionId,
-            String title,
-            String level,
-            String text,
-            String desc,
-            String recommendation,
-            int page,
-            String bbox,
-            int score,
-            double x,
-            double y,
-            double width,
             double height
     ) {
     }
 
-    private record MockEvidence(
-            long evidenceId,
-            long sectionId,
-            String sourceType,
-            String sourceId,
-            String quote
-    ) {
+    private MockHighlight toHighlight(MockSection section) {
+        double[] bbox = parseBbox(section.bbox());
+        return new MockHighlight(
+                section.sectionId(),
+                section.page(),
+                bbox[0],
+                bbox[1],
+                bbox[2],
+                bbox[3]
+        );
+    }
+
+    private double[] parseBbox(String bbox) {
+        if (bbox == null || bbox.isBlank()) {
+            return new double[]{0, 0, 0, 0};
+        }
+        String cleaned = bbox.replace("[", "").replace("]", "");
+        String[] parts = cleaned.split(",");
+        if (parts.length < 4) {
+            return new double[]{0, 0, 0, 0};
+        }
+        double x1 = Double.parseDouble(parts[0].trim());
+        double y1 = Double.parseDouble(parts[1].trim());
+        double x2 = Double.parseDouble(parts[2].trim());
+        double y2 = Double.parseDouble(parts[3].trim());
+        return new double[]{x1, y1, x2 - x1, y2 - y1};
     }
 
     private String toRiskLevelLabel(String code) {

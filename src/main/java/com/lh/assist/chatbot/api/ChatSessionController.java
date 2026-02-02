@@ -2,6 +2,7 @@ package com.lh.assist.chatbot.api;
 
 import com.lh.assist.chatbot.api.docs.ChatSessionCreateDocs;
 import com.lh.assist.chatbot.api.dto.response.ChatSessionResponse;
+import com.lh.assist.chatbot.api.mapper.ChatSessionMapper;
 import com.lh.assist.chatbot.application.ChatSessionService;
 import com.lh.assist.common.model.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ public class ChatSessionController {
     @ChatSessionCreateDocs
     public ResponseEntity<ApiResponse<ChatSessionResponse>> createSession() {
         String sessionId = chatSessionService.createSessionId();
-        ChatSessionResponse response = new ChatSessionResponse(sessionId);
+        ChatSessionResponse response = ChatSessionMapper.toResponse(sessionId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 }

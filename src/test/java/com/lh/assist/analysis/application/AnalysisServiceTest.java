@@ -10,10 +10,13 @@ import com.lh.assist.analysis.api.dto.response.AnalysisSectionResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSummaryResponse;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
+import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
 import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
+import com.lh.assist.analysis.domain.enums.AnalysisRiskType;
 import com.lh.assist.analysis.domain.repository.AnalysisJobRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
+import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.document.domain.entity.Document;
@@ -44,6 +47,9 @@ class AnalysisServiceTest {
 
     @Mock
     private AnalysisSectionRepository analysisSectionRepository;
+
+    @Mock
+    private AnalysisRiskItemRepository analysisRiskItemRepository;
 
     @Mock
     private DocumentRepository documentRepository;
@@ -194,6 +200,18 @@ class AnalysisServiceTest {
         when(analysisResultRepository.findTopByDocument_DocIdAndStatusOrderByCreatedAtDesc(12L, AnalysisResultStatus.SUCCEEDED))
                 .thenReturn(Optional.of(result));
         when(analysisSectionRepository.findAllByAnalysisResult_AnalysisId(102L)).thenReturn(List.of(section));
+        AnalysisRiskItem riskItem = AnalysisRiskItem.builder()
+                .analysisSection(section)
+                .riskType(AnalysisRiskType.CLARITY)
+                .detectedText("문장")
+                .guideMessage("가이드")
+                .priority(1)
+                .similarCaseContent("유사 사례")
+                .reasoning("사유")
+                .build();
+        ReflectionTestUtils.setField(riskItem, "riskId", 2000L);
+        when(analysisRiskItemRepository.findAllByAnalysisSection_SectionIdIn(List.of(1000L)))
+                .thenReturn(List.of(riskItem));
 
         List<AnalysisSectionResponse> responses = analysisService.getAnalysisSections(12L, "owner@lh.com");
 
@@ -205,6 +223,9 @@ class AnalysisServiceTest {
         assertThat(response.isViolation()).isTrue();
         assertThat(response.getRiskScore()).isEqualTo(90);
         assertThat(response.getReasoning()).isEqualTo("위반 사유");
+        assertThat(response.getRiskItems()).hasSize(1);
+        assertThat(response.getRiskItems().getFirst().getRiskId()).isEqualTo(2000L);
+        assertThat(response.getRiskItems().getFirst().getRiskType()).isEqualTo(AnalysisRiskType.CLARITY);
     }
 
     @Test

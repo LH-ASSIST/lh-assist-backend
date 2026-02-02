@@ -2,6 +2,8 @@ package com.lh.assist.analysis.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import com.lh.assist.analysis.domain.enums.AnalysisRiskType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,45 +20,52 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "analysis_evidences")
+@Table(name = "analysis_risk_items")
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class AnalysisEvidence {
+public class AnalysisRiskItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long evidenceId;
+    private Long riskId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id", nullable = false)
     private AnalysisSection analysisSection;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "risk_id")
-    private AnalysisRiskItem analysisRiskItem;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AnalysisRiskType riskType;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String detectedText;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String guideMessage;
 
     @Column(nullable = false)
-    private String sourceType;
-
-    private String sourceId;
+    private Integer priority;
 
     @Column(columnDefinition = "TEXT")
-    private String quote;
+    private String similarCaseContent;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String reasoning;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof AnalysisEvidence that)) {
+        if (!(o instanceof AnalysisRiskItem that)) {
             return false;
         }
-        return evidenceId != null && evidenceId.equals(that.evidenceId);
+        return riskId != null && riskId.equals(that.riskId);
     }
 
     @Override
     public int hashCode() {
-        return evidenceId != null ? evidenceId.hashCode() : getClass().hashCode();
+        return riskId != null ? riskId.hashCode() : getClass().hashCode();
     }
 }
