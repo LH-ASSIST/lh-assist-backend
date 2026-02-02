@@ -15,6 +15,7 @@ import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
 import com.lh.assist.user.domain.repository.UserRepository;
+import com.lh.assist.support.TestDataFactory;
 import jakarta.mail.BodyPart;
 import jakarta.mail.Multipart;
 import jakarta.mail.Session;
@@ -55,17 +56,16 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("마이페이지 조회는 로그인 사용자 정보를 반환해야 한다")
     void 마이페이지_조회_성공() throws Exception {
-        User user = userRepository.save(User.builder()
-                .email("mypage@lh.com")
-                .password(passwordEncoder.encode("Test1234!"))
-                .name("MyPage")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        User user = userRepository.save(TestDataFactory.userWith(
+                "mypage@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "MyPage",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         TokenPair tokens = loginAndGetTokens(user.getEmail(), "Test1234!");
 
@@ -80,17 +80,16 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("비밀번호 변경 후 새 비밀번호로 로그인할 수 있어야 한다")
     void 비밀번호_변경_성공() throws Exception {
-        User user = userRepository.save(User.builder()
-                .email("pwchange@lh.com")
-                .password(passwordEncoder.encode("Old1234!"))
-                .name("PasswordChange")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        User user = userRepository.save(TestDataFactory.userWith(
+                "pwchange@lh.com",
+                passwordEncoder.encode("Old1234!"),
+                "PasswordChange",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         TokenPair tokens = loginAndGetTokens(user.getEmail(), "Old1234!");
 
@@ -130,17 +129,16 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("비밀번호 찾기 시 임시 비밀번호로 로그인할 수 있어야 한다")
     void 비밀번호_찾기_임시_비밀번호_로그인() throws Exception {
-        User user = userRepository.save(User.builder()
-                .email("reset@lh.com")
-                .password(passwordEncoder.encode("Old1234!"))
-                .name("Reset")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build());
+        User user = userRepository.save(TestDataFactory.userWith(
+                "reset@lh.com",
+                passwordEncoder.encode("Old1234!"),
+                "Reset",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        ));
 
         Map<String, Object> payload = Map.of("email", user.getEmail());
 
@@ -166,6 +164,45 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
                         .content(objectMapper.writeValueAsString(loginPayload)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("일반 사용자는 요청 부서와 무관하게 본인 부서만 조회되어야 한다")
+    void 일반_사용자_부서_제한() throws Exception {
+        User user = userRepository.save(TestDataFactory.userWith(
+                "user-list@lh.com",
+                passwordEncoder.encode("User123!"),
+                "User",
+                UserRole.USER,
+                UserDepartment.PUBLIC_HOUSING_HEADQUARTERS,
+                UserPosition.STAFF,
+                UserStatus.ACTIVE,
+                true
+        ));
+        userRepository.save(TestDataFactory.userWith(
+                "other-dept@lh.com",
+                passwordEncoder.encode("Test1234!"),
+                "Other",
+                UserRole.USER,
+                UserDepartment.PUBLIC_HOUSING_ELECTRICAL_OFFICE,
+                UserPosition.STAFF,
+                UserStatus.ACTIVE,
+                true
+        ));
+
+        TokenPair tokens = loginAndGetTokens(user.getEmail(), "User123!");
+
+        String body = mockMvc.perform(get("/api/v1/user/department")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.accessToken()))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode root = objectMapper.readTree(body);
+        JsonNode data = root.get("data");
+        org.assertj.core.api.Assertions.assertThat(data.toString()).contains("user-list@lh.com");
+        org.assertj.core.api.Assertions.assertThat(data.toString()).doesNotContain("other-dept@lh.com");
     }
 
     private TokenPair loginAndGetTokens(

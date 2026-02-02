@@ -15,7 +15,9 @@ import com.lh.assist.user.domain.enums.UserDepartment;
 import com.lh.assist.user.domain.enums.UserPosition;
 import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
+import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -113,17 +115,65 @@ class UserServiceTest {
         org.assertj.core.api.Assertions.assertThat(captor.getValue().email()).isEqualTo("tester@lh.com");
     }
 
+    @Test
+    @DisplayName("일반 사용자는 요청 부서와 무관하게 본인 부서만 조회되어야 한다")
+    void 일반_사용자_부서_강제() {
+        User requester = TestDataFactory.userWith(
+                "requester@lh.com",
+                "encoded",
+                "Requester",
+                UserRole.USER,
+                UserDepartment.PUBLIC_HOUSING_BUSINESS_OFFICE,
+                UserPosition.STAFF,
+                UserStatus.ACTIVE,
+                true
+        );
+        when(userRepository.findById(1L)).thenReturn(Optional.of(requester));
+        when(userRepository.findAllByDepartmentAndStatus(UserDepartment.PUBLIC_HOUSING_BUSINESS_OFFICE, UserStatus.ACTIVE))
+                .thenReturn(List.of(requester));
+
+        List<User> users = userService.getUsersByDepartment(1L);
+
+        org.assertj.core.api.Assertions.assertThat(users).hasSize(1);
+        verify(userRepository).findAllByDepartmentAndStatus(UserDepartment.PUBLIC_HOUSING_BUSINESS_OFFICE, UserStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("관리자는 전체 사용자 조회가 가능해야 한다")
+    void 관리자_전체_조회() {
+        User admin = admin();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(userRepository.findAll()).thenReturn(List.of(user(), admin));
+
+        List<User> users = userService.getAllUsersForAdmin(1L, null);
+
+        org.assertj.core.api.Assertions.assertThat(users).hasSize(2);
+        verify(userRepository).findAll();
+    }
+
     private static User user() {
-        return User.builder()
-                .email("tester@lh.com")
-                .password("encoded")
-                .name("Tester")
-                .department(UserDepartment.ETC)
-                .position(UserPosition.ETC)
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .attemptCount(0)
-                .build();
+        return TestDataFactory.userWith(
+                "tester@lh.com",
+                "encoded",
+                "Tester",
+                UserRole.USER,
+                UserDepartment.ETC,
+                UserPosition.ETC,
+                UserStatus.ACTIVE,
+                true
+        );
+    }
+
+    private static User admin() {
+        return TestDataFactory.userWith(
+                "admin@lh.com",
+                "encoded",
+                "Admin",
+                UserRole.ADMIN,
+                UserDepartment.PUBLIC_HOUSING_HEADQUARTERS,
+                UserPosition.CHIEF,
+                UserStatus.ACTIVE,
+                true
+        );
     }
 }
