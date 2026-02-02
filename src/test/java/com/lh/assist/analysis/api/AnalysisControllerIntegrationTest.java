@@ -152,7 +152,7 @@ class AnalysisControllerIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.data[0].riskScore").value(55))
                 .andExpect(jsonPath("$.data[0].reasoning").value("설명"))
                 .andExpect(jsonPath("$.data[0].riskItems[0].riskId").value(riskItem.getRiskId()))
-                .andExpect(jsonPath("$.data[0].riskItems[0].riskType").value("RISK_1"))
+                .andExpect(jsonPath("$.data[0].riskItems[0].riskType").value("CLARITY"))
                 .andExpect(jsonPath("$.data[0].riskItems[0].detectedText").value("문장"))
                 .andExpect(jsonPath("$.data[0].riskItems[0].guideMessage").value("가이드"))
                 .andExpect(jsonPath("$.data[0].riskItems[0].priority").value(1))
