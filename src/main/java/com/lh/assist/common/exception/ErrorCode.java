@@ -10,6 +10,7 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C002", "서버 내부 오류가 발생했습니다."),
 
     AI_ANALYSIS_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "A001", "AI 분석 서버와 통신에 실패했습니다."),
+    ANALYSIS_NOT_FOUND(HttpStatus.NOT_FOUND, "A003", "분석 결과를 찾을 수 없습니다."),
     DOCUMENT_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "A002", "지원하지 않는 문서 형식입니다."),
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I001", "S3 업로드에 실패했습니다."),
     S3_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I002", "S3 삭제에 실패했습니다."),
