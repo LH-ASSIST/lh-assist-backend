@@ -8,9 +8,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
+import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
 import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
+import com.lh.assist.analysis.domain.enums.AnalysisRiskType;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
+import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.enums.DocumentType;
@@ -55,6 +58,9 @@ class AnalysisControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private AnalysisSectionRepository analysisSectionRepository;
+
+    @Autowired
+    private AnalysisRiskItemRepository analysisRiskItemRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -124,6 +130,16 @@ class AnalysisControllerIntegrationTest extends IntegrationTestBase {
                 .reasoning("설명")
                 .build());
 
+        AnalysisRiskItem riskItem = analysisRiskItemRepository.save(AnalysisRiskItem.builder()
+                .analysisSection(saved)
+                .riskType(AnalysisRiskType.CLARITY)
+                .detectedText("문장")
+                .guideMessage("가이드")
+                .priority(1)
+                .similarCaseContent("유사 사례")
+                .reasoning("사유")
+                .build());
+
         TokenPair tokens = loginAndGetTokens(user.getEmail());
 
         mockMvc.perform(get("/api/v1/analysis/documents/{docId}/sections", document.getDocId())
@@ -134,7 +150,14 @@ class AnalysisControllerIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.data[0].bbox").value("[10,20,30,40]"))
                 .andExpect(jsonPath("$.data[0].violation").value(true))
                 .andExpect(jsonPath("$.data[0].riskScore").value(55))
-                .andExpect(jsonPath("$.data[0].reasoning").value("설명"));
+                .andExpect(jsonPath("$.data[0].reasoning").value("설명"))
+                .andExpect(jsonPath("$.data[0].riskItems[0].riskId").value(riskItem.getRiskId()))
+                .andExpect(jsonPath("$.data[0].riskItems[0].riskType").value("RISK_1"))
+                .andExpect(jsonPath("$.data[0].riskItems[0].detectedText").value("문장"))
+                .andExpect(jsonPath("$.data[0].riskItems[0].guideMessage").value("가이드"))
+                .andExpect(jsonPath("$.data[0].riskItems[0].priority").value(1))
+                .andExpect(jsonPath("$.data[0].riskItems[0].similarCaseContent").value("유사 사례"))
+                .andExpect(jsonPath("$.data[0].riskItems[0].reasoning").value("사유"));
     }
 
     @Test

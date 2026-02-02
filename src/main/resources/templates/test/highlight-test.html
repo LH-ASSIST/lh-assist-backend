@@ -116,14 +116,10 @@
                             <h3 id="d-title">제목</h3>
                             <span id="d-badge" class="badge">등급</span>
                             <p id="d-text" style="margin-top:12px; color:#333; font-weight:600;">"문장"</p>
-                            <div style="margin-top:12px;">
-                                <div style="font-size:12px; color:#666; margin-bottom:4px;">위험 내용</div>
-                                <div id="d-risk" style="color:#555;">설명</div>
-                            </div>
-                            <div style="margin-top:12px;">
-                                <div style="font-size:12px; color:#666; margin-bottom:4px;">개선 권장사항</div>
-                                <div id="d-reco" style="color:#555;">권장사항</div>
-                            </div>
+                    <div style="margin-top:12px;">
+                        <div style="font-size:12px; color:#666; margin-bottom:4px;">섹션 판단</div>
+                        <div id="d-reasoning" style="color:#555;">설명</div>
+                    </div>
                             <div style="margin-top:12px; font-size:12px; color:#666;">
                                 페이지: <span id="d-page">-</span>
                                 <span style="margin: 0 6px;">|</span>
@@ -132,48 +128,110 @@
                             <div style="margin-top:6px; font-size:12px; color:#666;">
                                 좌표: <span id="d-bbox">-</span>
                             </div>
-                            <div style="margin-top:12px;">
-                                <div style="font-size:12px; color:#666; margin-bottom:6px;">근거</div>
-                                <div id="evidence-list"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="risk-card" style="flex:1; overflow-y:auto;">
-                    <span class="risk-title">검출된 리스크 (<span th:text="${sections.size()}">0</span>건)</span>
-                    <div th:each="risk : ${sections}"
-                         th:attr="data-section-id=${risk.sectionId},data-title=${risk.title},data-level=${risk.level},data-text=${risk.text},data-risk=${risk.desc},data-reco=${risk.recommendation},data-bbox=${risk.bbox},data-page=${risk.page},data-score=${risk.score}"
-                         onclick="showDetailFromList(this)"
-                         style="margin-bottom: 15px; padding-bottom:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                        <div style="display:flex; justify-content:space-between;">
-                            <strong th:text="${risk.title}">제목</strong>
-                            <span th:class="'badge ' + ${risk.level.toLowerCase()}" th:text="${risk.level}">LEVEL</span>
-                        </div>
-                        <p th:text="${risk.text}" style="font-size:12px; color:#666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">내용...</p>
+                    <div style="margin-top:12px;">
+                        <div style="font-size:12px; color:#666; margin-bottom:6px;">리스크 항목</div>
+                        <div id="risk-item-list"></div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="risk-card" style="flex:1; overflow-y:auto;">
+            <span class="risk-title">검출된 리스크 (<span id="risk-count">0</span>건)</span>
+            <div id="risk-list"></div>
+        </div>
+    </div>
+</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script th:inline="javascript">
-        const highlights = JSON.parse(/*[[${highlightsJson}]]*/ '[]');
-        const evidencesMap = JSON.parse(/*[[${evidencesJson}]]*/ '{}');
-        const pdfUrl = '/test/pdf-file';
+    const highlights = JSON.parse(/*[[${highlightsJson}]]*/ '[]');
+    const sections = JSON.parse(/*[[${sectionsJson}]]*/ '[]');
+    const pdfUrl = '/test/pdf-file';
 
-        let pdfDoc = null;
+    let pdfDoc = null;
         let scale = 1.5;
         let maxPages = 5;
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        pdfjsLib.getDocument(pdfUrl).promise.then(function(pdf) {
-            pdfDoc = pdf;
-            maxPages = Math.min(pdfDoc.numPages, 5);
-            renderPages();
+    pdfjsLib.getDocument(pdfUrl).promise.then(function(pdf) {
+        pdfDoc = pdf;
+        maxPages = Math.min(pdfDoc.numPages, 5);
+        renderPages();
+    });
+
+    const riskTypeLabels = {
+        MISSING: '누락',
+        APPROPRIATENESS: '적정성',
+        CLARITY: '명확성',
+        PROCEDURE_COMPLIANCE: '절차준수'
+    };
+
+    function toRiskLevel(score) {
+        if (score >= 70) return 'HIGH';
+        if (score >= 30) return 'MEDIUM';
+        return 'LOW';
+    }
+
+    function renderRiskList() {
+        const list = document.getElementById('risk-list');
+        const countEl = document.getElementById('risk-count');
+        if (!list || !countEl) {
+            return;
+        }
+        list.innerHTML = '';
+        const total = sections.reduce((acc, s) => acc + (s.riskItems ? s.riskItems.length : 0), 0);
+        countEl.textContent = String(total);
+        if (sections.length === 0) {
+            list.innerHTML = '<div style="font-size:12px; color:#999;">리스크가 없습니다.</div>';
+            return;
+        }
+        sections.forEach(section => {
+            const riskTypes = (section.riskItems || [])
+                .map(item => riskTypeLabels[item.riskType] || item.riskType)
+                .filter((value, index, self) => self.indexOf(value) === index);
+            const riskTypeText = riskTypes.length > 0 ? riskTypes.join(', ') : '리스크 없음';
+            const firstText = section.riskItems?.[0]?.detectedText || section.reasoning || '-';
+            const level = toRiskLevel(section.riskScore || 0);
+
+            const row = document.createElement('div');
+            row.style.marginBottom = '15px';
+            row.style.paddingBottom = '10px';
+            row.style.borderBottom = '1px solid #eee';
+            row.style.cursor = 'pointer';
+            row.dataset.sectionId = String(section.sectionId);
+            row.dataset.page = String(section.page);
+            row.onclick = () => showDetailFromList(row);
+
+            const header = document.createElement('div');
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+
+            const title = document.createElement('strong');
+            title.textContent = riskTypeText;
+
+            const badge = document.createElement('span');
+            badge.className = 'badge ' + level.toLowerCase();
+            badge.textContent = level;
+
+            header.appendChild(title);
+            header.appendChild(badge);
+
+            const text = document.createElement('p');
+            text.style.fontSize = '12px';
+            text.style.color = '#666';
+            text.style.whiteSpace = 'nowrap';
+            text.style.overflow = 'hidden';
+            text.style.textOverflow = 'ellipsis';
+            text.textContent = firstText;
+
+            row.appendChild(header);
+            row.appendChild(text);
+            list.appendChild(row);
         });
+    }
 
         function renderPages() {
             const container = document.getElementById('pdf-container');
@@ -217,84 +275,100 @@
                 div.style.top = (h.y * scale) + 'px';
                 div.style.width = (h.width * scale) + 'px';
                 div.style.height = (h.height * scale) + 'px';
-                div.onclick = () => showDetail(
-                    h.title,
-                    h.level,
-                    h.text,
-                    h.riskContent,
-                    h.recommendation,
-                    h.bbox,
-                    h.page,
-                    h.score,
-                    h.sectionId
-                );
+                div.onclick = () => showDetail(h.sectionId);
                 wrapper.appendChild(div);
             });
         }
 
-        function showDetail(title, level, text, riskContent, recommendation, bbox, page, score, sectionId) {
+        function showDetail(sectionId) {
+            const section = sections.find(s => s.sectionId === sectionId);
+            if (!section) {
+                return;
+            }
             document.getElementById('placeholder').style.display = 'none';
             const contentBox = document.getElementById('detail-content');
             contentBox.style.display = 'block';
 
-            document.getElementById('d-title').innerText = title;
-            document.getElementById('d-text').innerText = text ? `"${text}"` : '-';
-            document.getElementById('d-risk').innerText = riskContent || '-';
-            document.getElementById('d-reco').innerText = recommendation || '-';
-            document.getElementById('d-bbox').innerText = bbox || '-';
-            document.getElementById('d-page').innerText = page ?? '-';
-            document.getElementById('d-score').innerText = score ?? '-';
+            const level = toRiskLevel(section.riskScore || 0);
+            document.getElementById('d-title').innerText = `섹션 ${section.sectionId}`;
+            const firstText = section.riskItems?.[0]?.detectedText || section.reasoning || '-';
+            document.getElementById('d-text').innerText = firstText ? `"${firstText}"` : '-';
+            document.getElementById('d-reasoning').innerText = section.reasoning || '-';
+            document.getElementById('d-bbox').innerText = section.bbox || '-';
+            document.getElementById('d-page').innerText = section.page ?? '-';
+            document.getElementById('d-score').innerText = section.riskScore ?? '-';
 
             const badge = document.getElementById('d-badge');
             badge.innerText = level;
             badge.className = 'badge ' + level.toLowerCase();
-            renderEvidence(sectionId);
+            renderRiskItems(section.riskItems || []);
         }
 
         function showDetailFromList(el) {
-            const title = el.dataset.title;
-            const level = el.dataset.level;
-            const text = el.dataset.text;
-            const riskContent = el.dataset.risk;
-            const recommendation = el.dataset.reco;
-            const bbox = el.dataset.bbox;
             const page = parseInt(el.dataset.page, 10);
-            const score = parseInt(el.dataset.score, 10);
             const sectionId = parseInt(el.dataset.sectionId, 10);
             const target = document.querySelector(`.page-wrapper[data-page="${page}"]`);
             if (target) {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-            showDetail(title, level, text, riskContent, recommendation, bbox, page, score, sectionId);
+            showDetail(sectionId);
         }
 
-        function renderEvidence(sectionId) {
-            const list = document.getElementById('evidence-list');
+        function renderRiskItems(items) {
+            const list = document.getElementById('risk-item-list');
             if (!list) {
                 return;
             }
             list.innerHTML = '';
-            const items = evidencesMap[sectionId] || [];
             if (items.length === 0) {
-                list.innerHTML = '<div style="font-size:12px; color:#999;">근거가 없습니다.</div>';
+                list.innerHTML = '<div style="font-size:12px; color:#999;">리스크 항목이 없습니다.</div>';
                 return;
             }
-            items.forEach(ev => {
+            items.forEach(item => {
                 const row = document.createElement('div');
                 row.style.marginBottom = '8px';
-                const meta = document.createElement('div');
-                meta.style.fontSize = '12px';
-                meta.style.color = '#666';
-                meta.textContent = `[${ev.sourceType}] ${ev.sourceId || ''}`;
-                const quote = document.createElement('div');
-                quote.style.fontSize = '13px';
-                quote.style.color = '#333';
-                quote.textContent = ev.quote ?? '';
-                row.appendChild(meta);
-                row.appendChild(quote);
+
+                const header = document.createElement('div');
+                header.style.fontSize = '12px';
+                header.style.color = '#666';
+                header.textContent = `[${riskTypeLabels[item.riskType] || item.riskType}] 우선순위 ${item.priority ?? '-'}`;
+
+                const detected = document.createElement('div');
+                detected.style.fontSize = '13px';
+                detected.style.color = '#333';
+                detected.textContent = item.detectedText || '-';
+
+                const guide = document.createElement('div');
+                guide.style.fontSize = '12px';
+                guide.style.color = '#555';
+                guide.style.marginTop = '4px';
+                guide.textContent = item.guideMessage || '-';
+
+                const reasoning = document.createElement('div');
+                reasoning.style.fontSize = '12px';
+                reasoning.style.color = '#777';
+                reasoning.style.marginTop = '4px';
+                reasoning.textContent = item.reasoning || '-';
+
+                row.appendChild(header);
+                row.appendChild(detected);
+                row.appendChild(guide);
+                row.appendChild(reasoning);
+
+                if (item.similarCaseContent) {
+                    const similar = document.createElement('div');
+                    similar.style.fontSize = '12px';
+                    similar.style.color = '#777';
+                    similar.style.marginTop = '4px';
+                    similar.textContent = item.similarCaseContent;
+                    row.appendChild(similar);
+                }
+
                 list.appendChild(row);
             });
         }
+
+        renderRiskList();
     </script>
 
     <div style="margin-top:16px; color:#888; font-size:12px;">
