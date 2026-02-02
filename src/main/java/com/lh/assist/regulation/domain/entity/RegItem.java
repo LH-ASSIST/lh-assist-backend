@@ -35,12 +35,13 @@ public class RegItem extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "item_id")
 	private Long itemId;
 
 	@Column(name = "clause_number", nullable = false, length = 50)
 	private String clauseNumber;
 
-	@Column(nullable = false, columnDefinition = "TEXT")
+	@Column(name = "content", nullable = false, columnDefinition = "TEXT")
 	private String content;
 
 	@Column(name = "chunk_index")

@@ -32,6 +32,7 @@ public class AnalysisJob extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "job_id")
 	private Long jobId;
 
 	@ManyToOne(fetch = FetchType.LAZY)
@@ -46,7 +47,7 @@ public class AnalysisJob extends BaseTimeEntity {
 	private LocalDate baseDate;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 30)
+	@Column(name = "status", nullable = false, length = 30)
 	private AnalysisJobStatus status;
 
 	@Column(name = "fail_reason", columnDefinition = "TEXT")

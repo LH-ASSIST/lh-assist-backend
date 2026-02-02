@@ -20,12 +20,13 @@ public class Notice extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "notice_id")
     private Long noticeId;
 
-    @Column(nullable = false, length = 200)
+    @Column(name = "title", nullable = false, length = 200)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "view_count", nullable = false)

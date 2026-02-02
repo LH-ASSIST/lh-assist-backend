@@ -25,6 +25,7 @@ public class AnalysisEvidence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "evidence_id")
     private Long evidenceId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,12 +36,13 @@ public class AnalysisEvidence {
     @JoinColumn(name = "risk_id")
     private AnalysisRiskItem analysisRiskItem;
 
-    @Column(nullable = false)
+    @Column(name = "source_type", nullable = false)
     private String sourceType;
 
+    @Column(name = "source_id")
     private String sourceId;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "quote", columnDefinition = "TEXT")
     private String quote;
 
     @Override

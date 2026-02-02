@@ -31,9 +31,10 @@ public class Regulation extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "reg_id")
 	private Long regId;
 
-	@Column(nullable = false, length = 200)
+	@Column(name = "title", nullable = false, length = 200)
 	private String title;
 
 	@Enumerated(EnumType.STRING)
@@ -52,7 +53,7 @@ public class Regulation extends BaseTimeEntity {
 	@Column(name = "amendment_date", nullable = false)
 	private LocalDate amendmentDate;
 
-	@Column(nullable = false, length = 100)
+	@Column(name = "version", nullable = false, length = 100)
 	private String version;
 
 	@Column(name = "source_url", nullable = false, length = 500)

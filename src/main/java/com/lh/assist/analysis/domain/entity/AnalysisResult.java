@@ -31,6 +31,7 @@ public class AnalysisResult extends BaseTimeEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "analysis_id")
 	private Long analysisId;
 
 	@ManyToOne(fetch = FetchType.LAZY)
@@ -44,7 +45,7 @@ public class AnalysisResult extends BaseTimeEntity {
 	private Integer totalRiskScore;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 30)
+	@Column(name = "status", nullable = false, length = 30)
 	private AnalysisResultStatus status;
 
 	@Override

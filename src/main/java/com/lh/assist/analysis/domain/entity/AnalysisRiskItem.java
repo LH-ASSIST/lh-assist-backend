@@ -28,6 +28,7 @@ public class AnalysisRiskItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "risk_id")
     private Long riskId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -35,22 +36,22 @@ public class AnalysisRiskItem {
     private AnalysisSection analysisSection;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "risk_type", nullable = false)
     private AnalysisRiskType riskType;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "detected_text", columnDefinition = "TEXT", nullable = false)
     private String detectedText;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "guide_message", columnDefinition = "TEXT", nullable = false)
     private String guideMessage;
 
-    @Column(nullable = false)
+    @Column(name = "priority", nullable = false)
     private Integer priority;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "similar_case_content", columnDefinition = "TEXT")
     private String similarCaseContent;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "reasoning", columnDefinition = "TEXT", nullable = false)
     private String reasoning;
 
     @Override
