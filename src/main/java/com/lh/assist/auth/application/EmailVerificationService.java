@@ -1,6 +1,7 @@
 package com.lh.assist.auth.application;
 
 import com.lh.assist.auth.api.dto.response.SendEmailVerificationResponse;
+import com.lh.assist.auth.api.mapper.AuthMapper;
 import com.lh.assist.auth.domain.entity.EmailVerification;
 import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
 import com.lh.assist.auth.application.event.EmailVerificationIssuedEvent;
@@ -78,11 +79,7 @@ public class EmailVerificationService {
 
 		eventPublisher.publishEvent(new EmailVerificationIssuedEvent(email, code));
 
-		return SendEmailVerificationResponse.builder()
-			.email(email)
-			.purpose(purpose)
-			.expiresAt(expiresAt)
-			.build();
+		return AuthMapper.toSendEmailVerificationResponse(email, purpose, expiresAt);
 	}
 
 	/**

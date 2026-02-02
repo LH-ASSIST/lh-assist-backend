@@ -1,10 +1,11 @@
 package com.lh.assist.auth.application;
 
 import com.lh.assist.auth.api.dto.request.LoginRequest;
+import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.LoginResponse;
 import com.lh.assist.auth.api.dto.response.RefreshResponse;
-import com.lh.assist.auth.api.dto.request.SignupRequest;
 import com.lh.assist.auth.api.dto.response.SignupResponse;
+import com.lh.assist.auth.api.mapper.AuthMapper;
 import com.lh.assist.auth.domain.entity.EmailVerification;
 import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
 import com.lh.assist.auth.domain.repository.EmailVerificationRepository;
@@ -59,15 +60,7 @@ public class AuthService {
 				.build();
 
 		User saved = userRepository.save(user);
-		return SignupResponse.builder()
-				.userId(saved.getUserId())
-				.email(saved.getEmail())
-				.name(saved.getName())
-				.department(saved.getDepartment())
-				.position(saved.getPosition())
-				.status(saved.getStatus())
-				.createdAt(saved.getCreatedAt())
-				.build();
+		return AuthMapper.toSignupResponse(saved);
 	}
 
 	private void ensureEmailVerifiedForSignup(String email) {
@@ -105,24 +98,13 @@ public class AuthService {
 		}
 
 		TokenPair tokenPair = tokenService.issueLoginTokens(user);
-		return LoginResponse.builder()
-				.accessToken(tokenPair.accessToken())
-				.refreshToken(tokenPair.refreshToken())
-				.tokenType("Bearer")
-				.userId(user.getUserId())
-				.email(user.getEmail())
-				.role(user.getRole())
-				.build();
+		return AuthMapper.toLoginResponse(tokenPair, user);
 	}
 
 	@Transactional(readOnly = true)
 	public RefreshResponse refresh(String refreshToken) {
 		TokenPair tokenPair = tokenService.rotateRefreshToken(refreshToken);
-		return RefreshResponse.builder()
-				.accessToken(tokenPair.accessToken())
-				.refreshToken(tokenPair.refreshToken())
-				.tokenType("Bearer")
-				.build();
+		return AuthMapper.toRefreshResponse(tokenPair);
 	}
 
 	@Transactional
