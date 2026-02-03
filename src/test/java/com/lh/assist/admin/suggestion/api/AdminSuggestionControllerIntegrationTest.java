@@ -8,12 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lh.assist.common.security.jwt.JwtTokenProvider;
 import com.lh.assist.suggestion.domain.entity.Suggestion;
+import com.lh.assist.suggestion.domain.enums.SuggestionCategory;
 import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
 import com.lh.assist.support.IntegrationTestBase;
 import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import java.util.Map;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,13 +58,37 @@ class AdminSuggestionControllerIntegrationTest extends IntegrationTestBase {
     void 관리자_전체_조회() throws Exception {
         User admin = userRepository.save(TestDataFactory.admin("admin@lh.com"));
         User user = userRepository.save(TestDataFactory.user("user@lh.com"));
-        suggestionRepository.save(TestDataFactory.suggestion(user, false));
-        suggestionRepository.save(TestDataFactory.suggestion(user, true));
+        Suggestion answered = Suggestion.builder()
+                .title("제목1")
+                .content("내용1")
+                .category(SuggestionCategory.SYSTEM_ERROR)
+                .isPrivate(false)
+                .isAnonymous(true)
+                .user(user)
+                .build();
+        answered.answer("답변 내용1");
+        suggestionRepository.save(answered);
+
+        Suggestion waiting = Suggestion.builder()
+                .title("제목2")
+                .content("내용2")
+                .category(SuggestionCategory.SYSTEM_ERROR)
+                .isPrivate(true)
+                .isAnonymous(true)
+                .user(user)
+                .build();
+        suggestionRepository.save(waiting);
 
         mockMvc.perform(get("/api/v1/admin/suggestions")
                 .header(HttpHeaders.AUTHORIZATION, bearer(admin)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.content.length()").value(2));
+            .andExpect(jsonPath("$.data.content.length()").value(2))
+            .andExpect(jsonPath("$.data.content[*].content").value(Matchers.hasItem("내용1")))
+            .andExpect(jsonPath("$.data.content[*].content").value(Matchers.hasItem("내용2")))
+            .andExpect(jsonPath("$.data.content[?(@.content=='내용1')].answerContent")
+                    .value(Matchers.hasItem("답변 내용1")))
+            .andExpect(jsonPath("$.data.content[?(@.content=='내용2')].answerContent")
+                    .value(Matchers.hasItem(Matchers.nullValue())));
     }
 
     @Test

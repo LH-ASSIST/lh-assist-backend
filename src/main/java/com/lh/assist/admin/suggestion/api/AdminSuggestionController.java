@@ -5,7 +5,8 @@ import com.lh.assist.common.security.UserPrincipal;
 import com.lh.assist.admin.suggestion.api.docs.SuggestionAnswerDocs;
 import com.lh.assist.admin.suggestion.api.docs.SuggestionAdminListDocs;
 import com.lh.assist.admin.suggestion.api.dto.request.SuggestionAnswerRequest;
-import com.lh.assist.suggestion.api.dto.response.SuggestionListResponse;
+import com.lh.assist.admin.suggestion.api.dto.response.AdminSuggestionListResponse;
+import com.lh.assist.admin.suggestion.api.mapper.AdminSuggestionMapper;
 import com.lh.assist.suggestion.api.dto.response.SuggestionResponse;
 import com.lh.assist.suggestion.api.mapper.SuggestionMapper;
 import com.lh.assist.admin.suggestion.application.AdminSuggestionService;
@@ -39,7 +40,7 @@ public class AdminSuggestionController {
 
     @GetMapping
     @SuggestionAdminListDocs
-    public ResponseEntity<ApiResponse<Page<SuggestionListResponse>>> listAllSuggestions(
+    public ResponseEntity<ApiResponse<Page<AdminSuggestionListResponse>>> listAllSuggestions(
             @AuthenticationPrincipal UserPrincipal principal,
             @ParameterObject Pageable pageable
     ) {
@@ -48,9 +49,9 @@ public class AdminSuggestionController {
                 .map(Suggestion::getSuggestionId)
                 .toList();
         Map<Long, Integer> deltas = viewCountService.getViewCountDeltas(ids);
-        Page<SuggestionListResponse> responses = suggestions.map(suggestion -> {
+        Page<AdminSuggestionListResponse> responses = suggestions.map(suggestion -> {
             int viewCount = suggestion.getViewCount() + deltas.getOrDefault(suggestion.getSuggestionId(), 0);
-            return SuggestionMapper.toListResponse(suggestion, principal, viewCount);
+            return AdminSuggestionMapper.toAdminListResponse(suggestion, principal, viewCount);
         });
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
