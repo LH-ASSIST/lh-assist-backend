@@ -59,6 +59,17 @@ public class AnalysisJob extends BaseTimeEntity {
 	@JoinColumn(name = "requested_by", nullable = false)
 	private User requestedBy;
 
+	public void updateStatus(
+			AnalysisJobStatus status,
+			String failReason
+	) {
+		if (status == null) {
+			throw new IllegalArgumentException("작업 상태는 null일 수 없습니다.");
+		}
+		this.status = status;
+		this.failReason = failReason;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
