@@ -18,6 +18,7 @@ import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.infrastructure.aws.sqs.SqsMessageProducer;
 import com.lh.assist.document.domain.entity.Document;
+import com.lh.assist.document.domain.enums.AnalysisStatus;
 import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
@@ -86,6 +87,8 @@ public class AnalysisService {
 				analysisJob,
 				resolvedBaseDate
 		);
+
+		document.updateAnalysisStatus(AnalysisStatus.ANALYZING);
 
 		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 			@Override
