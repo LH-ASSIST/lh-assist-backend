@@ -5,6 +5,10 @@ import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SystemException;
 import com.lh.assist.audit.domain.entity.AuditLog;
 import com.lh.assist.audit.domain.repository.AuditLogRepository;
+import com.lh.assist.analysis.domain.entity.AnalysisResult;
+import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
+import com.lh.assist.document.api.dto.response.DocumentWithAnalysisResponse;
+import com.lh.assist.document.api.mapper.DocumentMapper;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.document.domain.enums.DocumentType;
@@ -17,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URL;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -29,6 +35,7 @@ public class DocumentService {
 	private final AuditLogRepository auditLogRepository;
 	private final UserRepository userRepository;
 	private final S3Service s3Service;
+	private final AnalysisResultRepository analysisResultRepository;
 
 	/**
 	 * 문서를 업로드하고 저장된 문서 엔티티를 반환한다
@@ -186,6 +193,30 @@ public class DocumentService {
 	}
 
 	/**
+	 * 문서 목록과 최신 분석 요약 정보를 함께 조회한다
+	 *
+	 * 분석 결과가 없으면 요약 필드는 null로 반환한다
+	 *
+	 * @param email 사용자 이메일
+	 * @return 문서 + 분석 요약 목록
+	 */
+	@Transactional(readOnly = true)
+	public List<DocumentWithAnalysisResponse> getDocumentsWithAnalysisByEmail(
+			String email
+	) {
+		User user = getUserByEmail(email);
+		List<Document> documents = documentRepository.findAllByUser_UserIdOrderByCreatedAtDesc(user.getUserId());
+		return documents.stream()
+				.map(document -> {
+					AnalysisResult latestResult = analysisResultRepository
+							.findTopByDocument_DocIdOrderByCreatedAtDesc(document.getDocId())
+							.orElse(null);
+					return DocumentMapper.toWithAnalysisResponse(document, latestResult);
+				})
+				.toList();
+	}
+
+	/**
 	 * 사용자 이메일 기준으로 문서를 삭제한다
 	 *
 	 * 문서 소유자가 아니면 접근을 차단한다
@@ -218,6 +249,24 @@ public class DocumentService {
 			);
 			throw ex;
 		}
+	}
+
+	/**
+	 * S3 원본문서 미리보기용 presigned URL을 발급한다
+	 *
+	 * @param document 대상 문서
+	 * @param expiresIn URL 만료 시간
+	 * @return presigned URL
+	 */
+	@Transactional(readOnly = true)
+	public URL generatePreviewUrl(
+			Document document,
+			Duration expiresIn
+	) {
+		if (document == null) {
+			throw new DocumentException(ErrorCode.INVALID_INPUT_VALUE);
+		}
+		return s3Service.generatePresignedUrl(document.getS3Key(), expiresIn);
 	}
 
 	/**

@@ -2,16 +2,23 @@ package com.lh.assist.document.api;
 
 import com.lh.assist.document.api.docs.*;
 import com.lh.assist.document.api.dto.response.DocumentResponse;
+import com.lh.assist.document.api.dto.response.DocumentPreviewUrlResponse;
+import com.lh.assist.document.api.dto.response.DocumentWithAnalysisResponse;
 import com.lh.assist.document.api.mapper.DocumentMapper;
 import com.lh.assist.analysis.api.dto.response.AnalysisRequestResponse;
 import com.lh.assist.analysis.application.AnalysisService;
 import com.lh.assist.document.application.DocumentService;
 import com.lh.assist.common.model.ApiResponse;
+import com.lh.assist.common.exception.DocumentException;
+import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.UserPrincipal;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.enums.DocumentType;
+import java.net.URL;
 import java.util.List;
 import java.time.LocalDate;
+import java.time.Duration;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -79,6 +86,40 @@ public class DocumentController {
 				.map(DocumentMapper::toResponse)
 				.toList();
 		return ResponseEntity.ok(ApiResponse.success(responses));
+	}
+
+	@GetMapping("/with-analysis")
+	@PreAuthorize("isAuthenticated()")
+	@DocumentListWithAnalysisDocs
+	public ResponseEntity<ApiResponse<List<DocumentWithAnalysisResponse>>> getMyDocumentsWithAnalysis(
+			@AuthenticationPrincipal UserPrincipal principal
+	) {
+		String email = principal.email();
+		List<DocumentWithAnalysisResponse> responses = documentService.getDocumentsWithAnalysisByEmail(email);
+		return ResponseEntity.ok(ApiResponse.success(responses));
+	}
+
+	@GetMapping("/{docId}/preview-url")
+	@PreAuthorize("isAuthenticated()")
+	@DocumentPreviewUrlDocs
+	public ResponseEntity<ApiResponse<DocumentPreviewUrlResponse>> getPreviewUrl(
+			@AuthenticationPrincipal UserPrincipal principal,
+			@PathVariable Long docId,
+			@RequestParam(value = "expiresMinutes", required = false) Integer expiresMinutes
+	) {
+		int resolvedMinutes = expiresMinutes == null ? 60 : expiresMinutes;
+		if (resolvedMinutes < 1 || resolvedMinutes > 1440) {
+			throw new DocumentException(ErrorCode.INVALID_INPUT_VALUE);
+		}
+
+		Document document = documentService.getDocumentByEmail(principal.email(), docId);
+		Duration expiresIn = Duration.ofMinutes(resolvedMinutes);
+		URL presigned = documentService.generatePreviewUrl(document, expiresIn);
+		DocumentPreviewUrlResponse response = DocumentPreviewUrlResponse.builder()
+				.url(presigned.toString())
+				.expiresAt(Instant.now().plus(expiresIn))
+				.build();
+		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
 	@DeleteMapping("/{docId}")
