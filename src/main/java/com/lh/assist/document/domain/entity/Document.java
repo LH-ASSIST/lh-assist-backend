@@ -76,6 +76,13 @@ public class Document extends BaseTimeEntity {
         this.approvalStatus = approvalStatus;
     }
 
+    public void updateAnalysisStatus(AnalysisStatus analysisStatus) {
+        if (analysisStatus == null) {
+            throw new IllegalArgumentException("분석 상태는 null일 수 없습니다.");
+        }
+        this.analysisStatus = analysisStatus;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

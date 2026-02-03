@@ -1,6 +1,8 @@
 package com.lh.assist.infrastructure.aws.s3;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.lh.assist.common.exception.DocumentException;
 import com.lh.assist.common.exception.ErrorCode;
@@ -12,6 +14,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -70,6 +76,36 @@ public class S3Service {
 			amazonS3.deleteObject(bucket, key);
 		} catch (RuntimeException ex) {
 			throw new SystemException(ErrorCode.S3_DELETE_FAILED, ex);
+		}
+	}
+
+	/**
+	 * S3 원본 문서에 대한 presigned URL을 발급한다
+	 *
+	 * 만료 시간은 호출자가 지정하며 최소 1초 이상이어야 한다
+	 *
+	 * @param key S3 객체 키
+	 * @param expiresIn URL 만료 시간
+	 * @return 발급된 presigned URL
+	 */
+	public URL generatePresignedUrl(
+			String key,
+			Duration expiresIn
+	) {
+		if (key == null || key.isBlank()) {
+			throw new DocumentException(ErrorCode.INVALID_INPUT_VALUE);
+		}
+		if (expiresIn == null || expiresIn.isNegative() || expiresIn.isZero()) {
+			throw new DocumentException(ErrorCode.INVALID_INPUT_VALUE);
+		}
+		Instant expiresAt = Instant.now().plus(expiresIn);
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
+				.withMethod(HttpMethod.GET)
+				.withExpiration(Date.from(expiresAt));
+		try {
+			return amazonS3.generatePresignedUrl(request);
+		} catch (RuntimeException ex) {
+			throw new SystemException(ErrorCode.INTERNAL_SERVER_ERROR, ex);
 		}
 	}
 

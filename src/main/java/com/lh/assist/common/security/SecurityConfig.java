@@ -58,6 +58,7 @@ public class SecurityConfig {
 						"/actuator/health",
 						"/actuator/health/**"
 				).permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/analysis/jobs/*/callback").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/user/password/reset").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/qna/all").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/notice/search").permitAll()

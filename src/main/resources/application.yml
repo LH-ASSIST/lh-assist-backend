@@ -73,6 +73,8 @@ app:
     document-analyze-queue-url: ${SQS_DOCUMENT_ANALYZE_QUEUE_URL:}
     max-attempts: 3
     retry-delay-ms: 200
+  analysis:
+    callback-token: ${APP_ANALYSIS_CALLBACK_TOKEN:}
   suggestion:
     view-count:
       flush-interval-ms: 60000

@@ -10,4 +10,6 @@ public interface AnalysisResultRepository extends JpaRepository<AnalysisResult, 
 			Long docId,
 			AnalysisResultStatus status
 	);
+
+	Optional<AnalysisResult> findTopByDocument_DocIdOrderByCreatedAtDesc(Long docId);
 }

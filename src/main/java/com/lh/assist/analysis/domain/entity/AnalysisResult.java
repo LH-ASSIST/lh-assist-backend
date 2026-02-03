@@ -48,6 +48,17 @@ public class AnalysisResult extends BaseTimeEntity {
 	@Column(name = "status", nullable = false, length = 30)
 	private AnalysisResultStatus status;
 
+	public void updateStatus(
+			AnalysisResultStatus status,
+			Integer totalRiskScore
+	) {
+		if (status == null) {
+			throw new IllegalArgumentException("분석 상태는 null일 수 없습니다.");
+		}
+		this.status = status;
+		this.totalRiskScore = totalRiskScore;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
