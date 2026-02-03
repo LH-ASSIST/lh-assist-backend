@@ -29,10 +29,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@TestPropertySource(properties = "app.analysis.callback-token=test-token")
 class AnalysisCallbackControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
@@ -94,6 +96,7 @@ class AnalysisCallbackControllerIntegrationTest extends IntegrationTestBase {
         ));
 
         mockMvc.perform(post("/api/v1/analysis/jobs/{jobId}/callback", job.getJobId())
+                .header("X-Analysis-Callback-Token", "test-token")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk());

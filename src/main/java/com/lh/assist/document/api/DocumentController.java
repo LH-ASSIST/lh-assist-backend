@@ -114,10 +114,11 @@ public class DocumentController {
 
 		Document document = documentService.getDocumentByEmail(principal.email(), docId);
 		Duration expiresIn = Duration.ofMinutes(resolvedMinutes);
+		Instant issuedAt = Instant.now();
 		URL presigned = documentService.generatePreviewUrl(document, expiresIn);
 		DocumentPreviewUrlResponse response = DocumentPreviewUrlResponse.builder()
 				.url(presigned.toString())
-				.expiresAt(Instant.now().plus(expiresIn))
+				.expiresAt(issuedAt.plus(expiresIn))
 				.build();
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}

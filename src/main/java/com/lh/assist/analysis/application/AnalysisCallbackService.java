@@ -37,6 +37,9 @@ public class AnalysisCallbackService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ANALYSIS_NOT_FOUND));
 
         AnalysisResult result = job.getAnalysisResult();
+        if (result == null) {
+            throw new BusinessException(ErrorCode.ANALYSIS_NOT_FOUND);
+        }
         AnalysisResultStatus status = request.getStatus();
         Integer resolvedScore = request.getTotalRiskScore() != null
                 ? request.getTotalRiskScore()
