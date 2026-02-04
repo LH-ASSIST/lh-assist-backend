@@ -1,9 +1,13 @@
 package com.lh.assist.audit.domain.entity;
 
 import com.lh.assist.common.entity.BaseTimeEntity;
+import com.lh.assist.audit.domain.enums.AuditActionType;
+import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.user.domain.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -27,11 +31,13 @@ public class AuditLog extends BaseTimeEntity {
 	@Column(name = "log_id")
 	private Long logId;
 
+	@Enumerated(EnumType.STRING)
 	@Column(name = "action_type", nullable = false, length = 50)
-	private String actionType;
+	private AuditActionType actionType;
 
+	@Enumerated(EnumType.STRING)
 	@Column(name = "target_type", nullable = false, length = 50)
-	private String targetType;
+	private AuditTargetType targetType;
 
 	@Column(name = "target_id", nullable = false)
 	private Long targetId;
@@ -45,8 +51,8 @@ public class AuditLog extends BaseTimeEntity {
 
 	@Builder
 	public AuditLog(
-			String actionType,
-			String targetType,
+			AuditActionType actionType,
+			AuditTargetType targetType,
 			Long targetId,
 			String s3Key,
 			User actor

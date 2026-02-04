@@ -15,6 +15,13 @@ import com.lh.assist.notice.api.dto.request.NoticeSearchType;
 import com.lh.assist.notice.api.dto.request.NoticeUpdateRequest;
 import com.lh.assist.notice.domain.entity.Notice;
 import com.lh.assist.notice.domain.repository.NoticeRepository;
+import com.lh.assist.audit.application.AuditLogService;
+import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.enums.UserDepartment;
+import com.lh.assist.user.domain.enums.UserPosition;
+import com.lh.assist.user.domain.enums.UserRole;
+import com.lh.assist.user.domain.enums.UserStatus;
+import com.lh.assist.user.domain.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +42,12 @@ class NoticeServiceTest {
 
     @Mock
     private NoticeViewCountService viewCountService;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private AuditLogService auditLogService;
 
     @InjectMocks
     private NoticeService noticeService;
@@ -69,8 +82,10 @@ class NoticeServiceTest {
     void 공지사항_생성() {
         NoticeCreateRequest request = new NoticeCreateRequest("제목", "내용");
         when(noticeRepository.save(any(Notice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        long actorId = 1L;
+        when(userRepository.findById(actorId)).thenReturn(Optional.of(user(actorId)));
 
-        Notice created = noticeService.createNotice(request);
+        Notice created = noticeService.createNotice(request, actorId);
 
         assertThat(created.getTitle()).isEqualTo("제목");
         assertThat(created.getContent()).isEqualTo("내용");
@@ -81,10 +96,12 @@ class NoticeServiceTest {
     void 공지사항_수정() {
         Notice notice = notice("이전 제목", "이전 내용");
         when(noticeRepository.findById(10L)).thenReturn(Optional.of(notice));
+        long actorId = 1L;
+        when(userRepository.findById(actorId)).thenReturn(Optional.of(user(actorId)));
 
         NoticeUpdateRequest request = new NoticeUpdateRequest("수정 제목", "수정 내용");
 
-        Notice updated = noticeService.updateNotice(10L, request);
+        Notice updated = noticeService.updateNotice(10L, request, actorId);
 
         assertThat(updated.getTitle()).isEqualTo("수정 제목");
         assertThat(updated.getContent()).isEqualTo("수정 내용");
@@ -94,10 +111,11 @@ class NoticeServiceTest {
     @DisplayName("공지사항 수정 대상이 없으면 NOT_FOUND가 발생해야 한다")
     void 공지사항_수정_대상_없음() {
         when(noticeRepository.findById(10L)).thenReturn(Optional.empty());
+        long actorId = 1L;
 
         NoticeUpdateRequest request = new NoticeUpdateRequest("수정 제목", "수정 내용");
 
-        assertThatThrownBy(() -> noticeService.updateNotice(10L, request))
+         assertThatThrownBy(() -> noticeService.updateNotice(10L, request, actorId))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.NOTICE_NOT_FOUND);
@@ -108,8 +126,10 @@ class NoticeServiceTest {
     void 공지사항_삭제() {
         Notice notice = notice("제목", "내용");
         when(noticeRepository.findById(10L)).thenReturn(Optional.of(notice));
+        long actorId = 1L;
+        when(userRepository.findById(actorId)).thenReturn(Optional.of(user(actorId)));
 
-        noticeService.deleteNotice(10L);
+        noticeService.deleteNotice(10L, actorId);
 
         verify(noticeRepository).delete(notice);
         verify(viewCountService).evict(10L);
@@ -119,6 +139,21 @@ class NoticeServiceTest {
         return Notice.builder()
                 .title(title)
                 .content(content)
+                .build();
+    }
+
+    private static User user(Long userId) {
+        return User.builder()
+                .userId(userId)
+                .email("test@lh.com")
+                .password("password")
+                .name("테스트")
+                .role(UserRole.ADMIN)
+                .position(UserPosition.MANAGER)
+                .department(UserDepartment.ETC)
+                .emailVerified(true)
+                .status(UserStatus.ACTIVE)
+                .attemptCount(0)
                 .build();
     }
 

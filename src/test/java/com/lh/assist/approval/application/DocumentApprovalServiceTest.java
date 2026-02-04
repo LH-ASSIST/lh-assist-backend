@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.lh.assist.approval.domain.entity.DocumentApproval;
 import com.lh.assist.approval.domain.repository.DocumentApprovalRepository;
+import com.lh.assist.audit.application.AuditLogService;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.UserPrincipal;
@@ -37,6 +38,9 @@ class DocumentApprovalServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private AuditLogService auditLogService;
+
     @InjectMocks
     private DocumentApprovalService approvalService;
 
@@ -57,6 +61,7 @@ class DocumentApprovalServiceTest {
         ReflectionTestUtils.setField(document, "docId", 10L);
 
         when(documentRepository.findById(10L)).thenReturn(Optional.of(document));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
         when(userRepository.findById(2L)).thenReturn(Optional.of(approver));
         when(approvalRepository.findByDocument_DocId(10L)).thenReturn(Optional.empty());
 

@@ -6,6 +6,9 @@ import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.enums.AnalysisJobStatus;
 import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
 import com.lh.assist.analysis.domain.repository.AnalysisJobRepository;
+import com.lh.assist.audit.application.AuditLogService;
+import com.lh.assist.audit.domain.enums.AuditActionType;
+import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.document.domain.entity.Document;
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AnalysisCallbackService {
 
 	private final AnalysisJobRepository analysisJobRepository;
+	private final AuditLogService auditLogService;
 
 	/**
 	 * FastAPI 분석 완료 콜백을 처리한다
@@ -50,6 +54,19 @@ public class AnalysisCallbackService {
 
         Document document = job.getDocument();
         document.updateAnalysisStatus(mapToDocumentStatus(status));
+
+        if (status == AnalysisResultStatus.SUCCEEDED || status == AnalysisResultStatus.FAILED) {
+            AuditActionType actionType = status == AnalysisResultStatus.SUCCEEDED
+                    ? AuditActionType.ANALYSIS_CALLBACK_SUCCEEDED
+                    : AuditActionType.ANALYSIS_CALLBACK_FAILED;
+            auditLogService.log(
+                    actionType,
+                    AuditTargetType.ANALYSIS_JOB,
+                    job.getJobId(),
+                    document.getS3Key(),
+                    job.getRequestedBy()
+            );
+        }
     }
 
     private AnalysisJobStatus mapToJobStatus(AnalysisResultStatus status) {

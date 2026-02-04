@@ -4,6 +4,9 @@ import com.lh.assist.approval.api.dto.response.DocumentApprovalResponse;
 import com.lh.assist.approval.api.mapper.DocumentApprovalMapper;
 import com.lh.assist.approval.domain.entity.DocumentApproval;
 import com.lh.assist.approval.domain.repository.DocumentApprovalRepository;
+import com.lh.assist.audit.application.AuditLogService;
+import com.lh.assist.audit.domain.enums.AuditActionType;
+import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.UserPrincipal;
@@ -24,6 +27,7 @@ public class DocumentApprovalService {
     private final DocumentRepository documentRepository;
     private final DocumentApprovalRepository approvalRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     /**
      * 문서 승인 상세 정보를 조회한다
@@ -81,6 +85,14 @@ public class DocumentApprovalService {
         );
         document.updateApprovalStatus(ApprovalStatus.WAITING);
         approvalRepository.save(approval);
+        User admin = getUserById(principal.userId());
+        auditLogService.log(
+                AuditActionType.DOCUMENT_APPROVAL_ASSIGNED,
+                AuditTargetType.DOCUMENT_APPROVAL,
+                approval.getApprovalId(),
+                document.getS3Key(),
+                admin
+        );
 
         return DocumentApprovalMapper.toResponse(document, approval);
     }
@@ -128,6 +140,13 @@ public class DocumentApprovalService {
         );
         approval.markReviewed(status, LocalDateTime.now(), reviewComment);
         document.updateApprovalStatus(status);
+        auditLogService.log(
+                AuditActionType.DOCUMENT_APPROVAL_REVIEWED,
+                AuditTargetType.DOCUMENT_APPROVAL,
+                approval.getApprovalId(),
+                document.getS3Key(),
+                reviewer
+        );
 
         return DocumentApprovalMapper.toResponse(document, approval);
     }

@@ -1,7 +1,10 @@
 package com.lh.assist.analysis.domain.entity;
 
+import com.lh.assist.analysis.domain.enums.AnalysisEvidenceSourceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,8 +39,9 @@ public class AnalysisEvidence {
     @JoinColumn(name = "risk_id")
     private AnalysisRiskItem analysisRiskItem;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false)
-    private String sourceType;
+    private AnalysisEvidenceSourceType sourceType;
 
     @Column(name = "source_id")
     private String sourceId;

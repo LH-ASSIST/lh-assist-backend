@@ -14,6 +14,7 @@ import com.lh.assist.notice.api.dto.response.NoticeResponse;
 import com.lh.assist.notice.api.mapper.NoticeMapper;
 import com.lh.assist.notice.application.NoticeService;
 import com.lh.assist.notice.domain.entity.Notice;
+import com.lh.assist.common.security.UserPrincipal;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -93,9 +95,10 @@ public class NoticeController {
     @PreAuthorize("hasRole('ADMIN')")
     @NoticeCreateDocs
     public ResponseEntity<ApiResponse<NoticeResponse>> createNotice(
-            @Validated @RequestBody NoticeCreateRequest request
+            @Validated @RequestBody NoticeCreateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        Notice created = noticeService.createNotice(request);
+        Notice created = noticeService.createNotice(request, principal.userId());
         NoticeResponse response = NoticeMapper.toResponse(created, created.getViewCount());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
@@ -105,9 +108,10 @@ public class NoticeController {
     @NoticeUpdateDocs
     public ResponseEntity<ApiResponse<NoticeResponse>> updateNotice(
             @PathVariable Long noticeId,
-            @Validated @RequestBody NoticeUpdateRequest request
+            @Validated @RequestBody NoticeUpdateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        Notice updated = noticeService.updateNotice(noticeId, request);
+        Notice updated = noticeService.updateNotice(noticeId, request, principal.userId());
         int viewCount = noticeService.getViewCount(noticeId, updated.getViewCount());
         NoticeResponse response = NoticeMapper.toResponse(updated, viewCount);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -117,9 +121,10 @@ public class NoticeController {
     @PreAuthorize("hasRole('ADMIN')")
     @NoticeDeleteDocs
     public ResponseEntity<ApiResponse<Void>> deleteNotice(
-            @PathVariable Long noticeId
+            @PathVariable Long noticeId,
+            @AuthenticationPrincipal UserPrincipal principal
     ) {
-        noticeService.deleteNotice(noticeId);
+        noticeService.deleteNotice(noticeId, principal.userId());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(ApiResponse.noContent());
     }
 }
