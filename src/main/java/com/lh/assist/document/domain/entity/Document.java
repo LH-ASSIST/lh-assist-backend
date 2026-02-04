@@ -1,14 +1,33 @@
 package com.lh.assist.document.domain.entity;
 
+import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.common.entity.BaseTimeEntity;
 import com.lh.assist.document.domain.enums.AnalysisStatus;
 import com.lh.assist.document.domain.enums.ApprovalStatus;
 import com.lh.assist.document.domain.enums.DocumentType;
 import com.lh.assist.document.domain.enums.MetadataStatus;
 import com.lh.assist.user.domain.entity.User;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "documents")
@@ -49,6 +68,9 @@ public class Document extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToMany(mappedBy = "document", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<AnalysisResult> analysisResults = new ArrayList<>();
 
     @Version
     @Column(name = "version", nullable = false)
