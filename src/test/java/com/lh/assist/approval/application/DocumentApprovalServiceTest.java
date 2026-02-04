@@ -46,7 +46,7 @@ class DocumentApprovalServiceTest {
 
     @Test
     @DisplayName("관리자가 상위권자를 지정하면 승인 상태가 WAITING이어야 한다")
-    void 상위권자_지정_성공() {
+    void 상위권자_지정_관리자_성공() {
         User admin = TestDataFactory.admin("admin@lh.com");
         ReflectionTestUtils.setField(admin, "userId", 1L);
         User approver = TestDataFactory.user("approver@lh.com");
@@ -76,12 +76,55 @@ class DocumentApprovalServiceTest {
     }
 
     @Test
-    @DisplayName("관리자가 아니면 상위권자 지정이 거부되어야 한다")
-    void 상위권자_지정_권한_없음() {
-        User user = TestDataFactory.user("user@lh.com");
-        ReflectionTestUtils.setField(user, "userId", 1L);
+    @DisplayName("문서 소유자가 상위권자를 지정하면 승인 상태가 WAITING이어야 한다")
+    void 상위권자_지정_소유자_성공() {
+        User owner = TestDataFactory.user("owner@lh.com");
+        ReflectionTestUtils.setField(owner, "userId", 1L);
+        User approver = TestDataFactory.user("approver2@lh.com");
+        ReflectionTestUtils.setField(approver, "userId", 2L);
 
-        UserPrincipal principal = new UserPrincipal(user.getUserId(), user.getEmail(), user.getRole().name());
+        Document document = Document.builder()
+                .title("문서")
+                .s3Key("documents/1/key.pdf")
+                .baseDate(java.time.LocalDate.now())
+                .user(owner)
+                .build();
+        ReflectionTestUtils.setField(document, "docId", 10L);
+
+        when(documentRepository.findById(10L)).thenReturn(Optional.of(document));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(approver));
+        when(approvalRepository.findByDocument_DocId(10L)).thenReturn(Optional.empty());
+
+        UserPrincipal principal = new UserPrincipal(owner.getUserId(), owner.getEmail(), owner.getRole().name());
+        var response = approvalService.assignApprover(10L, 2L, principal);
+
+        assertThat(response.getApprovalStatus()).isEqualTo(ApprovalStatus.WAITING);
+        assertThat(response.getReviewerName()).isEqualTo(approver.getName());
+        assertThat(response.getReviewerTitle()).isEqualTo(approver.getPosition().getDescription());
+        assertThat(response.getReviewerDept()).isEqualTo(approver.getDepartment().getDescription());
+        verify(approvalRepository).save(org.mockito.ArgumentMatchers.any(DocumentApproval.class));
+    }
+
+    @Test
+    @DisplayName("문서 소유자가 아니면 상위권자 지정이 거부되어야 한다")
+    void 상위권자_지정_권한_없음() {
+        User owner = TestDataFactory.user("owner3@lh.com");
+        ReflectionTestUtils.setField(owner, "userId", 1L);
+        User other = TestDataFactory.user("other@lh.com");
+        ReflectionTestUtils.setField(other, "userId", 3L);
+
+        Document document = Document.builder()
+                .title("문서")
+                .s3Key("documents/1/key.pdf")
+                .baseDate(java.time.LocalDate.now())
+                .user(owner)
+                .build();
+        ReflectionTestUtils.setField(document, "docId", 10L);
+
+        when(documentRepository.findById(10L)).thenReturn(Optional.of(document));
+
+        UserPrincipal principal = new UserPrincipal(other.getUserId(), other.getEmail(), other.getRole().name());
 
         assertThatThrownBy(() -> approvalService.assignApprover(10L, 2L, principal))
                 .isInstanceOf(BusinessException.class)

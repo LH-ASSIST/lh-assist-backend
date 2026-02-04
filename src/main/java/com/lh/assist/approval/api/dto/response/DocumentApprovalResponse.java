@@ -1,8 +1,10 @@
 package com.lh.assist.approval.api.dto.response;
 
 import com.lh.assist.document.domain.enums.ApprovalStatus;
+import com.lh.assist.user.api.dto.response.UserListResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -24,4 +26,6 @@ public class DocumentApprovalResponse {
     private final LocalDateTime reviewedAt;
     @Schema(description = "검토 의견", example = "하자담보책임 조항을 주택법 제46조에 맞게 수정 완료 확인했습니다.")
     private final String reviewComment;
+    @Schema(description = "상위권자 후보 목록 (같은 부서, 본인 제외)")
+    private final List<UserListResponse> approverCandidates;
 }

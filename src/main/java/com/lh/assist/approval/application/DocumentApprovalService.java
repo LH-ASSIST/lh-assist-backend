@@ -13,9 +13,14 @@ import com.lh.assist.common.security.UserPrincipal;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.enums.ApprovalStatus;
 import com.lh.assist.document.domain.repository.DocumentRepository;
+import com.lh.assist.user.api.dto.response.UserListResponse;
+import com.lh.assist.user.api.mapper.UserMapper;
 import com.lh.assist.user.domain.entity.User;
+import com.lh.assist.user.domain.enums.UserDepartment;
+import com.lh.assist.user.domain.enums.UserStatus;
 import com.lh.assist.user.domain.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +51,9 @@ public class DocumentApprovalService {
         Document document = getDocumentById(docId);
         DocumentApproval approval = approvalRepository.findByDocument_DocId(docId).orElse(null);
         validateViewer(document, approval, principal);
-        return DocumentApprovalMapper.toResponse(document, approval);
+        User requester = getUserById(principal.userId());
+        List<UserListResponse> candidates = getApproverCandidates(requester);
+        return DocumentApprovalMapper.toResponse(document, approval, candidates);
     }
 
     /**
@@ -65,10 +72,13 @@ public class DocumentApprovalService {
             Long approverId,
             UserPrincipal principal
     ) {
-        if (principal == null || !principal.isAdmin()) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        if (principal == null || principal.userId() == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
         Document document = getDocumentById(docId);
+        if (!principal.isAdmin() && !document.getUser().getUserId().equals(principal.userId())) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
         User approver = getUserById(approverId);
 
         DocumentApproval approval = approvalRepository.findByDocument_DocId(docId)
@@ -159,6 +169,12 @@ public class DocumentApprovalService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 
+    /**
+     * 사용자 ID로 사용자 엔티티를 조회한다.
+     *
+     * @param userId 사용자 ID
+     * @return 사용자 엔티티
+     */
     private User getUserById(Long userId) {
         if (userId == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
@@ -167,6 +183,15 @@ public class DocumentApprovalService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
+    /**
+     * 문서 승인 상세 조회 권한을 검증한다.
+     *
+     * 문서 소유자, 상위권자(승인자), 관리자만 조회 가능하다.
+     *
+     * @param document 문서
+     * @param approval 승인 정보 (없을 수 있음)
+     * @param principal 요청 사용자
+     */
     private void validateViewer(
             Document document,
             DocumentApproval approval,
@@ -186,5 +211,24 @@ public class DocumentApprovalService {
             return;
         }
         throw new BusinessException(ErrorCode.ACCESS_DENIED);
+    }
+
+    /**
+     * 상위권자 후보 목록을 조회한다.
+     *
+     * 요청 사용자와 같은 부서의 ACTIVE 사용자 중 본인을 제외한 목록을 반환한다.
+     *
+     * @param requester 요청 사용자
+     * @return 상위권자 후보 목록
+     */
+    private List<UserListResponse> getApproverCandidates(User requester) {
+        UserDepartment department = requester.getDepartment();
+        if (department == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        return userRepository.findAllByDepartmentAndStatus(department, UserStatus.ACTIVE).stream()
+                .filter(user -> user.getUserId() != null && !user.getUserId().equals(requester.getUserId()))
+                .map(UserMapper::toListResponse)
+                .toList();
     }
 }
