@@ -29,6 +29,8 @@ public class DocumentWithAnalysisResponse {
     private final ApprovalStatus approvalStatus;
     @Schema(description = "메타데이터 상태", example = "PENDING")
     private final MetadataStatus metadataStatus;
+    @Schema(description = "접근 유형 (OWNER/APPROVER)", example = "OWNER")
+    private final DocumentAccessType accessType;
     @Schema(description = "분석 결과 ID", example = "10")
     private final Long analysisId;
     @Schema(description = "분석 결과 상태", example = "SUCCEEDED")

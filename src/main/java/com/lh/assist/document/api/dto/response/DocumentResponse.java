@@ -28,6 +28,8 @@ public class DocumentResponse {
 	private final ApprovalStatus approvalStatus;
 	@Schema(description = "메타데이터 처리 상태", example = "PENDING")
 	private final MetadataStatus metadataStatus;
+	@Schema(description = "접근 유형 (OWNER/APPROVER)", example = "OWNER")
+	private final DocumentAccessType accessType;
 	@Schema(description = "생성일시", example = "2026-01-19T10:22:11")
 	private final LocalDateTime createdAt;
 }

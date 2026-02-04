@@ -2,6 +2,7 @@ package com.lh.assist.document.api.mapper;
 
 import com.lh.assist.document.api.dto.response.DocumentResponse;
 import com.lh.assist.document.api.dto.response.DocumentWithAnalysisResponse;
+import com.lh.assist.document.api.dto.response.DocumentAccessType;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.document.domain.entity.Document;
 
@@ -10,6 +11,13 @@ public final class DocumentMapper {
 	}
 
 	public static DocumentResponse toResponse(Document document) {
+		return toResponse(document, DocumentAccessType.OWNER);
+	}
+
+	public static DocumentResponse toResponse(
+			Document document,
+			DocumentAccessType accessType
+	) {
 		return DocumentResponse.builder()
 				.docId(document.getDocId())
 				.title(document.getTitle())
@@ -18,6 +26,7 @@ public final class DocumentMapper {
 				.analysisStatus(document.getAnalysisStatus())
 				.approvalStatus(document.getApprovalStatus())
 				.metadataStatus(document.getMetadataStatus())
+				.accessType(accessType)
 				.createdAt(document.getCreatedAt())
 				.build();
 	}
@@ -25,6 +34,14 @@ public final class DocumentMapper {
 	public static DocumentWithAnalysisResponse toWithAnalysisResponse(
 			Document document,
 			AnalysisResult latestResult
+	) {
+		return toWithAnalysisResponse(document, latestResult, DocumentAccessType.OWNER);
+	}
+
+	public static DocumentWithAnalysisResponse toWithAnalysisResponse(
+			Document document,
+			AnalysisResult latestResult,
+			DocumentAccessType accessType
 	) {
 		return DocumentWithAnalysisResponse.builder()
 				.docId(document.getDocId())
@@ -34,6 +51,7 @@ public final class DocumentMapper {
 				.analysisStatus(document.getAnalysisStatus())
 				.approvalStatus(document.getApprovalStatus())
 				.metadataStatus(document.getMetadataStatus())
+				.accessType(accessType)
 				.analysisId(latestResult != null ? latestResult.getAnalysisId() : null)
 				.analysisResultStatus(latestResult != null ? latestResult.getStatus() : null)
 				.totalRiskScore(latestResult != null ? latestResult.getTotalRiskScore() : null)
