@@ -44,7 +44,7 @@ public class DocumentApprovalController {
     }
 
     @PostMapping("/{docId}/approval/assign")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     @DocumentApprovalAssignDocs
     public ResponseEntity<ApiResponse<DocumentApprovalResponse>> assignApprover(
             @AuthenticationPrincipal UserPrincipal principal,

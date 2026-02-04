@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-@Operation(summary = "문서 승인 상세 조회", description = "문서 승인 상태와 검토자 정보를 조회합니다.")
+@Operation(summary = "문서 승인 상세 조회", description = "문서 승인 상태, 검토자 정보, 상위권자 후보 목록을 조회합니다.")
 @ApiResponse(responseCode = "200", description = "조회 성공",
         content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
 @ApiResponse(responseCode = "401", description = "인증 필요",

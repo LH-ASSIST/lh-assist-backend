@@ -21,6 +21,7 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.hamcrest.Matchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -61,7 +62,7 @@ class DocumentApprovalControllerIntegrationTest extends IntegrationTestBase {
 
     @Test
     @DisplayName("관리자는 상위권자를 지정할 수 있어야 한다")
-    void 상위권자_지정_성공() throws Exception {
+    void 상위권자_지정_관리자_성공() throws Exception {
         User admin = userRepository.save(TestDataFactory.admin("approval-admin@lh.com"));
         User approver = userRepository.save(TestDataFactory.user("approval-approver@lh.com"));
         User owner = userRepository.save(TestDataFactory.user("approval-owner@lh.com"));
@@ -78,6 +79,31 @@ class DocumentApprovalControllerIntegrationTest extends IntegrationTestBase {
 
         mockMvc.perform(post("/api/v1/documents/{docId}/approval/assign", document.getDocId())
                         .header(HttpHeaders.AUTHORIZATION, bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.approvalStatus").value(ApprovalStatus.WAITING.name()))
+                .andExpect(jsonPath("$.data.reviewerName").value(approver.getName()));
+    }
+
+    @Test
+    @DisplayName("문서 소유자는 상위권자를 지정할 수 있어야 한다")
+    void 상위권자_지정_소유자_성공() throws Exception {
+        User approver = userRepository.save(TestDataFactory.user("approval-approver-owner@lh.com"));
+        User owner = userRepository.save(TestDataFactory.user("approval-owner-owner@lh.com"));
+
+        Document document = documentRepository.save(Document.builder()
+                .title("문서")
+                .docType(DocumentType.PLAN)
+                .s3Key("documents/1/key.pdf")
+                .baseDate(LocalDate.now())
+                .user(owner)
+                .build());
+
+        Map<String, Object> payload = Map.of("approverId", approver.getUserId());
+
+        mockMvc.perform(post("/api/v1/documents/{docId}/approval/assign", document.getDocId())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(owner))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk())
@@ -182,7 +208,9 @@ class DocumentApprovalControllerIntegrationTest extends IntegrationTestBase {
                         .header(HttpHeaders.AUTHORIZATION, bearer(owner)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.approvalStatus").value(ApprovalStatus.WAITING.name()))
-                .andExpect(jsonPath("$.data.reviewerName").value(approver.getName()));
+                .andExpect(jsonPath("$.data.reviewerName").value(approver.getName()))
+                .andExpect(jsonPath("$.data.approverCandidates.length()").value(1))
+                .andExpect(jsonPath("$.data.approverCandidates[*].userId", Matchers.hasItem(approver.getUserId().intValue())));
     }
 
     private String bearer(User user) {
