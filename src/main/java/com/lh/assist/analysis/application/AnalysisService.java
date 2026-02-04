@@ -17,7 +17,7 @@ import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
 import com.lh.assist.audit.application.AuditLogService;
 import com.lh.assist.audit.domain.enums.AuditActionType;
 import com.lh.assist.audit.domain.enums.AuditTargetType;
-import com.lh.assist.common.exception.BusinessException;
+import com.lh.assist.common.exception.AnalysisException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.infrastructure.aws.sqs.SqsMessageProducer;
 import com.lh.assist.document.domain.entity.Document;
@@ -68,7 +68,7 @@ public class AnalysisService {
 
 		LocalDate resolvedBaseDate = baseDate != null ? baseDate : document.getBaseDate();
 		if (resolvedBaseDate == null) {
-			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+			throw new AnalysisException(ErrorCode.INVALID_INPUT_VALUE);
 		}
 
 		AnalysisResult analysisResult = analysisResultRepository.save(AnalysisResult.builder()
@@ -196,10 +196,10 @@ public class AnalysisService {
 	 */
 	private User getUserByEmail(String email) {
 		if (email == null || email.isBlank()) {
-			throw new BusinessException(ErrorCode.UNAUTHORIZED);
+			throw new AnalysisException(ErrorCode.UNAUTHORIZED);
 		}
 		return userRepository.findByEmail(email)
-				.orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+				.orElseThrow(() -> new AnalysisException(ErrorCode.UNAUTHORIZED));
 	}
 
 	/**
@@ -210,10 +210,10 @@ public class AnalysisService {
 	 */
 	private Document getDocumentById(Long docId) {
 		if (docId == null) {
-			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+			throw new AnalysisException(ErrorCode.INVALID_INPUT_VALUE);
 		}
 		return documentRepository.findById(docId)
-				.orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
+				.orElseThrow(() -> new AnalysisException(ErrorCode.DOCUMENT_NOT_FOUND));
 	}
 
 	/**
@@ -229,7 +229,7 @@ public class AnalysisService {
 			Document document
 	) {
 		if (!document.getUser().equals(user)) {
-			throw new BusinessException(ErrorCode.ACCESS_DENIED);
+			throw new AnalysisException(ErrorCode.ACCESS_DENIED);
 		}
 	}
 
@@ -245,7 +245,7 @@ public class AnalysisService {
 		return analysisResultRepository.findTopByDocument_DocIdAndStatusOrderByCreatedAtDesc(
 				docId,
 				AnalysisResultStatus.SUCCEEDED
-		).orElseThrow(() -> new BusinessException(ErrorCode.ANALYSIS_NOT_FOUND));
+		).orElseThrow(() -> new AnalysisException(ErrorCode.ANALYSIS_NOT_FOUND));
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package com.lh.assist.approval.api;
 
+import com.lh.assist.approval.api.docs.DocumentApprovalApiDocs;
 import com.lh.assist.approval.api.docs.DocumentApprovalAssignDocs;
 import com.lh.assist.approval.api.docs.DocumentApprovalGetDocs;
 import com.lh.assist.approval.api.docs.DocumentApprovalReviewDocs;
@@ -9,7 +10,6 @@ import com.lh.assist.approval.api.dto.response.DocumentApprovalResponse;
 import com.lh.assist.approval.application.DocumentApprovalService;
 import com.lh.assist.common.model.ApiResponse;
 import com.lh.assist.common.security.UserPrincipal;
-import com.lh.assist.document.api.docs.DocumentApiDocs;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/documents")
-@DocumentApiDocs
+@DocumentApprovalApiDocs
 @Validated
 public class DocumentApprovalController {
 

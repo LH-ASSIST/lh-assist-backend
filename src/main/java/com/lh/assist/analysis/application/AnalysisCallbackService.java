@@ -9,7 +9,7 @@ import com.lh.assist.analysis.domain.repository.AnalysisJobRepository;
 import com.lh.assist.audit.application.AuditLogService;
 import com.lh.assist.audit.domain.enums.AuditActionType;
 import com.lh.assist.audit.domain.enums.AuditTargetType;
-import com.lh.assist.common.exception.BusinessException;
+import com.lh.assist.common.exception.AnalysisException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.enums.AnalysisStatus;
@@ -38,11 +38,11 @@ public class AnalysisCallbackService {
 			AnalysisCallbackRequest request
 	) {
         AnalysisJob job = analysisJobRepository.findById(jobId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ANALYSIS_NOT_FOUND));
+                .orElseThrow(() -> new AnalysisException(ErrorCode.ANALYSIS_NOT_FOUND));
 
         AnalysisResult result = job.getAnalysisResult();
         if (result == null) {
-            throw new BusinessException(ErrorCode.ANALYSIS_NOT_FOUND);
+            throw new AnalysisException(ErrorCode.ANALYSIS_NOT_FOUND);
         }
         AnalysisResultStatus status = request.getStatus();
         Integer resolvedScore = request.getTotalRiskScore() != null
