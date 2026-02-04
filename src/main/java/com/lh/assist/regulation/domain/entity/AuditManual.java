@@ -31,4 +31,16 @@ public class AuditManual extends BaseTimeEntity {
     @OneToMany(mappedBy = "auditManual", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @Builder.Default
     private List<AuditManualItem> items = new ArrayList<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AuditManual that)) return false;
+        return manualId != null && manualId.equals(that.manualId);
+    }
+
+    @Override
+    public int hashCode() {
+        return manualId != null ? manualId.hashCode() : getClass().hashCode();
+    }
 }

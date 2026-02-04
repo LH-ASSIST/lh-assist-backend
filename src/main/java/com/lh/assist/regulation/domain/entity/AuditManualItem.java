@@ -47,4 +47,16 @@ public class AuditManualItem extends BaseTimeEntity {
     @Convert(converter = VectorStringConverter.class)
     @Column(name = "vector_index", columnDefinition = "vector(1536)")
     private float[] embedding;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AuditManualItem that)) return false;
+        return manualItemId != null && manualItemId.equals(that.manualItemId);
+    }
+
+    @Override
+    public int hashCode() {
+        return manualItemId != null ? manualItemId.hashCode() : getClass().hashCode();
+    }
 }
