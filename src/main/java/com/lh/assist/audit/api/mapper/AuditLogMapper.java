@@ -19,9 +19,9 @@ public final class AuditLogMapper {
                 .targetDescription(auditLog.getTargetType().getDescription())
                 .targetId(auditLog.getTargetId())
                 .referenceKey(auditLog.getS3Key())
-                .actorId(actor.getUserId())
-                .actorEmail(actor.getEmail())
-                .actorName(actor.getName())
+                .actorId(actor != null ? actor.getUserId() : null)
+                .actorEmail(actor != null ? actor.getEmail() : null)
+                .actorName(actor != null ? actor.getName() : null)
                 .createdAt(auditLog.getCreatedAt())
                 .build();
     }

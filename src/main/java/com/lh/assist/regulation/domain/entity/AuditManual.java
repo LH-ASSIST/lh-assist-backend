@@ -41,6 +41,6 @@ public class AuditManual extends BaseTimeEntity {
 
     @Override
     public int hashCode() {
-        return manualId != null ? manualId.hashCode() : getClass().hashCode();
+        return getClass().hashCode();
     }
 }
