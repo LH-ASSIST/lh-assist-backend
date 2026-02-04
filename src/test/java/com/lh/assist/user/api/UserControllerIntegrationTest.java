@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lh.assist.LhAssistBackendApplication;
 import com.lh.assist.support.IntegrationTestBase;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.enums.UserDepartment;
@@ -34,7 +35,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(classes = LhAssistBackendApplication.class)
 @AutoConfigureMockMvc
 class UserControllerIntegrationTest extends IntegrationTestBase {
 
