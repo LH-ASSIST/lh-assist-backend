@@ -1,7 +1,7 @@
 package com.lh.assist.audit.api;
 
+import com.lh.assist.admin.api.docs.AdminApiDocs;
 import com.lh.assist.audit.api.docs.AdminAuditLogSearchDocs;
-import com.lh.assist.audit.api.docs.AuditApiDocs;
 import com.lh.assist.audit.api.dto.response.AuditLogResponse;
 import com.lh.assist.audit.api.mapper.AuditLogMapper;
 import com.lh.assist.audit.application.AuditLogQueryService;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin/audit-logs")
 @PreAuthorize("hasRole('ADMIN')")
-@AuditApiDocs
+@AdminApiDocs
 public class AdminAuditLogController {
 
     private final AuditLogQueryService auditLogQueryService;

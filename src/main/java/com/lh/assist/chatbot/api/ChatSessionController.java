@@ -1,6 +1,7 @@
 package com.lh.assist.chatbot.api;
 
 import com.lh.assist.chatbot.api.docs.ChatSessionCreateDocs;
+import com.lh.assist.chatbot.api.docs.ChatbotApiDocs;
 import com.lh.assist.chatbot.api.dto.response.ChatSessionResponse;
 import com.lh.assist.chatbot.api.mapper.ChatSessionMapper;
 import com.lh.assist.chatbot.application.ChatSessionService;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/chat")
+@ChatbotApiDocs
 public class ChatSessionController {
 
     private final ChatSessionService chatSessionService;

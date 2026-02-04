@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lh.assist.admin.suggestion.api.dto.request.SuggestionAnswerRequest;
+import com.lh.assist.admin.api.dto.request.SuggestionAnswerRequest;
 import com.lh.assist.approval.api.dto.request.ApprovalAssignRequest;
 import com.lh.assist.approval.api.dto.request.ApprovalReviewRequest;
 import com.lh.assist.audit.domain.entity.AuditLog;

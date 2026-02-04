@@ -2,14 +2,10 @@ package com.lh.assist.suggestion.api;
 
 import com.lh.assist.common.model.ApiResponse;
 import com.lh.assist.common.security.UserPrincipal;
+import com.lh.assist.suggestion.api.docs.*;
 import com.lh.assist.suggestion.api.dto.request.SuggestionCreateRequest;
 import com.lh.assist.suggestion.api.dto.response.SuggestionListResponse;
 import com.lh.assist.suggestion.api.dto.response.SuggestionResponse;
-import com.lh.assist.suggestion.api.docs.SuggestionCreateDocs;
-import com.lh.assist.suggestion.api.docs.SuggestionDeleteDocs;
-import com.lh.assist.suggestion.api.docs.SuggestionGetDocs;
-import com.lh.assist.suggestion.api.docs.SuggestionListDocs;
-import com.lh.assist.suggestion.api.docs.SuggestionUpdateDocs;
 import com.lh.assist.suggestion.api.mapper.SuggestionMapper;
 import com.lh.assist.suggestion.api.dto.request.SuggestionUpdateRequest;
 import com.lh.assist.suggestion.application.SuggestionService;
@@ -37,6 +33,7 @@ import org.springdoc.core.annotations.ParameterObject;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/qna")
+@SuggestionApiDocs
 public class SuggestionController {
 
     private final SuggestionService suggestionService;

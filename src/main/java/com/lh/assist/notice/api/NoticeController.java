@@ -1,12 +1,7 @@
 package com.lh.assist.notice.api;
 
 import com.lh.assist.common.model.ApiResponse;
-import com.lh.assist.notice.api.docs.NoticeCreateDocs;
-import com.lh.assist.notice.api.docs.NoticeDeleteDocs;
-import com.lh.assist.notice.api.docs.NoticeGetDocs;
-import com.lh.assist.notice.api.docs.NoticeListDocs;
-import com.lh.assist.notice.api.docs.NoticeSearchDocs;
-import com.lh.assist.notice.api.docs.NoticeUpdateDocs;
+import com.lh.assist.notice.api.docs.*;
 import com.lh.assist.notice.api.dto.request.NoticeCreateRequest;
 import com.lh.assist.notice.api.dto.request.NoticeSearchType;
 import com.lh.assist.notice.api.dto.request.NoticeUpdateRequest;
@@ -39,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/notice")
+@NoticeApiDocs
 public class NoticeController {
 
     private final NoticeService noticeService;

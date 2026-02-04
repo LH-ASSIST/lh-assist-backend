@@ -1,5 +1,7 @@
 package com.lh.assist.analysis.api;
 
+import com.lh.assist.analysis.api.docs.AnalysisApiDocs;
+import com.lh.assist.analysis.api.docs.AnalysisCallbackDocs;
 import com.lh.assist.analysis.api.dto.request.AnalysisCallbackRequest;
 import com.lh.assist.analysis.application.AnalysisCallbackService;
 import com.lh.assist.common.exception.AuthException;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/analysis")
+@AnalysisApiDocs
 public class AnalysisCallbackController {
 
     private static final String CALLBACK_TOKEN_HEADER = "X-Analysis-Callback-Token";
@@ -28,6 +31,7 @@ public class AnalysisCallbackController {
     @Value("${app.analysis.callback-token:}")
     private String callbackToken;
 
+    @AnalysisCallbackDocs
     @PostMapping("/jobs/{jobId}/callback")
     public ResponseEntity<ApiResponse<Void>> handleCallback(
             @PathVariable Long jobId,
