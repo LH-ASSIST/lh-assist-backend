@@ -29,60 +29,30 @@ LH 공공주택본부의 사업 리스크를 사전에 탐지하고 규정 준�
 * **Monitoring**: Prometheus, Grafana, CloudWatch
 * **Security**: IAM, KMS, Spring Security (JWT)
 
----
-
-## ✅ 개발 체크리스트 (Main Checklist)
-
-### 2️⃣ 데이터 파이프라인 및 규정 DB 관리
-
-* [ ] 법령/시행세칙 데이터 자동 수집 배치(Spring Batch) 구현
-* [ ] pgvector 기반의 규정 위계 DB 구축 (Semantic Chunking)
-* [ ] 기준일자별 규정 버전 관리(Snapshot) 시스템 구현
-
-### 3️⃣ 비동기 분석 엔진 개발
-
-* [ ] SQS 기반 Spring Boot ↔ FastAPI 비동기 통신 로직 구현
-* [ ] 문서 업로드 및 텍스트 추출(S3 연동) 프로세스 최적화
-
-### 4️⃣ 지능형 서비스 및 인터페이스
-
-* [ ] RAG 기반 규정 질의응답 챗봇 서비스 구현
-* [ ] 리스크 하이라이팅 및 보완 가이드 제공 API
-* [ ] 감사 소명용 이력 관리 및 대시보드 API
+벡터 검색은 **PostgreSQL + pgvector**로만 처리합니다. 
+Redis는 캐시/레이트리밋 등 상태 관리 용도로 사용합니다.
 
 ---
 
-## 🔍 세부 구현 체크리스트
+## ✅ 개발 체크리스트 (현황)
 
-### 📂 1. Infra & Security Details
-
-* [ ] **ALB & CloudFront**: 정적 호스팅 연동 및 부하 분산 설정
-* [ ] **Spring Security**: JWT 기반 인증 및 BCrypt 비밀번호 암호화
-* [ ] **KMS Encryption**: S3 저장 문서 및 DB 민감 컬럼(AES-256) 암호화
-* [ ] **Monitoring**: 에러 발생 시 SQS Dead Letter Queue(DLQ) 모니터링 및 알림 설정
-
-### 📂 2. Data & Batch Details
-
-* [ ] **External API**: 법제처/나라장터 Open API 연동 모듈 개발
-* [ ] **Metadata Mapping**: 법령-시행령-시행세칙 간 위계 그래프 DB 설계
-* [ ] **Batch Processing**: 대량의 PDF/HWP 문서 분절 및 벡터화 자동화
-
-### 📂 3. Analysis & Messaging Details
-
-* [ ] **SQS Producer/Consumer**: 분석 요청 메시지 발행 및 완료 메시지 소비 로직
-* [ ] **Redis Caching**: 분석 진행 상태(Progress Bar) 실시간 추적 및 캐싱
-* [ ] **Risk Engine**:
-* [ ] `risk_type`별 가중치 적용 로직
-* [ ] `is_mandatory` 필드 기반 점수 증폭 알고리즘
-* [ ] 과거 감사사례 유사도 매칭 알고리즘
-
-
-
-### 📂 4. AI & RAG Details
-
-* [ ] **FastAPI Bridge**: Langchain을 활용한 규정 근거/유사 사례 검색 레이어
-* [ ] **Explainable AI**: 분석 결과에 대한 근거 문장 매핑 및 시각화 좌표 생성
-* [ ] **Chatbot Integration**: Langgraph 기반의 대화형 업무 가이드 시나리오 구현
+* [x] 문서 업로드 및 S3 저장/삭제, presigned URL 발급
+* [x] 분석 요청 생성 및 SQS 메시지 발행(Producer)
+* [x] 분석 콜백 처리 및 상태 동기화
+* [x] 분석 결과 스키마(analysis_results/sections/risk_items/evidences) 저장 및 조회 API
+* [x] RAG 근거 테이블(regulations/reg_items, audit_items) 및 pgvector 저장
+* [x] 챗봇 SSE 스트리밍 브리지(FastAPI 연동)
+* [x] JWT 인증/인가 + BCrypt 비밀번호 암호화
+* [x] 이메일 인증 발송/검증
+* [x] Redis 기반 레이트리밋(챗 스트림) 및 조회수 집계 플러시
+* [ ] 법령/시행세칙 데이터 자동 수집 배치(Spring Batch)
+* [ ] 기준일자별 규정 버전 관리(Snapshot)
+* [ ] 감사 매뉴얼(audit_manuals/audit_manual_items) 데이터 적재 파이프라인
+* [ ] 분석 진행 상태(Progress Bar) 캐싱
+* [ ] 리스크 엔진 가중치/의무조항 점수화 로직
+* [ ] 감사사례 유사도 매칭 알고리즘 고도화
+* [ ] DLQ 모니터링 및 알림
+* [ ] KMS 기반 암호화 적용
 
 ---
 
@@ -113,6 +83,6 @@ java -jar build/libs/lh-assist-backend-0.0.1-SNAPSHOT.jar
 | --- | --- | --- | --- |
 | **백엔드 로직** | `backend` 서비스 컨테이너 | **AWS ECS/EC2 (Auto-scaling)** | 트래픽에 따른 자동 확장 및 고가용성 확보 |
 | **데이터베이스** | `db` (Postgres + pgvector) | **AWS RDS for PostgreSQL** | 데이터 백업, Multi-AZ 복제, 보안 관리 자동화 |
-| **메시지 큐** | Docker 기반 Mock SQS | **Amazon SQS** | 완전 관리형 메시징 서비스를 통한 데이터 유실 방지 |
+| **메시지 큐** | 로컬에서는 실제 SQS 사용(또는 분석 비활성) | **Amazon SQS** | 완전 관리형 메시징 서비스를 통한 데이터 유실 방지 |
 | **모니터링** | `prometheus / grafana` 컨테이너 | **AWS Managed Prometheus / Grafana** | 모니터링 시스템 자체의 안정성 분리 및 가용성 확보 |
 | **저장소** | 로컬 볼륨 (postgres_data) | **Amazon S3 / RDS Storage** | 휘발성 컨테이너와 분리된 영구적·안정적 데이터 저장 |
