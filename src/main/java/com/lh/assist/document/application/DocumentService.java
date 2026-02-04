@@ -3,8 +3,9 @@ package com.lh.assist.document.application;
 import com.lh.assist.common.exception.DocumentException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SystemException;
-import com.lh.assist.audit.domain.entity.AuditLog;
-import com.lh.assist.audit.domain.repository.AuditLogRepository;
+import com.lh.assist.audit.application.AuditLogService;
+import com.lh.assist.audit.domain.enums.AuditActionType;
+import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.document.api.dto.response.DocumentWithAnalysisResponse;
@@ -32,7 +33,7 @@ import java.util.List;
 public class DocumentService {
 
 	private final DocumentRepository documentRepository;
-	private final AuditLogRepository auditLogRepository;
+	private final AuditLogService auditLogService;
 	private final UserRepository userRepository;
 	private final S3Service s3Service;
 	private final AnalysisResultRepository analysisResultRepository;
@@ -120,14 +121,13 @@ public class DocumentService {
 
 			Document saved = documentRepository.save(document);
 
-			AuditLog auditLog = AuditLog.builder()
-					.actionType("DOCUMENT_UPLOAD")
-					.targetType("DOCUMENT")
-					.targetId(saved.getDocId())
-					.s3Key(s3Key)
-					.actor(user)
-					.build();
-			auditLogRepository.save(auditLog);
+			auditLogService.log(
+					AuditActionType.DOCUMENT_UPLOAD,
+					AuditTargetType.DOCUMENT,
+					saved.getDocId(),
+					s3Key,
+					user
+			);
 
 			return saved;
 		} catch (RuntimeException ex) {
@@ -239,6 +239,13 @@ public class DocumentService {
 		documentRepository.delete(document);
 		try {
 			s3Service.deleteFile(s3Key);
+			auditLogService.log(
+					AuditActionType.DOCUMENT_DELETE,
+					AuditTargetType.DOCUMENT,
+					document.getDocId(),
+					s3Key,
+					user
+			);
 		} catch (RuntimeException ex) {
 			log.warn(
 					"S3 삭제 실패로 문서 삭제를 롤백합니다. s3Key={}, docId={}, reason={}",

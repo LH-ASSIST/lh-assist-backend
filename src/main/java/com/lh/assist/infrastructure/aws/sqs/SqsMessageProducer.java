@@ -4,8 +4,9 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lh.assist.audit.domain.entity.AuditLog;
-import com.lh.assist.audit.domain.repository.AuditLogRepository;
+import com.lh.assist.audit.application.AuditLogService;
+import com.lh.assist.audit.domain.enums.AuditActionType;
+import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SystemException;
 import com.lh.assist.user.domain.entity.User;
@@ -23,7 +24,7 @@ public class SqsMessageProducer {
 
 	private final AmazonSQS amazonSqs;
 	private final ObjectMapper objectMapper;
-	private final AuditLogRepository auditLogRepository;
+	private final AuditLogService auditLogService;
 	private final UserRepository userRepository;
 
 	@Value("${app.sqs.document-analyze-queue-url:}")
@@ -88,14 +89,13 @@ public class SqsMessageProducer {
 			String reason
 	) {
 		User actor = userRepository.getReferenceById(userId);
-		AuditLog auditLog = AuditLog.builder()
-				.actionType("ANALYSIS_SQS_SEND_FAILED")
-				.targetType("ANALYSIS_JOB")
-				.targetId(jobId)
-				.s3Key(queueUrl)
-				.actor(actor)
-				.build();
-		auditLogRepository.save(auditLog);
+		auditLogService.log(
+				AuditActionType.ANALYSIS_SQS_SEND_FAILED,
+				AuditTargetType.ANALYSIS_JOB,
+				jobId,
+				queueUrl,
+				actor
+		);
 		log.warn("SQS 실패 사유: {}", reason);
 	}
 

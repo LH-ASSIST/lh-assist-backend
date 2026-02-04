@@ -14,6 +14,9 @@ import com.lh.assist.analysis.domain.enums.AnalysisJobStatus;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
+import com.lh.assist.audit.application.AuditLogService;
+import com.lh.assist.audit.domain.enums.AuditActionType;
+import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.infrastructure.aws.sqs.SqsMessageProducer;
@@ -41,6 +44,7 @@ public class AnalysisService {
 	private final DocumentRepository documentRepository;
 	private final UserRepository userRepository;
 	private final SqsMessageProducer sqsMessageProducer;
+	private final AuditLogService auditLogService;
 
 	/**
 	 * 문서 분석 요청을 생성하고 SQS에 작업 요청을 발행한다
@@ -89,6 +93,13 @@ public class AnalysisService {
 		);
 
 		document.updateAnalysisStatus(AnalysisStatus.ANALYZING);
+		auditLogService.log(
+				AuditActionType.ANALYSIS_REQUESTED,
+				AuditTargetType.ANALYSIS_RESULT,
+				analysisResult.getAnalysisId(),
+				document.getS3Key(),
+				user
+		);
 
 		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 			@Override

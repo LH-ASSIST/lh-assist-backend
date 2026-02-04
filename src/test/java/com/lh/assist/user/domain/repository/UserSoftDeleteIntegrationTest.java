@@ -5,18 +5,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lh.assist.suggestion.domain.entity.Suggestion;
 import com.lh.assist.suggestion.domain.enums.SuggestionCategory;
 import com.lh.assist.suggestion.domain.repository.SuggestionRepository;
+import com.lh.assist.LhAssistBackendApplication;
 import com.lh.assist.support.IntegrationTestBase;
 import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.audit.domain.entity.AuditLog;
+import com.lh.assist.audit.domain.enums.AuditActionType;
+import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.audit.domain.repository.AuditLogRepository;
 import com.lh.assist.user.domain.entity.User;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
+@SpringBootTest(classes = LhAssistBackendApplication.class)
 class UserSoftDeleteIntegrationTest extends IntegrationTestBase {
 
     @Autowired
@@ -45,8 +50,8 @@ class UserSoftDeleteIntegrationTest extends IntegrationTestBase {
                 .user(user)
                 .build());
         AuditLog auditLog = auditLogRepository.save(AuditLog.builder()
-                .actionType("DELETE_USER")
-                .targetType("USER")
+                .actionType(AuditActionType.DELETE_USER)
+                .targetType(AuditTargetType.USER)
                 .targetId(user.getUserId())
                 .s3Key("s3://bucket/path")
                 .actor(user)

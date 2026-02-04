@@ -63,7 +63,11 @@ public class AdminSuggestionController {
             @Validated @RequestBody SuggestionAnswerRequest request,
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        Suggestion answered = adminSuggestionService.answerSuggestion(suggestionId, request.answerContent());
+        Suggestion answered = adminSuggestionService.answerSuggestion(
+                suggestionId,
+                request.answerContent(),
+                principal.userId()
+        );
         int viewCount = viewCountService.getViewCount(suggestionId, answered.getViewCount());
         SuggestionResponse response = SuggestionMapper.toResponse(answered, principal, viewCount);
         return ResponseEntity.ok(ApiResponse.success(response));
