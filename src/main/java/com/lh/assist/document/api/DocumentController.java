@@ -68,9 +68,7 @@ public class DocumentController {
 			@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long docId
 	) {
-		String email = principal.email();
-		Document document = documentService.getDocumentByEmail(email, docId);
-		DocumentResponse response = DocumentMapper.toResponse(document);
+		DocumentResponse response = documentService.getDocumentResponseByEmail(principal.email(), docId);
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
@@ -80,11 +78,7 @@ public class DocumentController {
 	public ResponseEntity<ApiResponse<List<DocumentResponse>>> getMyDocuments(
 			@AuthenticationPrincipal UserPrincipal principal
 	) {
-		String email = principal.email();
-		List<DocumentResponse> responses = documentService.getDocumentsByEmail(email)
-				.stream()
-				.map(DocumentMapper::toResponse)
-				.toList();
+		List<DocumentResponse> responses = documentService.getDocumentResponsesByEmail(principal.email());
 		return ResponseEntity.ok(ApiResponse.success(responses));
 	}
 
@@ -94,8 +88,8 @@ public class DocumentController {
 	public ResponseEntity<ApiResponse<List<DocumentWithAnalysisResponse>>> getMyDocumentsWithAnalysis(
 			@AuthenticationPrincipal UserPrincipal principal
 	) {
-		String email = principal.email();
-		List<DocumentWithAnalysisResponse> responses = documentService.getDocumentsWithAnalysisByEmail(email);
+		List<DocumentWithAnalysisResponse> responses =
+				documentService.getDocumentsWithAnalysisByEmail(principal.email());
 		return ResponseEntity.ok(ApiResponse.success(responses));
 	}
 

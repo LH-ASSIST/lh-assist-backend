@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.lh.assist.common.exception.DocumentException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.exception.SystemException;
+import com.lh.assist.approval.domain.repository.DocumentApprovalRepository;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.document.domain.enums.DocumentType;
@@ -38,6 +39,9 @@ class DocumentServiceTest {
 
     @Mock
     private S3Service s3Service;
+
+    @Mock
+    private DocumentApprovalRepository approvalRepository;
 
     @InjectMocks
     private DocumentService documentService;
@@ -97,6 +101,7 @@ class DocumentServiceTest {
                 .build();
         when(userRepository.findByEmail("other@lh.com")).thenReturn(Optional.of(requester));
         when(documentRepository.findById(10L)).thenReturn(Optional.of(document));
+        when(approvalRepository.existsByDocument_DocIdAndApproverId(10L, 2L)).thenReturn(false);
 
         assertThatThrownBy(() -> documentService.getDocumentByEmail("other@lh.com", 10L))
                 .isInstanceOf(DocumentException.class)

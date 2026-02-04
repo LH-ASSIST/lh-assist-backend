@@ -8,6 +8,9 @@ import com.lh.assist.audit.domain.enums.AuditActionType;
 import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
+import com.lh.assist.approval.domain.repository.DocumentApprovalRepository;
+import com.lh.assist.document.api.dto.response.DocumentAccessType;
+import com.lh.assist.document.api.dto.response.DocumentResponse;
 import com.lh.assist.document.api.dto.response.DocumentWithAnalysisResponse;
 import com.lh.assist.document.api.mapper.DocumentMapper;
 import com.lh.assist.document.domain.entity.Document;
@@ -25,7 +28,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.net.URL;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +42,7 @@ public class DocumentService {
 	private final UserRepository userRepository;
 	private final S3Service s3Service;
 	private final AnalysisResultRepository analysisResultRepository;
+	private final DocumentApprovalRepository approvalRepository;
 
 	/**
 	 * 문서를 업로드하고 저장된 문서 엔티티를 반환한다
@@ -161,7 +167,7 @@ public class DocumentService {
 	/**
 	 * 사용자 이메일로 문서 단건을 조회한다
 	 *
-	 * 문서 소유자가 아니면 접근을 차단한다
+	 * 문서 소유자 또는 승인 담당자가 아니면 접근을 차단한다
 	 *
 	 * @param email 사용자 이메일
 	 * @param docId 문서 ID
@@ -174,14 +180,39 @@ public class DocumentService {
 	) {
 		User user = getUserByEmail(email);
 		Document document = getDocumentById(docId);
-		if (!document.getUser().equals(user)) {
+		if (!document.getUser().equals(user) && !isApprover(user.getUserId(), docId)) {
 			throw new DocumentException(ErrorCode.ACCESS_DENIED);
 		}
 		return document;
 	}
 
 	/**
+	 * 사용자 이메일로 문서 단건 응답을 조회한다
+	 *
+	 * 문서 소유자 또는 승인 담당자가 아니면 접근을 차단한다
+	 *
+	 * @param email 사용자 이메일
+	 * @param docId 문서 ID
+	 * @return 조회된 문서 응답
+	 */
+	@Transactional(readOnly = true)
+	public DocumentResponse getDocumentResponseByEmail(
+			String email,
+			Long docId
+	) {
+		User user = getUserByEmail(email);
+		Document document = getDocumentById(docId);
+		DocumentAccessType accessType = resolveAccessType(user.getUserId(), document);
+		if (accessType == null) {
+			throw new DocumentException(ErrorCode.ACCESS_DENIED);
+		}
+		return DocumentMapper.toResponse(document, accessType);
+	}
+
+	/**
 	 * 사용자 이메일 기준으로 문서 목록을 조회한다
+	 *
+	 * 문서 소유자 또는 승인 담당자로 지정된 문서를 포함한다
 	 *
 	 * @param email 사용자 이메일
 	 * @return 사용자 문서 목록
@@ -189,13 +220,36 @@ public class DocumentService {
 	@Transactional(readOnly = true)
 	public List<Document> getDocumentsByEmail(String email) {
 		User user = getUserByEmail(email);
-		return documentRepository.findAllByUser_UserIdOrderByCreatedAtDesc(user.getUserId());
+		return documentRepository.findAllAccessibleByUserIdOrderByCreatedAtDesc(user.getUserId());
+	}
+
+	/**
+	 * 사용자 이메일 기준으로 문서 목록 응답을 조회한다
+	 *
+	 * 문서 소유자 또는 승인 담당자로 지정된 문서를 포함한다
+	 *
+	 * @param email 사용자 이메일
+	 * @return 사용자 문서 목록 응답
+	 */
+	@Transactional(readOnly = true)
+	public List<DocumentResponse> getDocumentResponsesByEmail(String email) {
+		User user = getUserByEmail(email);
+		List<Document> documents = documentRepository
+				.findAllAccessibleByUserIdOrderByCreatedAtDesc(user.getUserId());
+		Set<Long> approverDocIds = getApproverDocIds(user.getUserId());
+		return documents.stream()
+				.map(document -> DocumentMapper.toResponse(
+						document,
+						resolveAccessType(user.getUserId(), document, approverDocIds)
+				))
+				.toList();
 	}
 
 	/**
 	 * 문서 목록과 최신 분석 요약 정보를 함께 조회한다
 	 *
 	 * 분석 결과가 없으면 요약 필드는 null로 반환한다
+	 * 문서 소유자 또는 승인 담당자로 지정된 문서를 포함한다
 	 *
 	 * @param email 사용자 이메일
 	 * @return 문서 + 분석 요약 목록
@@ -205,13 +259,20 @@ public class DocumentService {
 			String email
 	) {
 		User user = getUserByEmail(email);
-		List<Document> documents = documentRepository.findAllByUser_UserIdOrderByCreatedAtDesc(user.getUserId());
+		List<Document> documents = documentRepository
+				.findAllAccessibleByUserIdOrderByCreatedAtDesc(user.getUserId());
+		Set<Long> approverDocIds = getApproverDocIds(user.getUserId());
 		return documents.stream()
 				.map(document -> {
 					AnalysisResult latestResult = analysisResultRepository
 							.findTopByDocument_DocIdOrderByCreatedAtDesc(document.getDocId())
 							.orElse(null);
-					return DocumentMapper.toWithAnalysisResponse(document, latestResult);
+					DocumentAccessType accessType = resolveAccessType(
+							user.getUserId(),
+							document,
+							approverDocIds
+					);
+					return DocumentMapper.toWithAnalysisResponse(document, latestResult, accessType);
 				})
 				.toList();
 	}
@@ -355,5 +416,52 @@ public class DocumentService {
 
 		return documentRepository.findById(docId)
 				.orElseThrow(() -> new DocumentException(ErrorCode.DOCUMENT_NOT_FOUND));
+	}
+
+	private Set<Long> getApproverDocIds(Long userId) {
+		if (userId == null) {
+			return Set.of();
+		}
+		return new HashSet<>(approvalRepository.findDocumentIdsByApproverId(userId));
+	}
+
+	private DocumentAccessType resolveAccessType(
+			Long userId,
+			Document document
+	) {
+		if (document == null || userId == null) {
+			return null;
+		}
+		if (document.getUser().getUserId().equals(userId)) {
+			return DocumentAccessType.OWNER;
+		}
+		return isApprover(userId, document.getDocId()) ? DocumentAccessType.APPROVER : null;
+	}
+
+	private DocumentAccessType resolveAccessType(
+			Long userId,
+			Document document,
+			Set<Long> approverDocIds
+	) {
+		if (document == null || userId == null) {
+			return null;
+		}
+		if (document.getUser().getUserId().equals(userId)) {
+			return DocumentAccessType.OWNER;
+		}
+		if (approverDocIds != null && approverDocIds.contains(document.getDocId())) {
+			return DocumentAccessType.APPROVER;
+		}
+		return null;
+	}
+
+	private boolean isApprover(
+			Long userId,
+			Long docId
+	) {
+		if (userId == null || docId == null) {
+			return false;
+		}
+		return approvalRepository.existsByDocument_DocIdAndApproverId(docId, userId);
 	}
 }
