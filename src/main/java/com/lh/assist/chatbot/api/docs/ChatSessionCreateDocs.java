@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Operation(
         summary = "챗봇 세션 생성",
-        description = "챗봇 대화를 위한 세션 ID를 생성합니다. 비로그인도 사용 가능합니다."
+        description = "챗봇 대화를 위한 세션 ID를 생성합니다. 비로그인도 사용 가능합니다. 세션은 서버에 저장되지 않으며 종료 API도 제공되지 않습니다."
 )
 @ApiResponse(responseCode = "201", description = "세션 생성 완료",
         content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))

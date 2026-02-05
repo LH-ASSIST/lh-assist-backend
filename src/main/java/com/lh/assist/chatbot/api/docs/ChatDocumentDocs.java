@@ -12,16 +12,14 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Operation(
-        summary = "챗봇 SSE 스트리밍",
-        description = "FastAPI 응답을 SSE로 중계하여 실시간 답변을 전송합니다. 비로그인도 사용 가능하지만 분석 결과 컨텍스트는 사용되지 않습니다. 로그인 사용자는 analysisResultId/docId 기반 컨텍스트가 자동으로 포함될 수 있습니다. SSE 이벤트는 message(답변 텍스트), references/refs(근거 JSON), ping(하트비트), done(종료) 순으로 전달됩니다."
+        summary = "챗봇 문서 목록",
+        description = "챗봇에서 선택 가능한 문서 목록을 조회합니다. 로그인 사용자만 사용 가능합니다."
 )
-@ApiResponse(responseCode = "200", description = "스트리밍 시작",
-        content = @Content(mediaType = "text/event-stream"))
-@ApiResponse(responseCode = "400", description = "입력값 오류",
+@ApiResponse(responseCode = "200", description = "문서 목록 조회",
         content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
-@ApiResponse(responseCode = "429", description = "요청 과다",
+@ApiResponse(responseCode = "401", description = "인증 실패",
         content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
 @ApiResponse(responseCode = "500", description = "서버 오류",
         content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
-public @interface ChatStreamDocs {
+public @interface ChatDocumentDocs {
 }
