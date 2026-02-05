@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AnalysisSectionRepository extends JpaRepository<AnalysisSection, Long> {
     List<AnalysisSection> findAllByAnalysisResult_AnalysisId(Long analysisId);
     long countByAnalysisResult_AnalysisIdAndIsViolationTrue(Long analysisId);
+    void deleteAllByAnalysisResult_AnalysisId(Long analysisId);
 }
