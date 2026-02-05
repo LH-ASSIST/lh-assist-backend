@@ -6,6 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lh.assist.chatbot.domain.model.RagReference;
 import com.lh.assist.common.exception.ChatbotException;
 import com.lh.assist.common.exception.ErrorCode;
+import com.lh.assist.analysis.domain.entity.AnalysisResult;
+import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
+import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
+import com.lh.assist.common.security.UserPrincipal;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +44,7 @@ public class ChatStreamService {
     private final WebClient chatbotWebClient;
     private final ObjectMapper objectMapper;
     private final TaskScheduler chatStreamTaskScheduler;
+    private final AnalysisResultRepository analysisResultRepository;
 
     @Value("${app.chatbot.fastapi.stream-path:/generate-stream}")
     private String streamPath;
@@ -59,7 +64,7 @@ public class ChatStreamService {
      * @return SSE 응답 emitter
      */
     public SseEmitter streamChat(
-            Long userId,
+            UserPrincipal principal,
             @NonNull ChatStreamRequest request
     ) {
         validateStreamRequest(request);
@@ -75,11 +80,19 @@ public class ChatStreamService {
         emitter.onTimeout(() -> cleanup(subscriptionRef, heartbeatFuture, true, emitter));
 
         try {
-            Flux<ServerSentEvent<String>> stream = createStream(request);
+            ChatStreamRequest enrichedRequest = enrichRequest(principal, request);
+            Flux<ServerSentEvent<String>> stream = createStream(enrichedRequest);
             Disposable subscription = stream.subscribe(
                     event -> handleStreamEvent(emitter, event, answerBuffer, ragReferences),
                     error -> handleStreamError(emitter, error, finished, heartbeatFuture),
-                    () -> handleStreamComplete(emitter, userId, request, answerBuffer, ragReferences, finished)
+                    () -> handleStreamComplete(
+                            emitter,
+                            principal != null ? principal.userId() : null,
+                            request,
+                            answerBuffer,
+                            ragReferences,
+                            finished
+                    )
             );
             subscriptionRef.set(subscription);
         } catch (RuntimeException ex) {
@@ -208,9 +221,6 @@ public class ChatStreamService {
      * @param request 스트림 요청 정보
      */
     private void validateStreamRequest(@NonNull ChatStreamRequest request) {
-        if (request == null) {
-            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
-        }
         if (request.sessionId() == null || request.sessionId().isBlank()) {
             throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -220,6 +230,53 @@ public class ChatStreamService {
         if (request.question().length() > 500) {
             throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
         }
+        if (request.analysisResultId() != null && request.analysisResultId() <= 0) {
+            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+    }
+
+    private ChatStreamRequest enrichRequest(
+            UserPrincipal principal,
+            @NonNull ChatStreamRequest request
+    ) {
+        if (request.analysisResultId() == null) {
+            if (principal == null || principal.isGuest()) {
+                return withoutAnalysis(request);
+            }
+            return request;
+        }
+        if (principal == null || principal.isGuest()) {
+            return withoutAnalysis(request);
+        }
+
+        AnalysisResult result = analysisResultRepository.findById(request.analysisResultId())
+                .orElseThrow(() -> new ChatbotException(ErrorCode.INVALID_INPUT_VALUE));
+        if (result.getStatus() != AnalysisResultStatus.SUCCEEDED) {
+            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (!Objects.equals(result.getDocument().getUser().getUserId(), principal.userId())) {
+            throw new ChatbotException(ErrorCode.ACCESS_DENIED);
+        }
+
+        return new ChatStreamRequest(
+                request.sessionId(),
+                request.question(),
+                request.itemId(),
+                request.analysisResultId(),
+                result.getParsedJsonS3Key(),
+                result.getDocument().getDocId()
+        );
+    }
+
+    private ChatStreamRequest withoutAnalysis(@NonNull ChatStreamRequest request) {
+        return new ChatStreamRequest(
+                request.sessionId(),
+                request.question(),
+                request.itemId(),
+                null,
+                null,
+                null
+        );
     }
 
     /**

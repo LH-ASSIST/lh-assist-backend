@@ -28,10 +28,18 @@ public class ChatStreamController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam String sessionId,
             @RequestParam String question,
-            @RequestParam(required = false) Long itemId
+            @RequestParam(required = false) Long itemId,
+            @RequestParam(required = false) Long analysisResultId,
+            @RequestParam(required = false) Long docId
     ) {
-        ChatStreamRequest request = new ChatStreamRequest(sessionId, question, itemId);
-        Long userId = principal != null ? principal.userId() : null;
-        return chatStreamService.streamChat(userId, request);
+        ChatStreamRequest request = new ChatStreamRequest(
+                sessionId,
+                question,
+                itemId,
+                analysisResultId,
+                null,
+                docId
+        );
+        return chatStreamService.streamChat(principal, request);
     }
 }
