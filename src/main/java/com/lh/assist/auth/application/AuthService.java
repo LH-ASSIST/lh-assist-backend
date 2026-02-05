@@ -17,7 +17,10 @@ import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
+import com.lh.assist.user.domain.enums.UserDepartment;
+import com.lh.assist.user.domain.enums.UserPosition;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -99,6 +102,28 @@ public class AuthService {
 
 		TokenPair tokenPair = tokenService.issueLoginTokens(user);
 		return AuthMapper.toLoginResponse(tokenPair, user);
+	}
+
+	@Transactional
+	public LoginResponse issueGuestToken() {
+		String guestId = UUID.randomUUID().toString();
+		String email = "guest+" + guestId + "@lh-assist.local";
+
+		User user = User.builder()
+				.email(email)
+				.password(null)
+				.name("게스트")
+				.department(UserDepartment.ETC)
+				.position(UserPosition.ETC)
+				.role(UserRole.USER)
+				.status(UserStatus.ACTIVE)
+				.emailVerified(true)
+				.attemptCount(0)
+				.build();
+
+		User saved = userRepository.save(user);
+		TokenPair tokenPair = tokenService.issueLoginTokens(saved);
+		return AuthMapper.toLoginResponse(tokenPair, saved);
 	}
 
 	@Transactional(readOnly = true)

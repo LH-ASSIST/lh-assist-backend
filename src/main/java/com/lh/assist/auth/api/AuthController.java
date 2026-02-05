@@ -55,6 +55,12 @@ public class AuthController {
 		return ResponseEntity.ok(ApiResponse.success(response));
 	}
 
+	@PostMapping("/guest")
+	public ResponseEntity<ApiResponse<LoginResponse>> guestLogin() {
+		LoginResponse response = authService.issueGuestToken();
+		return ResponseEntity.ok(ApiResponse.success(response));
+	}
+
 	@PostMapping("/email/verification/send")
 	@AuthEmailVerificationSendDocs
 	public ResponseEntity<ApiResponse<SendEmailVerificationResponse>> sendEmailVerification(
