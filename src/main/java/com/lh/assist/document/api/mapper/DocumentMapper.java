@@ -33,13 +33,6 @@ public final class DocumentMapper {
 
 	public static DocumentWithAnalysisResponse toWithAnalysisResponse(
 			Document document,
-			AnalysisResult latestResult
-	) {
-		return toWithAnalysisResponse(document, latestResult, DocumentAccessType.OWNER);
-	}
-
-	public static DocumentWithAnalysisResponse toWithAnalysisResponse(
-			Document document,
 			AnalysisResult latestResult,
 			DocumentAccessType accessType
 	) {

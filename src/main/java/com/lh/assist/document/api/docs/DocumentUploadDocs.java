@@ -23,6 +23,6 @@ import java.lang.annotation.Target;
 		content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
 @ApiResponse(responseCode = "500", description = "S3 업로드 실패/서버 오류",
 		content = @Content(schema = @Schema(implementation = com.lh.assist.common.model.ApiResponse.class)))
-@Parameters({})
+@Parameters()
 public @interface DocumentUploadDocs {
 }

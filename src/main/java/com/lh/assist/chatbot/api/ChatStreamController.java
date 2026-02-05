@@ -1,6 +1,7 @@
 package com.lh.assist.chatbot.api;
 
 import com.lh.assist.chatbot.api.docs.ChatStreamDocs;
+import com.lh.assist.chatbot.api.docs.ChatbotApiDocs;
 import com.lh.assist.chatbot.api.dto.request.ChatStreamRequest;
 import com.lh.assist.chatbot.application.ChatStreamService;
 import com.lh.assist.common.security.UserPrincipal;
@@ -16,6 +17,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/chat")
+@ChatbotApiDocs
 public class ChatStreamController {
 
     private final ChatStreamService chatStreamService;

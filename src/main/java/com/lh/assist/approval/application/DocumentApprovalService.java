@@ -7,7 +7,7 @@ import com.lh.assist.approval.domain.repository.DocumentApprovalRepository;
 import com.lh.assist.audit.application.AuditLogService;
 import com.lh.assist.audit.domain.enums.AuditActionType;
 import com.lh.assist.audit.domain.enums.AuditTargetType;
-import com.lh.assist.common.exception.BusinessException;
+import com.lh.assist.common.exception.DocumentApprovalException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.common.security.UserPrincipal;
 import com.lh.assist.document.domain.entity.Document;
@@ -73,11 +73,11 @@ public class DocumentApprovalService {
             UserPrincipal principal
     ) {
         if (principal == null || principal.userId() == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new DocumentApprovalException(ErrorCode.UNAUTHORIZED);
         }
         Document document = getDocumentById(docId);
         if (!principal.isAdmin() && !document.getUser().getUserId().equals(principal.userId())) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+            throw new DocumentApprovalException(ErrorCode.ACCESS_DENIED);
         }
         User approver = getUserById(approverId);
 
@@ -124,21 +124,21 @@ public class DocumentApprovalService {
             UserPrincipal principal
     ) {
         if (principal == null || principal.userId() == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new DocumentApprovalException(ErrorCode.UNAUTHORIZED);
         }
         if (status == null || status == ApprovalStatus.WAITING) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new DocumentApprovalException(ErrorCode.INVALID_INPUT_VALUE);
         }
         Document document = getDocumentById(docId);
         DocumentApproval approval = approvalRepository.findByDocument_DocId(docId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
+                .orElseThrow(() -> new DocumentApprovalException(ErrorCode.INVALID_INPUT_VALUE));
 
         if (approval.getStatus() != ApprovalStatus.WAITING) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new DocumentApprovalException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
         if (approval.getApproverId() == null || !approval.getApproverId().equals(principal.userId())) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+            throw new DocumentApprovalException(ErrorCode.ACCESS_DENIED);
         }
 
         User reviewer = getUserById(principal.userId());
@@ -163,10 +163,10 @@ public class DocumentApprovalService {
 
     private Document getDocumentById(Long docId) {
         if (docId == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new DocumentApprovalException(ErrorCode.INVALID_INPUT_VALUE);
         }
         return documentRepository.findById(docId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.DOCUMENT_NOT_FOUND));
+                .orElseThrow(() -> new DocumentApprovalException(ErrorCode.DOCUMENT_NOT_FOUND));
     }
 
     /**
@@ -177,10 +177,10 @@ public class DocumentApprovalService {
      */
     private User getUserById(Long userId) {
         if (userId == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new DocumentApprovalException(ErrorCode.INVALID_INPUT_VALUE);
         }
         return userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new DocumentApprovalException(ErrorCode.USER_NOT_FOUND));
     }
 
     /**
@@ -198,7 +198,7 @@ public class DocumentApprovalService {
             UserPrincipal principal
     ) {
         if (principal == null || principal.userId() == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            throw new DocumentApprovalException(ErrorCode.UNAUTHORIZED);
         }
         if (principal.isAdmin()) {
             return;
@@ -210,7 +210,7 @@ public class DocumentApprovalService {
         if (approval != null && userId.equals(approval.getApproverId())) {
             return;
         }
-        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        throw new DocumentApprovalException(ErrorCode.ACCESS_DENIED);
     }
 
     /**
@@ -224,7 +224,7 @@ public class DocumentApprovalService {
     private List<UserListResponse> getApproverCandidates(User requester) {
         UserDepartment department = requester.getDepartment();
         if (department == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new DocumentApprovalException(ErrorCode.INVALID_INPUT_VALUE);
         }
         return userRepository.findAllByDepartmentAndStatus(department, UserStatus.ACTIVE).stream()
                 .filter(user -> user.getUserId() != null && !user.getUserId().equals(requester.getUserId()))

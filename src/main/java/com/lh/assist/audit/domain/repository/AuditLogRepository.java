@@ -1,6 +1,8 @@
 package com.lh.assist.audit.domain.repository;
 
 import com.lh.assist.audit.domain.entity.AuditLog;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -12,5 +14,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSp
 
     @Override
     @EntityGraph(attributePaths = "actor")
-    Page<AuditLog> findAll(Specification<AuditLog> spec, Pageable pageable);
+    @NonNull Page<AuditLog> findAll(
+            @Nullable Specification<AuditLog> spec,
+            @NonNull Pageable pageable
+    );
 }
