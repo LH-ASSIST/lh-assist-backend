@@ -3,6 +3,7 @@ package com.lh.assist.chatbot.application;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.chatbot.api.dto.request.ChatStreamRequest;
 import com.lh.assist.common.exception.ChatbotException;
 import com.lh.assist.common.exception.ErrorCode;
@@ -24,17 +25,25 @@ class ChatStreamServiceTest {
     @Mock
     private TaskScheduler taskScheduler;
 
+    @Mock
+    private AnalysisResultRepository analysisResultRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     @DisplayName("질문이 500자를 초과하면 INVALID_INPUT_VALUE가 발생해야 한다")
     void 질문_길이_초과() {
-        ChatStreamService service = new ChatStreamService(webClient, objectMapper, taskScheduler);
+        ChatStreamService service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
         ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
 
         String question = "a".repeat(501);
-        ChatStreamRequest request = new ChatStreamRequest("session-1", question, null);
+        ChatStreamRequest request = new ChatStreamRequest("session-1", question, null, null, null, null);
 
         assertThatThrownBy(() -> service.streamChat(null, request))
                 .isInstanceOf(ChatbotException.class)
@@ -45,7 +54,12 @@ class ChatStreamServiceTest {
     @Test
     @DisplayName("요청이 null이면 INVALID_INPUT_VALUE가 발생해야 한다")
     void 요청_널() {
-        ChatStreamService service = new ChatStreamService(webClient, objectMapper, taskScheduler);
+        ChatStreamService service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
         ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
 
@@ -58,11 +72,16 @@ class ChatStreamServiceTest {
     @Test
     @DisplayName("세션 아이디가 비어있으면 INVALID_INPUT_VALUE가 발생해야 한다")
     void 세션_아이디_누락() {
-        ChatStreamService service = new ChatStreamService(webClient, objectMapper, taskScheduler);
+        ChatStreamService service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
         ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
 
-        ChatStreamRequest request = new ChatStreamRequest(" ", "질문", null);
+        ChatStreamRequest request = new ChatStreamRequest(" ", "질문", null, null, null, null);
 
         assertThatThrownBy(() -> service.streamChat(null, request))
                 .isInstanceOf(ChatbotException.class)

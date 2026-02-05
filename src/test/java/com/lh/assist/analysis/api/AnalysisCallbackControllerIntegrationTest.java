@@ -92,7 +92,7 @@ class AnalysisCallbackControllerIntegrationTest extends IntegrationTestBase {
 
         String payload = objectMapper.writeValueAsString(Map.of(
                 "status", "SUCCEEDED",
-                "totalRiskScore", 77
+                "total_risk_score", 77
         ));
 
         mockMvc.perform(post("/api/v1/analysis/jobs/{jobId}/callback", job.getJobId())

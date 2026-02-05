@@ -3,6 +3,7 @@ package com.lh.assist.chatbot.application;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.chatbot.domain.enums.RagReferenceType;
 import com.lh.assist.chatbot.domain.model.RagReference;
 import com.lh.assist.common.exception.ChatbotException;
@@ -27,12 +28,20 @@ class ChatStreamServiceReferenceValidationTest {
     @Mock
     private TaskScheduler taskScheduler;
 
+    @Mock
+    private AnalysisResultRepository analysisResultRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     @DisplayName("RAG 근거에 type이 없으면 INVALID_INPUT_VALUE가 발생해야 한다")
     void 근거_타입_누락() throws Exception {
-        ChatStreamService service = new ChatStreamService(webClient, objectMapper, taskScheduler);
+        ChatStreamService service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
         List<RagReference> references = List.of(new RagReference(null, 1L, "제목", 0.5, null, null, null));
 
         invokeValidateReferences(service, references);
@@ -41,7 +50,12 @@ class ChatStreamServiceReferenceValidationTest {
     @Test
     @DisplayName("RAG 근거에 id가 없으면 INVALID_INPUT_VALUE가 발생해야 한다")
     void 근거_ID_누락() throws Exception {
-        ChatStreamService service = new ChatStreamService(webClient, objectMapper, taskScheduler);
+        ChatStreamService service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
         List<RagReference> references = List.of(new RagReference(RagReferenceType.REGULATION, null, "제목", 0.5, null, null, null));
 
         invokeValidateReferences(service, references);
@@ -50,7 +64,12 @@ class ChatStreamServiceReferenceValidationTest {
     @Test
     @DisplayName("RAG 근거 score가 0~1 범위를 벗어나면 INVALID_INPUT_VALUE가 발생해야 한다")
     void 근거_SCORE_범위_초과() throws Exception {
-        ChatStreamService service = new ChatStreamService(webClient, objectMapper, taskScheduler);
+        ChatStreamService service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
         List<RagReference> references = List.of(new RagReference(RagReferenceType.REGULATION, 1L, "제목", 1.5, null, null, null));
 
         invokeValidateReferences(service, references);

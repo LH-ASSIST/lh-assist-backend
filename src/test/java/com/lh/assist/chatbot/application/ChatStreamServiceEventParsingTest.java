@@ -3,6 +3,7 @@ package com.lh.assist.chatbot.application;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.chatbot.domain.enums.RagReferenceType;
 import com.lh.assist.chatbot.domain.model.RagReference;
 import java.lang.reflect.Method;
@@ -27,13 +28,21 @@ class ChatStreamServiceEventParsingTest {
     @Mock
     private TaskScheduler taskScheduler;
 
+    @Mock
+    private AnalysisResultRepository analysisResultRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private ChatStreamService service;
 
     @BeforeEach
     void setUp() {
-        service = new ChatStreamService(webClient, objectMapper, taskScheduler);
+        service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
     }
 
     @Test

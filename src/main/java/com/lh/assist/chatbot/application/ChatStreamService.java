@@ -221,6 +221,9 @@ public class ChatStreamService {
      * @param request 스트림 요청 정보
      */
     private void validateStreamRequest(@NonNull ChatStreamRequest request) {
+        if (request == null) {
+            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
+        }
         if (request.sessionId() == null || request.sessionId().isBlank()) {
             throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
         }
