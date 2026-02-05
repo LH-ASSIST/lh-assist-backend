@@ -25,6 +25,10 @@ public class AnalysisCallbackRequest {
     @JsonProperty("analysis_result")
     private AnalysisResultPayload analysisResult;
 
+    @Schema(description = "파싱 JSON S3 키", example = "parsed/123/uuid-file.json.gz")
+    @JsonProperty("parsed_json_s3_key")
+    private String parsedJsonS3Key;
+
     @JsonProperty("sections")
     private List<AnalysisSectionPayload> sections;
 
@@ -40,5 +44,12 @@ public class AnalysisCallbackRequest {
             return totalRiskScore;
         }
         return analysisResult != null ? analysisResult.getTotalRiskScore() : null;
+    }
+
+    public String resolveParsedJsonS3Key() {
+        if (parsedJsonS3Key != null && !parsedJsonS3Key.isBlank()) {
+            return parsedJsonS3Key;
+        }
+        return null;
     }
 }

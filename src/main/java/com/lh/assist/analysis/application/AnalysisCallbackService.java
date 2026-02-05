@@ -70,6 +70,10 @@ public class AnalysisCallbackService {
                 : result.getTotalRiskScore();
 
         result.updateStatus(status, resolvedScore);
+        String parsedJsonS3Key = request.resolveParsedJsonS3Key();
+        if (parsedJsonS3Key != null) {
+            result.updateParsedJsonS3Key(parsedJsonS3Key);
+        }
         job.updateStatus(mapToJobStatus(status), request.getFailReason());
 
         Document document = job.getDocument();

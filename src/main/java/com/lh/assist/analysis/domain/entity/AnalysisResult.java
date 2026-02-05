@@ -56,6 +56,9 @@ public class AnalysisResult extends BaseTimeEntity {
 	@Column(name = "total_risk_score")
 	private Integer totalRiskScore;
 
+	@Column(name = "parsed_json_s3_key", length = 500)
+	private String parsedJsonS3Key;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false, length = 30)
 	private AnalysisResultStatus status;
@@ -69,6 +72,10 @@ public class AnalysisResult extends BaseTimeEntity {
 		}
 		this.status = status;
 		this.totalRiskScore = totalRiskScore;
+	}
+
+	public void updateParsedJsonS3Key(String parsedJsonS3Key) {
+		this.parsedJsonS3Key = parsedJsonS3Key;
 	}
 
 	@Override
