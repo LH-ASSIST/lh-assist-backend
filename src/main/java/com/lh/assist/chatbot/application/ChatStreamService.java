@@ -40,6 +40,8 @@ public class ChatStreamService {
     private static final String EVENT_REFS = "refs";
     private static final String EVENT_DONE = "done";
     private static final String EVENT_PING = "ping";
+    private static final String EVENT_ERROR = "error";
+    private static final String ERROR_STREAMING_MESSAGE = "스트리밍 중 오류가 발생했습니다.";
 
     private final WebClient chatbotWebClient;
     private final ObjectMapper objectMapper;
@@ -59,17 +61,32 @@ public class ChatStreamService {
      * FastAPI에서 SSE 스트림을 받아 클라이언트로 중계하고,
      * 스트림 완료 시 대화 내용을 chat_messages에 저장한다
      *
-     * @param userId 로그인 사용자 ID (비로그인 사용자는 null)
+     * @param principal 로그인 사용자 ID (비로그인 사용자는 null)
      * @param request 대화 스트림 요청 정보
      * @return SSE 응답 emitter
      */
     public SseEmitter streamChat(
             UserPrincipal principal,
-            @NonNull ChatStreamRequest request
+            @NonNull ChatStreamRequest request,
+            String authorization
     ) {
         validateStreamRequest(request);
 
+        log.debug("streamChat: principalId={}, isGuest={}, sessionId={}, questionLen={}, itemId={}, analysisResultId={}, docId={}",
+                principal == null ? null : principal.userId(),
+                principal != null && principal.isGuest(),
+                request.sessionId(),
+                request.question() == null ? null : request.question().length(),
+                request.itemId(),
+                request.analysisResultId(),
+                request.docId());
+
         SseEmitter emitter = new SseEmitter(sseTimeoutMs);
+        try {
+            emitter.send(SseEmitter.event().name(EVENT_PING).data("heartbeat"));
+        } catch (IOException ex) {
+            emitter.completeWithError(ex);
+        }
         StringBuilder answerBuffer = new StringBuilder();
         AtomicReference<List<RagReference>> ragReferences = new AtomicReference<>(null);
         AtomicReference<Disposable> subscriptionRef = new AtomicReference<>(null);
@@ -81,7 +98,7 @@ public class ChatStreamService {
 
         try {
             ChatStreamRequest enrichedRequest = enrichRequest(principal, request);
-            Flux<ServerSentEvent<String>> stream = createStream(enrichedRequest);
+            Flux<ServerSentEvent<String>> stream = createStream(enrichedRequest, authorization);
             Disposable subscription = stream.subscribe(
                     event -> handleStreamEvent(emitter, event, answerBuffer, ragReferences),
                     error -> handleStreamError(emitter, error, finished, heartbeatFuture),
@@ -121,12 +138,15 @@ public class ChatStreamService {
             @NonNull AtomicReference<List<RagReference>> ragReferences
     ) {
         String data = event.data();
-        if (data == null || data.isBlank()) {
+        if (data == null) {
             return;
         }
 
         String eventName = event.event();
         if (EVENT_REFERENCES.equals(eventName) || EVENT_REFS.equals(eventName)) {
+            if (data.isBlank()) {
+                return;
+            }
             ragReferences.set(parseReferencesJson(data));
             return;
         }
@@ -164,7 +184,7 @@ public class ChatStreamService {
      */
     private void sendErrorEvent(SseEmitter emitter) {
         try {
-            emitter.send(SseEmitter.event().name("error").data("스트리밍 중 오류가 발생했습니다."));
+            emitter.send(SseEmitter.event().name(EVENT_ERROR).data(ERROR_STREAMING_MESSAGE));
         } catch (IOException ex) {
             log.warn("에러 이벤트 전송 실패: {}", ex.getMessage(), ex);
         }
@@ -242,6 +262,12 @@ public class ChatStreamService {
             UserPrincipal principal,
             @NonNull ChatStreamRequest request
     ) {
+        log.debug("enrichRequest: principalId={}, isGuest={}, analysisResultId={}, reqDocId={}",
+                principal == null ? null : principal.userId(),
+                principal != null && principal.isGuest(),
+                request.analysisResultId(),
+                request.docId());
+
         if (request.analysisResultId() == null) {
             if (principal == null || principal.isGuest()) {
                 return withoutAnalysis(request);
@@ -254,9 +280,18 @@ public class ChatStreamService {
 
         AnalysisResult result = analysisResultRepository.findById(request.analysisResultId())
                 .orElseThrow(() -> new ChatbotException(ErrorCode.INVALID_INPUT_VALUE));
+        log.debug("analysisResult: id={}, status={}, documentId={}, ownerId={}, parsedJsonS3Key={}",
+                result.getAnalysisId(),
+                result.getStatus(),
+                result.getDocument().getDocId(),
+                result.getDocument().getUser().getUserId(),
+                result.getParsedJsonS3Key());
         if (result.getStatus() != AnalysisResultStatus.SUCCEEDED) {
             throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
         }
+        log.debug("ownerCheck: principalId={}, ownerId={}",
+                principal.userId(),
+                result.getDocument().getUser().getUserId());
         if (!Objects.equals(result.getDocument().getUser().getUserId(), principal.userId())) {
             throw new ChatbotException(ErrorCode.ACCESS_DENIED);
         }
@@ -311,15 +346,77 @@ public class ChatStreamService {
      * @param request 스트림 요청 정보
      * @return SSE 스트림
      */
-    private Flux<ServerSentEvent<String>> createStream(@NonNull ChatStreamRequest request) {
-        return chatbotWebClient.post()
+    private Flux<ServerSentEvent<String>> createStream(
+            @NonNull ChatStreamRequest request,
+            String authorization
+    ) {
+        log.debug("createStream request: {}", request);
+        WebClient.RequestBodySpec spec = chatbotWebClient.post()
                 .uri(streamPath)
                 .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.TEXT_EVENT_STREAM)
-                .bodyValue(request)
+                .accept(MediaType.TEXT_EVENT_STREAM);
+        if (authorization != null && !authorization.isBlank()) {
+            spec = spec.header("Authorization", authorization);
+        }
+        Flux<String> rawStream = spec.bodyValue(request)
                 .retrieve()
-                .bodyToFlux(new ParameterizedTypeReference<>() {
-                });
+                .bodyToFlux(String.class)
+                .doOnNext(raw -> log.debug("RAW SSE CHUNK: {}", raw));
+        return parseSseStream(rawStream);
+    }
+
+    private Flux<ServerSentEvent<String>> parseSseStream(Flux<String> rawStream) {
+        return Flux.create(sink -> {
+            StringBuilder buffer = new StringBuilder();
+            rawStream.subscribe(
+                    chunk -> {
+                        if (chunk == null || chunk.isEmpty()) {
+                            return;
+                        }
+                        buffer.append(chunk.replace("\r\n", "\n"));
+                        int idx;
+                        while ((idx = buffer.indexOf("\n\n")) >= 0) {
+                            String block = buffer.substring(0, idx);
+                            buffer.delete(0, idx + 2);
+                            ServerSentEvent<String> event = parseSseBlock(block);
+                            if (event != null) {
+                                sink.next(event);
+                            }
+                        }
+                    },
+                    sink::error,
+                    sink::complete
+            );
+        });
+    }
+
+    private ServerSentEvent<String> parseSseBlock(String block) {
+        if (block == null || block.isBlank()) {
+            return null;
+        }
+        String eventName = null;
+        StringBuilder dataBuilder = new StringBuilder();
+        String[] lines = block.split("\n");
+        for (String line : lines) {
+            if (line.startsWith("event:")) {
+                eventName = line.substring(6).trim();
+            } else if (line.startsWith("data:")) {
+                String payload = line.substring(5);
+                if (!dataBuilder.isEmpty()) {
+                    dataBuilder.append("\n");
+                }
+                dataBuilder.append(payload);
+            }
+        }
+        String data = dataBuilder.toString();
+        if (eventName == null && data.isEmpty()) {
+            return null;
+        }
+        ServerSentEvent.Builder<String> builder = ServerSentEvent.builder(data);
+        if (eventName != null && !eventName.isBlank()) {
+            builder.event(eventName);
+        }
+        return builder.build();
     }
 
     /**
@@ -336,17 +433,40 @@ public class ChatStreamService {
             @NonNull StringBuilder answerBuffer,
             @NonNull AtomicReference<List<RagReference>> ragReferences
     ) {
+        String eventName = event.event();
+        String data = event.data();
+        log.debug("SSE event received: name={}, dataLength={}", eventName, data == null ? null : data.length());
+        if (EVENT_DONE.equals(eventName)) {
+            try {
+                emitter.send(SseEmitter.event().name(EVENT_DONE).data("[DONE]"));
+            } catch (IOException ex) {
+                emitter.completeWithError(ex);
+                return;
+            }
+            emitter.complete();
+            return;
+        }
+        if (EVENT_ERROR.equals(eventName)) {
+            try {
+                String payload = data == null ? ERROR_STREAMING_MESSAGE : data;
+                emitter.send(SseEmitter.event().name(EVENT_ERROR).data(payload));
+            } catch (IOException ex) {
+                emitter.completeWithError(ex);
+            }
+            emitter.complete();
+            return;
+        }
         handleEvent(event, answerBuffer, ragReferences);
         try {
-            if (event.data() == null) {
+            if (data == null) {
                 return;
             }
             SseEmitter.SseEventBuilder builder = SseEmitter.event();
-            String eventName = event.event();
-            if (eventName != null) {
-                builder.name(eventName);
+            if (eventName == null || eventName.isBlank()) {
+                eventName = "message";
             }
-            builder.data(event.data());
+            builder.name(eventName);
+            builder.data(data);
             emitter.send(builder);
         } catch (IOException ex) {
             emitter.completeWithError(ex);
