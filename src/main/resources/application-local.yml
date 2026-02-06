@@ -26,3 +26,7 @@ app:
   cors:
     allowed-origins:
       - "http://localhost:5173"
+
+logging:
+  level:
+    com.lh.assist.chatbot: DEBUG
