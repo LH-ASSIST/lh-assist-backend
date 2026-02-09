@@ -16,6 +16,7 @@ import com.lh.assist.infrastructure.aws.s3.S3Service;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import com.openhtmltopdf.extend.FSSupplier;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Locale;
 import java.text.Normalizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -121,7 +123,10 @@ public class AnalysisReportService {
 
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFastMode();
+            if (!showCover) {
+                builder.useFastMode();
+            }
+            builder.useSVGDrawer(new BatikSVGDrawer());
 
             // 한글 폰트 설정 (필수: resources/fonts/NotoSerifKR-Regular.ttf)
             ClassPathResource fontResource = new ClassPathResource("fonts/NotoSerifKR-Regular.ttf");
@@ -301,10 +306,17 @@ public class AnalysisReportService {
         Map<AnalysisRiskType, Long> typeCounts = riskItems.stream()
                 .collect(Collectors.groupingBy(AnalysisRiskItem::getRiskType, Collectors.counting()));
 
+        int maxTypeCount = typeCounts.values().stream()
+                .mapToInt(Long::intValue)
+                .max()
+                .orElse(0);
+
         List<RiskTypeStatDto> typeStats = typeCounts.entrySet().stream()
                 .sorted(Map.Entry.<AnalysisRiskType, Long>comparingByValue().reversed())
                 .map(e -> {
                     int percent = calculatePercent(e.getValue().intValue(), riskItems.size());
+                    int barPercent = maxTypeCount == 0 ? 0
+                            : (int) Math.round((e.getValue().doubleValue() / maxTypeCount) * 100);
 
                     // Enum 필드 대신 직접 매핑
                     String colorCode = resolveRiskColorCode(e.getKey());
@@ -313,22 +325,55 @@ public class AnalysisReportService {
                             e.getKey().getDescription(),
                             e.getValue().intValue(),
                             percent,
+                            barPercent,
                             colorCode,
-                            String.format("width: %d%%; background: %s", percent, colorCode)
+                            String.format("width: %d%%; background: %s", barPercent, colorCode)
                     );
                 })
                 .toList();
+
+        // 2-1. 도넛 차트용 데이터
+        int totalTypeCount = riskItems.size();
+        double cumulative = 0.0;
+        List<RiskTypeDonutDto> donutStats = new ArrayList<>();
+        List<Map.Entry<AnalysisRiskType, Long>> donutEntries = typeCounts.entrySet().stream()
+                .sorted(Map.Entry.<AnalysisRiskType, Long>comparingByValue().reversed())
+                .toList();
+        for (Map.Entry<AnalysisRiskType, Long> e : donutEntries) {
+            double percent = totalTypeCount == 0 ? 0.0 : (e.getValue() * 100.0) / totalTypeCount;
+            String colorCode = resolveRiskColorCode(e.getKey());
+            String dashArray = String.format(Locale.US, "%.2f %.2f", percent, 100.0 - percent);
+            String dashOffset = String.format(Locale.US, "%.2f", 25.0 - cumulative);
+            donutStats.add(new RiskTypeDonutDto(
+                    e.getKey().getDescription(),
+                    e.getValue().intValue(),
+                    percent,
+                    colorCode,
+                    dashArray,
+                    dashOffset
+            ));
+            cumulative += percent;
+        }
 
         // 3. 페이지별 통계
         Map<Integer, Long> pageCounts = sections.stream()
                 .filter(AnalysisSection::isViolation)
                 .collect(Collectors.groupingBy(AnalysisSection::getPageNumber, Collectors.counting()));
 
+        int maxPageCount = pageCounts.values().stream()
+                .mapToInt(Long::intValue)
+                .max()
+                .orElse(0);
+        int barMaxHeightPx = 60;
+
         List<PageStatDto> pageStats = pageCounts.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(e -> {
                     int percent = calculatePercent(e.getValue().intValue(), violationCount);
-                    return new PageStatDto(e.getKey(), e.getValue().intValue(), percent);
+                    int barPercent = maxPageCount == 0 ? 0
+                            : (int) Math.round((e.getValue().doubleValue() / maxPageCount) * 100);
+                    int barHeightPx = (int) Math.round((barPercent / 100.0) * barMaxHeightPx);
+                    return new PageStatDto(e.getKey(), e.getValue().intValue(), barPercent, barHeightPx);
                 })
                 .toList();
 
@@ -352,10 +397,12 @@ public class AnalysisReportService {
                 .totalScore(score)
                 .violationCount(violationCount)
                 .riskLevel(getRiskLevel(score))
+                .gaugeAngle(-90.0 + (Math.min(100, Math.max(0, score)) / 100.0) * 180.0)
                 .safePercent(calculatePercent(safe, totalSections))
                 .mediumPercent(calculatePercent(medium, totalSections))
                 .highPercent(calculatePercent(high, totalSections))
                 .riskTypeStats(typeStats)
+                .riskTypeDonut(donutStats)
                 .pageStats(pageStats)
                 .itemsByPage(itemsByPage)
                 .build();
@@ -377,10 +424,12 @@ public class AnalysisReportService {
                 .totalScore(fullData.totalScore())
                 .violationCount(fullData.violationCount())
                 .riskLevel(fullData.riskLevel())
+                .gaugeAngle(fullData.gaugeAngle())
                 .safePercent(fullData.safePercent())
                 .mediumPercent(fullData.mediumPercent())
                 .highPercent(fullData.highPercent())
                 .riskTypeStats(fullData.riskTypeStats())
+                .riskTypeDonut(fullData.riskTypeDonut())
                 .pageStats(fullData.pageStats())
                 .itemsByPage(filtered)
                 .build();
@@ -506,10 +555,12 @@ public class AnalysisReportService {
             int totalScore,
             int violationCount,
             String riskLevel,
+            double gaugeAngle,
             int safePercent,
             int mediumPercent,
             int highPercent,
             List<RiskTypeStatDto> riskTypeStats,
+            List<RiskTypeDonutDto> riskTypeDonut,
             List<PageStatDto> pageStats,
             Map<Integer, List<RiskItemViewDto>> itemsByPage
     ) {}
@@ -518,14 +569,25 @@ public class AnalysisReportService {
             String label,
             int count,
             int percent,
+            int barPercent,
             String color,
             String widthStyle
+    ) {}
+
+    public record RiskTypeDonutDto(
+            String label,
+            int count,
+            double percent,
+            String color,
+            String dashArray,
+            String dashOffset
     ) {}
 
     public record PageStatDto(
             int pageNumber,
             int count,
-            int barPercent
+            int barPercent,
+            int barHeightPx
     ) {}
 
     public record RiskItemViewDto(
