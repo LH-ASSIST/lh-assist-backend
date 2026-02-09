@@ -49,6 +49,9 @@ dependencies {
 	implementation("com.openhtmltopdf:openhtmltopdf-core:1.0.10")
 	implementation("com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10")
 	implementation("com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10")
+	implementation("com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10")
+	implementation("org.apache.xmlgraphics:batik-svggen:1.17")
+	implementation("org.apache.xmlgraphics:batik-dom:1.17")
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	// AWS S3 연동
 	implementation ("io.awspring.cloud:spring-cloud-starter-aws:2.4.4")
