@@ -8,10 +8,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
+import com.lh.assist.analysis.domain.entity.AnalysisDashboardSummary;
 import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
 import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
 import com.lh.assist.analysis.domain.enums.AnalysisRiskType;
+import com.lh.assist.analysis.domain.repository.AnalysisDashboardSummaryRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
@@ -27,6 +29,8 @@ import com.lh.assist.user.domain.enums.UserRole;
 import com.lh.assist.user.domain.enums.UserStatus;
 import com.lh.assist.user.domain.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,6 +66,9 @@ class AnalysisControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private AnalysisRiskItemRepository analysisRiskItemRepository;
+
+    @Autowired
+    private AnalysisDashboardSummaryRepository analysisDashboardSummaryRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -173,6 +180,46 @@ class AnalysisControllerIntegrationTest extends IntegrationTestBase {
     void 분석_섹션_조회_인증_필요() throws Exception {
         mockMvc.perform(get("/api/v1/analysis/documents/{docId}/sections", 1L))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("대시보드 요약이 없으면 0으로 반환되어야 한다")
+    void 대시보드_요약_없음() throws Exception {
+        User user = createUser("dashboard-empty@lh.com");
+        TokenPair tokens = loginAndGetTokens(user.getEmail());
+
+        mockMvc.perform(get("/api/v1/analysis/dashboard")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.monthlyReviewCount").value(0))
+                .andExpect(jsonPath("$.data.highRiskDocumentCount").value(0))
+                .andExpect(jsonPath("$.data.averageSafetyScore").value(0))
+                .andExpect(jsonPath("$.data.lowRiskDocumentCount").value(0));
+    }
+
+    @Test
+    @DisplayName("대시보드 요약이 있으면 저장된 값이 반환되어야 한다")
+    void 대시보드_요약_조회_성공() throws Exception {
+        User user = createUser("dashboard@lh.com");
+        String yearMonth = YearMonth.from(LocalDate.now(ZoneId.of("Asia/Seoul"))).toString();
+        analysisDashboardSummaryRepository.save(AnalysisDashboardSummary.builder()
+                .user(user)
+                .yearMonth(yearMonth)
+                .monthlyReviewCount(4L)
+                .highRiskDocumentCount(1L)
+                .averageSafetyScore(72)
+                .lowRiskDocumentCount(2L)
+                .build());
+
+        TokenPair tokens = loginAndGetTokens(user.getEmail());
+
+        mockMvc.perform(get("/api/v1/analysis/dashboard")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.accessToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.monthlyReviewCount").value(4))
+                .andExpect(jsonPath("$.data.highRiskDocumentCount").value(1))
+                .andExpect(jsonPath("$.data.averageSafetyScore").value(72))
+                .andExpect(jsonPath("$.data.lowRiskDocumentCount").value(2));
     }
 
     @Test

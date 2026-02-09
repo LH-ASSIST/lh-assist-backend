@@ -1,12 +1,14 @@
 package com.lh.assist.analysis.application;
 
 import com.lh.assist.analysis.api.dto.response.AnalysisRequestResponse;
+import com.lh.assist.analysis.api.dto.response.AnalysisDashboardResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSectionResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSummaryResponse;
 import com.lh.assist.analysis.api.mapper.AnalysisMapper;
 import com.lh.assist.analysis.domain.entity.AnalysisJob;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
 import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
+import com.lh.assist.analysis.domain.repository.AnalysisDashboardSummaryRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisJobRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
@@ -26,8 +28,11 @@ import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -37,14 +42,24 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @RequiredArgsConstructor
 public class AnalysisService {
 
+	private static final AnalysisDashboardResponse EMPTY_DASHBOARD_RESPONSE = AnalysisDashboardResponse.builder()
+			.monthlyReviewCount(0)
+			.highRiskDocumentCount(0)
+			.averageSafetyScore(0)
+			.lowRiskDocumentCount(0)
+			.build();
+
 	private final AnalysisResultRepository analysisResultRepository;
 	private final AnalysisJobRepository analysisJobRepository;
 	private final AnalysisSectionRepository analysisSectionRepository;
 	private final AnalysisRiskItemRepository analysisRiskItemRepository;
 	private final DocumentRepository documentRepository;
 	private final UserRepository userRepository;
+	private final AnalysisDashboardSummaryRepository analysisDashboardSummaryRepository;
 	private final SqsMessageProducer sqsMessageProducer;
 	private final AuditLogService auditLogService;
+	@Value("${app.analysis.dashboard.cron-zone:Asia/Seoul}")
+	private String dashboardZone;
 
 	/**
 	 * 문서 분석 요청을 생성하고 SQS에 작업 요청을 발행한다
@@ -186,6 +201,30 @@ public class AnalysisService {
 						riskItemMap.getOrDefault(section.getSectionId(), List.of())
 				))
 				.toList();
+	}
+
+	/**
+	 * 사용자 대시보드용 분석 요약 정보를 조회한다
+	 *
+	 * @param userId 사용자 ID
+	 * @return 대시보드 요약 응답
+	 */
+	@Transactional(readOnly = true)
+	public AnalysisDashboardResponse getDashboardSummary(Long userId) {
+		if (userId == null) {
+			throw new AnalysisException(ErrorCode.UNAUTHORIZED);
+		}
+		String resolvedZone = (dashboardZone == null || dashboardZone.isBlank()) ? "Asia/Seoul" : dashboardZone;
+		YearMonth currentMonth = YearMonth.from(LocalDate.now(ZoneId.of(resolvedZone)));
+		String yearMonth = currentMonth.toString();
+		return analysisDashboardSummaryRepository.findByUser_UserIdAndYearMonth(userId, yearMonth)
+				.map(summary -> AnalysisDashboardResponse.builder()
+						.monthlyReviewCount(summary.getMonthlyReviewCount())
+						.highRiskDocumentCount(summary.getHighRiskDocumentCount())
+						.averageSafetyScore(summary.getAverageSafetyScore())
+						.lowRiskDocumentCount(summary.getLowRiskDocumentCount())
+						.build())
+				.orElse(EMPTY_DASHBOARD_RESPONSE);
 	}
 
 	/**

@@ -75,6 +75,9 @@ app:
     retry-delay-ms: 200
   analysis:
     callback-token: ${APP_ANALYSIS_CALLBACK_TOKEN:}
+    dashboard:
+      cron: "0 0 0 * * *"
+      cron-zone: "Asia/Seoul"
   suggestion:
     view-count:
       flush-interval-ms: 60000

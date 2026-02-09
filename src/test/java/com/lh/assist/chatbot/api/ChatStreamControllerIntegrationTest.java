@@ -56,7 +56,7 @@ class ChatStreamControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("정상 요청이면 SSE 응답을 반환하고 파라미터를 전달해야 한다")
     void stream_request_delegates_to_service() throws Exception {
-        when(chatStreamService.streamChat(isNull(), any(ChatStreamRequest.class)))
+        when(chatStreamService.streamChat(isNull(), any(ChatStreamRequest.class), isNull()))
                 .thenReturn(new SseEmitter(1000L));
 
         RequestPostProcessor clientIp = request -> {
@@ -74,7 +74,7 @@ class ChatStreamControllerIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<ChatStreamRequest> requestCaptor = ArgumentCaptor.forClass(ChatStreamRequest.class);
-        verify(chatStreamService).streamChat(isNull(), requestCaptor.capture());
+        verify(chatStreamService).streamChat(isNull(), requestCaptor.capture(), isNull());
         ChatStreamRequest captured = requestCaptor.getValue();
         org.assertj.core.api.Assertions.assertThat(captured.sessionId()).isEqualTo("session-1");
         org.assertj.core.api.Assertions.assertThat(captured.question()).isEqualTo("질문");
@@ -84,7 +84,7 @@ class ChatStreamControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("분당 호출 제한을 초과하면 429가 반환되어야 한다")
     void rate_limit_exceeded_returns_429() throws Exception {
-        when(chatStreamService.streamChat(isNull(), any(ChatStreamRequest.class)))
+        when(chatStreamService.streamChat(isNull(), any(ChatStreamRequest.class), isNull()))
                 .thenReturn(new SseEmitter(1000L));
 
         RequestPostProcessor clientIp = request -> {

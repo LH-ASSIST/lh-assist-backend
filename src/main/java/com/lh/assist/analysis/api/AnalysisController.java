@@ -1,7 +1,9 @@
 package com.lh.assist.analysis.api;
 
+import com.lh.assist.analysis.api.dto.response.AnalysisDashboardResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSectionResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSummaryResponse;
+import com.lh.assist.analysis.api.docs.AnalysisDashboardDocs;
 import com.lh.assist.analysis.api.docs.AnalysisSectionDocs;
 import com.lh.assist.analysis.api.docs.AnalysisSummaryDocs;
 import com.lh.assist.analysis.api.docs.AnalysisApiDocs;
@@ -46,5 +48,15 @@ public class AnalysisController {
     ) {
         List<AnalysisSectionResponse> responses = analysisService.getAnalysisSections(docId, principal.email());
         return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("isAuthenticated()")
+    @AnalysisDashboardDocs
+    public ResponseEntity<ApiResponse<AnalysisDashboardResponse>> getDashboardSummary(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        AnalysisDashboardResponse response = analysisService.getDashboardSummary(principal.userId());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

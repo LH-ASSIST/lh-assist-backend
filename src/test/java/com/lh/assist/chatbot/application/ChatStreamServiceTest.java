@@ -45,7 +45,7 @@ class ChatStreamServiceTest {
         String question = "a".repeat(501);
         ChatStreamRequest request = new ChatStreamRequest("session-1", question, null, null, null, null);
 
-        assertThatThrownBy(() -> service.streamChat(null, request))
+        assertThatThrownBy(() -> service.streamChat(null, request, null))
                 .isInstanceOf(ChatbotException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
@@ -63,7 +63,7 @@ class ChatStreamServiceTest {
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
         ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
 
-        assertThatThrownBy(() -> service.streamChat(null, null))
+        assertThatThrownBy(() -> service.streamChat(null, null, null))
                 .isInstanceOf(ChatbotException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
@@ -83,7 +83,7 @@ class ChatStreamServiceTest {
 
         ChatStreamRequest request = new ChatStreamRequest(" ", "질문", null, null, null, null);
 
-        assertThatThrownBy(() -> service.streamChat(null, request))
+        assertThatThrownBy(() -> service.streamChat(null, request, null))
                 .isInstanceOf(ChatbotException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
