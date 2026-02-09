@@ -110,6 +110,23 @@ public class S3Service {
 	}
 
 	/**
+	 * S3 객체를 다운로드한다
+	 *
+	 * @param key S3 객체 키
+	 * @return 객체 바이트 배열
+	 */
+	public byte[] downloadFile(String key) {
+		if (key == null || key.isBlank()) {
+			throw new DocumentException(ErrorCode.INVALID_INPUT_VALUE);
+		}
+		try (InputStream inputStream = amazonS3.getObject(bucket, key).getObjectContent()) {
+			return inputStream.readAllBytes();
+		} catch (IOException | RuntimeException ex) {
+			throw new SystemException(ErrorCode.S3_DOWNLOAD_FAILED, ex);
+		}
+	}
+
+	/**
 	 * 키 접두사와 파일명을 조합해 S3 키를 생성한다
 	 *
 	 * @param keyPrefix S3 키 접두사

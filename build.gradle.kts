@@ -44,6 +44,15 @@ dependencies {
 	implementation("io.micrometer:micrometer-registry-prometheus")
 	//swagger
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+	//보고서 문서 생성
+	implementation("org.apache.pdfbox:pdfbox:2.0.30")
+	implementation("com.openhtmltopdf:openhtmltopdf-core:1.0.10")
+	implementation("com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10")
+	implementation("com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10")
+	implementation("com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10")
+	implementation("org.apache.xmlgraphics:batik-svggen:1.17")
+	implementation("org.apache.xmlgraphics:batik-dom:1.17")
+	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	// AWS S3 연동
 	implementation ("io.awspring.cloud:spring-cloud-starter-aws:2.4.4")
 	implementation("com.amazonaws:aws-java-sdk-sqs:1.12.710")

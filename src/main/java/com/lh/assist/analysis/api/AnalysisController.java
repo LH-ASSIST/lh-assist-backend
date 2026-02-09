@@ -4,14 +4,18 @@ import com.lh.assist.analysis.api.dto.response.AnalysisDashboardResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSectionResponse;
 import com.lh.assist.analysis.api.dto.response.AnalysisSummaryResponse;
 import com.lh.assist.analysis.api.docs.AnalysisDashboardDocs;
+import com.lh.assist.analysis.api.docs.AnalysisReportDocs;
 import com.lh.assist.analysis.api.docs.AnalysisSectionDocs;
 import com.lh.assist.analysis.api.docs.AnalysisSummaryDocs;
 import com.lh.assist.analysis.api.docs.AnalysisApiDocs;
 import com.lh.assist.analysis.application.AnalysisService;
+import com.lh.assist.analysis.application.AnalysisReportService;
 import com.lh.assist.common.model.ApiResponse;
 import com.lh.assist.common.security.UserPrincipal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AnalysisController {
 
     private final AnalysisService analysisService;
+    private final AnalysisReportService analysisReportService;
 
     @GetMapping("/documents/{docId}/summary")
     @PreAuthorize("isAuthenticated()")
@@ -58,5 +63,19 @@ public class AnalysisController {
     ) {
         AnalysisDashboardResponse response = analysisService.getDashboardSummary(principal.userId());
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/documents/{docId}/report")
+    @PreAuthorize("isAuthenticated()")
+    @AnalysisReportDocs
+    public ResponseEntity<byte[]> downloadAnalysisReport(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long docId
+    ) {
+        byte[] report = analysisReportService.generateReport(docId, principal.email());
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"analysis-report.pdf\"")
+                .body(report);
     }
 }
