@@ -358,65 +358,14 @@ public class ChatStreamService {
         if (authorization != null && !authorization.isBlank()) {
             spec = spec.header("Authorization", authorization);
         }
-        Flux<String> rawStream = spec.bodyValue(request)
+        return spec.bodyValue(request)
                 .retrieve()
-                .bodyToFlux(String.class)
-                .doOnNext(raw -> log.debug("RAW SSE CHUNK: {}", raw));
-        return parseSseStream(rawStream);
-    }
-
-    private Flux<ServerSentEvent<String>> parseSseStream(Flux<String> rawStream) {
-        return Flux.create(sink -> {
-            StringBuilder buffer = new StringBuilder();
-            rawStream.subscribe(
-                    chunk -> {
-                        if (chunk == null || chunk.isEmpty()) {
-                            return;
-                        }
-                        buffer.append(chunk.replace("\r\n", "\n"));
-                        int idx;
-                        while ((idx = buffer.indexOf("\n\n")) >= 0) {
-                            String block = buffer.substring(0, idx);
-                            buffer.delete(0, idx + 2);
-                            ServerSentEvent<String> event = parseSseBlock(block);
-                            if (event != null) {
-                                sink.next(event);
-                            }
-                        }
-                    },
-                    sink::error,
-                    sink::complete
-            );
-        });
-    }
-
-    private ServerSentEvent<String> parseSseBlock(String block) {
-        if (block == null || block.isBlank()) {
-            return null;
-        }
-        String eventName = null;
-        StringBuilder dataBuilder = new StringBuilder();
-        String[] lines = block.split("\n");
-        for (String line : lines) {
-            if (line.startsWith("event:")) {
-                eventName = line.substring(6).trim();
-            } else if (line.startsWith("data:")) {
-                String payload = line.substring(5);
-                if (!dataBuilder.isEmpty()) {
-                    dataBuilder.append("\n");
-                }
-                dataBuilder.append(payload);
-            }
-        }
-        String data = dataBuilder.toString();
-        if (eventName == null && data.isEmpty()) {
-            return null;
-        }
-        ServerSentEvent.Builder<String> builder = ServerSentEvent.builder(data);
-        if (eventName != null && !eventName.isBlank()) {
-            builder.event(eventName);
-        }
-        return builder.build();
+                .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
+                .doOnNext(event -> log.debug(
+                        "RAW SSE EVENT: name={}, dataLength={}",
+                        event.event(),
+                        event.data() == null ? null : event.data().length()
+                ));
     }
 
     /**
@@ -436,7 +385,7 @@ public class ChatStreamService {
         String eventName = event.event();
         String data = event.data();
         log.debug("SSE event received: name={}, dataLength={}", eventName, data == null ? null : data.length());
-        if (EVENT_DONE.equals(eventName)) {
+        if (EVENT_DONE.equals(eventName) || "[DONE]".equals(data)) {
             try {
                 emitter.send(SseEmitter.event().name(EVENT_DONE).data("[DONE]"));
             } catch (IOException ex) {
