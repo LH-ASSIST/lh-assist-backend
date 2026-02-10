@@ -297,9 +297,9 @@ public class AnalysisReportService {
         int safe = 0, medium = 0, high = 0;
         for (AnalysisSection s : sections) {
             if (s.getRiskScore() == null) continue;
-            if (s.getRiskScore() <= SAFE_SCORE_MAX) safe++;
+            if (s.getRiskScore() <= SAFE_SCORE_MAX) high++;
             else if (s.getRiskScore() <= MEDIUM_SCORE_MAX) medium++;
-            else high++;
+            else safe++;
         }
 
         // 2. 리스크 유형 통계
@@ -317,6 +317,9 @@ public class AnalysisReportService {
                     int percent = calculatePercent(e.getValue().intValue(), riskItems.size());
                     int barPercent = maxTypeCount == 0 ? 0
                             : (int) Math.round((e.getValue().doubleValue() / maxTypeCount) * 100);
+                    if (e.getValue() > 0 && barPercent == 0) {
+                        barPercent = 1;
+                    }
 
                     // Enum 필드 대신 직접 매핑
                     String colorCode = resolveRiskColorCode(e.getKey());
@@ -339,10 +342,13 @@ public class AnalysisReportService {
         List<Map.Entry<AnalysisRiskType, Long>> donutEntries = typeCounts.entrySet().stream()
                 .sorted(Map.Entry.<AnalysisRiskType, Long>comparingByValue().reversed())
                 .toList();
+        double donutGap = 1.8;
+        double minVisible = 0.6;
         for (Map.Entry<AnalysisRiskType, Long> e : donutEntries) {
             double percent = totalTypeCount == 0 ? 0.0 : (e.getValue() * 100.0) / totalTypeCount;
+            double visiblePercent = percent <= 0.0 ? 0.0 : Math.max(minVisible, percent - donutGap);
             String colorCode = resolveRiskColorCode(e.getKey());
-            String dashArray = String.format(Locale.US, "%.2f %.2f", percent, 100.0 - percent);
+            String dashArray = String.format(Locale.US, "%.2f %.2f", visiblePercent, 100.0 - visiblePercent);
             String dashOffset = String.format(Locale.US, "%.2f", 25.0 - cumulative);
             donutStats.add(new RiskTypeDonutDto(
                     e.getKey().getDescription(),
@@ -364,7 +370,7 @@ public class AnalysisReportService {
                 .mapToInt(Long::intValue)
                 .max()
                 .orElse(0);
-        int barMaxHeightPx = 60;
+        int barMaxHeightPx = 70;
 
         List<PageStatDto> pageStats = pageCounts.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
@@ -373,6 +379,9 @@ public class AnalysisReportService {
                     int barPercent = maxPageCount == 0 ? 0
                             : (int) Math.round((e.getValue().doubleValue() / maxPageCount) * 100);
                     int barHeightPx = (int) Math.round((barPercent / 100.0) * barMaxHeightPx);
+                    if (e.getValue() > 0 && barHeightPx == 0) {
+                        barHeightPx = 4;
+                    }
                     return new PageStatDto(e.getKey(), e.getValue().intValue(), barPercent, barHeightPx);
                 })
                 .toList();
@@ -398,6 +407,11 @@ public class AnalysisReportService {
                 .violationCount(violationCount)
                 .riskLevel(getRiskLevel(score))
                 .gaugeAngle(-90.0 + (Math.min(100, Math.max(0, score)) / 100.0) * 180.0)
+                .gaugeFill((Math.min(100, Math.max(0, score)) / 100.0) * 126.0)
+                .safeCount(safe)
+                .mediumCount(medium)
+                .highCount(high)
+                .totalSectionCount(totalSections)
                 .safePercent(calculatePercent(safe, totalSections))
                 .mediumPercent(calculatePercent(medium, totalSections))
                 .highPercent(calculatePercent(high, totalSections))
@@ -425,6 +439,11 @@ public class AnalysisReportService {
                 .violationCount(fullData.violationCount())
                 .riskLevel(fullData.riskLevel())
                 .gaugeAngle(fullData.gaugeAngle())
+                .gaugeFill(fullData.gaugeFill())
+                .safeCount(fullData.safeCount())
+                .mediumCount(fullData.mediumCount())
+                .highCount(fullData.highCount())
+                .totalSectionCount(fullData.totalSectionCount())
                 .safePercent(fullData.safePercent())
                 .mediumPercent(fullData.mediumPercent())
                 .highPercent(fullData.highPercent())
@@ -453,10 +472,10 @@ public class AnalysisReportService {
     // Enum 변경 없이 색상/클래스 처리하는 헬퍼 메서드
     private String resolveRiskColorCode(AnalysisRiskType type) {
         return switch (type) {
-            case MISSING -> "#E53935";
-            case APPROPRIATENESS -> "#FB8C00";
-            case CLARITY -> "#7CB342";
-            case PROCEDURE_COMPLIANCE -> "#1E88E5";
+            case MISSING -> "#D32F2F";
+            case APPROPRIATENESS -> "#F57C00";
+            case CLARITY -> "#388E3C";
+            case PROCEDURE_COMPLIANCE -> "#1976D2";
         };
     }
 
@@ -521,9 +540,9 @@ public class AnalysisReportService {
     }
 
     private String getRiskLevel(int score) {
-        if (score <= SAFE_SCORE_MAX) return "LOW";
+        if (score <= SAFE_SCORE_MAX) return "HIGH";
         if (score <= MEDIUM_SCORE_MAX) return "MEDIUM";
-        return "HIGH";
+        return "LOW";
     }
 
     private int calculatePercent(int count, int total) {
@@ -556,6 +575,11 @@ public class AnalysisReportService {
             int violationCount,
             String riskLevel,
             double gaugeAngle,
+            double gaugeFill,
+            int safeCount,
+            int mediumCount,
+            int highCount,
+            int totalSectionCount,
             int safePercent,
             int mediumPercent,
             int highPercent,
