@@ -10,7 +10,7 @@
         }
         body { line-height: 1.55; font-size: 12px; background: #fff; }
 
-        .section { margin-bottom: 18px; page-break-inside: avoid; }
+        .section { margin-bottom: 12px; page-break-inside: avoid; }
         .header {
             border-bottom: 3px solid #002D56;
             padding-bottom: 12px;
@@ -66,13 +66,21 @@
             border: 1px solid #dbe4f0;
             border-radius: 10px;
             background: #fff;
-            padding: 12px;
+            padding: 10px;
         }
-        .panel-title { font-size: 12px; font-weight: 700; color: #0f2d5f; margin-bottom: 8px; }
-        .panel-sub { font-size: 10px; color: #64748b; margin-top: 6px; }
-        .chart-image { display: block; width: 100%; height: auto; }
+        .panel-title { font-size: 12px; font-weight: 700; color: #0f2d5f; margin-bottom: 6px; }
+        .panel-sub { font-size: 10px; color: #64748b; margin-top: 4px; }
+        .chart-image {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            page-break-inside: avoid;
+        }
+        .chart-cover-small { max-height: 200px; }
+        .chart-cover-wide { max-height: 220px; }
 
-        .split-table { width: 100%; border-collapse: separate; border-spacing: 12px; }
+        .split-table { width: 100%; border-collapse: separate; border-spacing: 8px; table-layout: fixed; }
 
         .modern-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 10px; }
         .modern-table thead th {
@@ -196,14 +204,14 @@
             <td style="width:50%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">🧭 종합 안전도 게이지</div>
-                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" class="chart-image" width="430" height="230"/>
+                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" class="chart-image chart-cover-small"/>
                     <div class="panel-sub">문서의 현재 규정 준수 상태를 한눈에 제공합니다.</div>
                 </div>
             </td>
             <td style="width:50%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">📉 총점 감점 요인 선버스트</div>
-                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 워터폴" class="chart-image" width="430" height="230"/>
+                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 선버스트" class="chart-image chart-cover-small"/>
                     <div class="panel-sub">최종 점수와 유형별 감점 비중을 원형 계층 구조로 요약합니다.</div>
                 </div>
             </td>
@@ -216,13 +224,13 @@
             <td style="width:58%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">📌 페이지별 위험도 전이(영역형)</div>
-                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" class="chart-image" width="500" height="250"/>
+                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" class="chart-image chart-cover-wide"/>
                 </div>
             </td>
             <td style="width:42%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">🧩 우선순위 리스크 프로파일(방사형)</div>
-                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="유형 분포" class="chart-image" width="360" height="250"/>
+                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="우선순위 리스크 프로파일" class="chart-image chart-cover-wide"/>
                 </div>
             </td>
         </tr>
