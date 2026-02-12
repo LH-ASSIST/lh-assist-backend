@@ -196,15 +196,15 @@
             <td style="width:50%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">🧭 종합 안전도 게이지</div>
-                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" class="chart-image" width="520" height="280"/>
+                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" class="chart-image" width="430" height="230"/>
                     <div class="panel-sub">문서의 현재 규정 준수 상태를 한눈에 제공합니다.</div>
                 </div>
             </td>
             <td style="width:50%; vertical-align:top;">
                 <div class="panel">
-                    <div class="panel-title">📉 총점 감점 요인 워터폴</div>
-                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 워터폴" class="chart-image" width="900" height="360"/>
-                    <div class="panel-sub">기준점수 100점에서 유형별 감점 누적 결과로 최종 안전점수를 설명합니다.</div>
+                    <div class="panel-title">📉 총점 감점 요인 선버스트</div>
+                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 워터폴" class="chart-image" width="430" height="230"/>
+                    <div class="panel-sub">최종 점수와 유형별 감점 비중을 원형 계층 구조로 요약합니다.</div>
                 </div>
             </td>
         </tr>
@@ -215,14 +215,14 @@
         <tr>
             <td style="width:58%; vertical-align:top;">
                 <div class="panel">
-                    <div class="panel-title">📌 페이지별 위험도 전이</div>
-                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" class="chart-image" width="920" height="320"/>
+                    <div class="panel-title">📌 페이지별 위험도 전이(영역형)</div>
+                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" class="chart-image" width="500" height="250"/>
                 </div>
             </td>
             <td style="width:42%; vertical-align:top;">
                 <div class="panel">
-                    <div class="panel-title">🧩 유형별 리스크 분포</div>
-                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="유형 분포" class="chart-image" width="700" height="320"/>
+                    <div class="panel-title">🧩 우선순위 리스크 프로파일(방사형)</div>
+                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="유형 분포" class="chart-image" width="360" height="250"/>
                 </div>
             </td>
         </tr>

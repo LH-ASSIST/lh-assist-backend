@@ -3,6 +3,8 @@ const echarts = require("echarts");
 const { Resvg } = require("@resvg/resvg-js");
 
 const COLORS = {
+  navy: "#002D56",
+  emerald: "#00A082",
   urgent: "#dc2626",
   high: "#f97316",
   medium: "#f59e0b",
@@ -85,10 +87,10 @@ function buildOption(kind, data) {
     const rows = Array.isArray(data.rows) ? data.rows : [];
     const pages = rows.map((r) => `P${r.pageNumber}`);
     const scores = rows.map((r) => Number(r.minSafetyScore ?? 0));
-    const marker = rows.map((r) => (r.hasViolation ? 100 : 0));
+    const marker = rows.map((r) => (r.hasViolation ? Number(r.minSafetyScore ?? 0) : null));
     return {
       animation: false,
-      grid: { left: 40, right: 14, top: 34, bottom: 36 },
+      grid: { left: 40, right: 14, top: 34, bottom: 34 },
       xAxis: {
         type: "category",
         data: pages,
@@ -104,21 +106,35 @@ function buildOption(kind, data) {
       series: [
         {
           name: "최소 안전점수",
-          type: "bar",
+          type: "line",
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 7,
           data: scores,
+          lineStyle: { width: 3, color: COLORS.navy },
           itemStyle: {
-            color: (params) => {
-              const css = priorityCss(params.value);
-              return COLORS[css] || COLORS.low;
+            color: COLORS.navy,
+          },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(0, 45, 86, 0.38)" },
+                { offset: 1, color: "rgba(0, 160, 130, 0.08)" },
+              ],
             },
-            borderRadius: [3, 3, 0, 0],
           },
           label: { show: true, position: "top", fontSize: 10, color: "#1e293b" },
         },
         {
-          name: "위반",
+          name: "위반 구간",
           type: "scatter",
-          symbolSize: 9,
+          symbol: "pin",
+          symbolSize: 18,
           data: marker,
           itemStyle: { color: COLORS.urgent },
         },
@@ -132,29 +148,36 @@ function buildOption(kind, data) {
 
   if (kind === "priorityDistribution") {
     const rows = Array.isArray(data.rows) ? data.rows : [];
-    const pieData = rows
-      .filter((r) => Number(r.count || 0) > 0)
-      .map((r) => ({
-        name: `${r.label} (${r.count}건)`,
-        value: Number(r.count || 0),
-        itemStyle: { color: COLORS[r.cssClass] || COLORS.unknown },
-      }));
+    const values = rows.map((r) => Number(r.count || 0));
+    const maxValue = Math.max(...values, 1);
+    const indicators = rows.map((r) => ({
+      name: String(r.label || ""),
+      max: Math.ceil(maxValue * 1.2),
+    }));
     return {
       animation: false,
-      legend: {
-        orient: "vertical",
-        right: 8,
-        top: "center",
-        textStyle: { fontFamily: "Noto Sans KR", fontSize: 11, color: "#334155" },
+      radar: {
+        center: ["50%", "54%"],
+        radius: "66%",
+        indicator: indicators,
+        splitNumber: 4,
+        axisName: { color: "#334155", fontFamily: "Noto Sans KR", fontSize: 11 },
+        axisLine: { lineStyle: { color: "#cbd5e1" } },
+        splitLine: { lineStyle: { color: "#dbe5f1" } },
+        splitArea: { areaStyle: { color: ["#f8fbff", "#eef6ff"] } },
       },
       series: [
         {
-          type: "pie",
-          radius: ["48%", "72%"],
-          center: ["38%", "50%"],
-          data: pieData,
-          label: { formatter: "{d}%", fontSize: 10, color: "#334155" },
-          labelLine: { length: 10, length2: 8 },
+          name: "우선순위 분포",
+          type: "radar",
+          data: [
+            {
+              value: values,
+              areaStyle: { color: "rgba(0, 160, 130, 0.28)" },
+              lineStyle: { color: COLORS.emerald, width: 2.5 },
+              itemStyle: { color: COLORS.navy },
+            },
+          ],
         },
       ],
     };
@@ -239,62 +262,53 @@ function buildOption(kind, data) {
   if (kind === "deductionWaterfall") {
     const rows = Array.isArray(data.rows) ? data.rows : [];
     const totalScore = Math.max(0, Math.min(100, Number(data.totalScore || 0)));
-    const categories = ["기준점수", ...rows.map((r) => String(r.label || "")), "최종점수"];
-    const assist = [];
-    const bars = [];
-    const colors = [];
-
-    let cumulative = 100;
-    assist.push(0);
-    bars.push(100);
-    colors.push("#22c55e");
-
-    rows.forEach((row) => {
-      const delta = Number(row.delta || 0);
-      const next = Math.max(0, cumulative + delta);
-      assist.push(next);
-      bars.push(Math.abs(delta));
-      colors.push(delta < 0 ? "#ef4444" : "#22c55e");
-      cumulative = next;
+    const children = rows.map((r) => {
+      const deduction = Math.abs(Number(r.delta || 0));
+      return {
+        name: String(r.label || ""),
+        value: deduction,
+        itemStyle: {
+          color:
+            String(r.label || "").includes("누락") ? "#dc2626" :
+            String(r.label || "").includes("적정성") ? "#f97316" :
+            String(r.label || "").includes("명확") ? "#f59e0b" : "#00A082",
+        },
+      };
     });
-
-    assist.push(0);
-    bars.push(totalScore);
-    colors.push(priorityCss(totalScore) === "low" ? "#22c55e" : "#f59e0b");
-
+    const sumDeduction = children.reduce((acc, c) => acc + c.value, 0);
     return {
       animation: false,
-      grid: { left: 40, right: 20, top: 28, bottom: 42 },
-      xAxis: {
-        type: "category",
-        data: categories,
-        axisLabel: { color: "#475569", fontSize: 10, fontFamily: "Noto Sans KR" },
-      },
-      yAxis: {
-        type: "value",
-        min: 0,
-        max: 100,
-        axisLabel: { color: "#475569", fontSize: 10, fontFamily: "Noto Sans KR" },
-        splitLine: { lineStyle: { color: "#e2e8f0" } },
-      },
-      series: [
+      title: [
         {
-          type: "bar",
-          stack: "water",
-          data: assist,
-          itemStyle: { color: "rgba(0,0,0,0)" },
-          emphasis: { itemStyle: { color: "rgba(0,0,0,0)" } },
-          silent: true,
+          text: `최종 ${totalScore}점`,
+          left: "50%",
+          top: "44%",
+          textAlign: "center",
+          textStyle: { color: COLORS.navy, fontSize: 22, fontFamily: "Noto Sans KR", fontWeight: 700 },
         },
         {
-          type: "bar",
-          stack: "water",
-          data: bars.map((v, i) => ({
-            value: v,
-            itemStyle: { color: colors[i] },
-          })),
-          label: { show: true, position: "top", fontSize: 10, color: "#1e293b" },
-          barMaxWidth: 42,
+          text: `총 감점 ${sumDeduction}점`,
+          left: "50%",
+          top: "54%",
+          textAlign: "center",
+          textStyle: { color: "#64748b", fontSize: 11, fontFamily: "Noto Sans KR" },
+        },
+      ],
+      series: [
+        {
+          type: "sunburst",
+          radius: ["32%", "82%"],
+          sort: null,
+          data: [
+            {
+              name: "감점 요인",
+              value: Math.max(sumDeduction, 1),
+              itemStyle: { color: "#e2e8f0" },
+              children,
+            },
+          ],
+          label: { rotate: "radial", color: "#334155", fontSize: 10, fontFamily: "Noto Sans KR" },
+          emphasis: { focus: "ancestor" },
         },
       ],
     };
