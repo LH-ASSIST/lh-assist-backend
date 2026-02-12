@@ -40,6 +40,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.springframework.core.io.ClassPathResource;
@@ -281,7 +282,9 @@ public class AnalysisReportService {
                 PDDocument summaryDoc = PDDocument.load(summaryPdf);
                 openedSummaries.add(summaryDoc);
                 for (PDPage summaryPage : summaryDoc.getPages()) {
-                    out.importPage(summaryPage);
+                    if (hasRenderableContent(summaryPage)) {
+                        out.importPage(summaryPage);
+                    }
                 }
             }
 
@@ -300,6 +303,29 @@ public class AnalysisReportService {
                 }
             }
         }
+    }
+
+    private boolean hasRenderableContent(PDPage page) {
+        try {
+            if (page.getAnnotations() != null && !page.getAnnotations().isEmpty()) {
+                return true;
+            }
+        } catch (IOException ignore) {
+            // fallback to stream inspection
+        }
+
+        Iterator<PDStream> streams = page.getContentStreams();
+        while (streams.hasNext()) {
+            PDStream stream = streams.next();
+            try (InputStream in = stream.createInputStream()) {
+                if (in.read() != -1) {
+                    return true;
+                }
+            } catch (IOException ignore) {
+                // continue
+            }
+        }
+        return false;
     }
 
     // --- DTO 변환 로직 ---
@@ -762,7 +788,7 @@ public class AnalysisReportService {
                         .orElse(null))
                 .deductionWaterfallChartImage(reportChartRenderer
                         .renderDeductionWaterfallChart(score, deductionBreakdown)
-                        .orElse(null))
+                        .orElseGet(() -> buildDeductionWaterfallFallbackImage(score, deductionBreakdown)))
                 .priorityBubbleChartImage(reportChartRenderer
                         .renderPriorityBubbleChart(priorityBubblePoints)
                         .orElse(null))
@@ -1372,6 +1398,41 @@ public class AnalysisReportService {
             return toDataUriPng(chart);
         } catch (Exception e) {
             log.warn("Failed to render priority distribution chart image", e);
+            return null;
+        }
+    }
+
+    private String buildDeductionWaterfallFallbackImage(int totalScore, List<DeductionBreakdownDto> deductionRows) {
+        try {
+            List<String> xData = new ArrayList<>();
+            List<Integer> yData = new ArrayList<>();
+            xData.add("기준");
+            yData.add(100);
+            for (DeductionBreakdownDto row : deductionRows) {
+                xData.add(row.label());
+                yData.add(row.delta());
+            }
+            xData.add("최종");
+            yData.add(normalizeSafetyScore(totalScore));
+
+            CategoryChart chart = new CategoryChartBuilder()
+                    .width(900)
+                    .height(360)
+                    .title("총점 감점 요인")
+                    .xAxisTitle("항목")
+                    .yAxisTitle("점수/감점")
+                    .build();
+            chart.getStyler().setLegendVisible(false);
+            chart.getStyler().setHasAnnotations(true);
+            chart.getStyler().setYAxisMin(-100.0);
+            chart.getStyler().setYAxisMax(100.0);
+            chart.getStyler().setAvailableSpaceFill(0.85);
+            chart.getStyler().setSeriesColors(new Color[]{new Color(30, 136, 229)});
+
+            chart.addSeries("감점", xData, yData);
+            return toDataUriPng(chart);
+        } catch (Exception e) {
+            log.warn("Failed to render deduction waterfall fallback chart image", e);
             return null;
         }
     }
