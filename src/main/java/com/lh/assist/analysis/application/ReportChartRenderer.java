@@ -3,6 +3,9 @@ package com.lh.assist.analysis.application;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -10,6 +13,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,10 +105,14 @@ public class ReportChartRenderer {
             }
 
             String out = readAll(process.getInputStream()).trim();
-            // openhtmltopdf + Batik 조합에서 SVG data URI 렌더링이 불안정하여
-            // 보고서 PDF 경로에서는 PNG data URI만 허용한다.
             if (out.startsWith("data:image/png")) {
                 return Optional.of(out);
+            }
+            if (out.startsWith("data:image/svg+xml")) {
+                String pngDataUri = convertSvgDataUriToPngDataUri(out);
+                if (pngDataUri != null) {
+                    return Optional.of(pngDataUri);
+                }
             }
             return Optional.empty();
         } catch (IOException e) {
@@ -125,6 +133,24 @@ public class ReportChartRenderer {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             in.transferTo(out);
             return out.toString(StandardCharsets.UTF_8);
+        }
+    }
+
+    private String convertSvgDataUriToPngDataUri(String svgDataUri) {
+        try {
+            String base64 = svgDataUri.substring(svgDataUri.indexOf(',') + 1);
+            byte[] svgBytes = Base64.getDecoder().decode(base64);
+
+            PNGTranscoder transcoder = new PNGTranscoder();
+            try (ByteArrayOutputStream pngOut = new ByteArrayOutputStream()) {
+                TranscoderInput input = new TranscoderInput(new java.io.ByteArrayInputStream(svgBytes));
+                TranscoderOutput output = new TranscoderOutput(pngOut);
+                transcoder.transcode(input, output);
+                return "data:image/png;base64," + Base64.getEncoder().encodeToString(pngOut.toByteArray());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to convert SVG chart to PNG data URI", e);
+            return null;
         }
     }
 }
