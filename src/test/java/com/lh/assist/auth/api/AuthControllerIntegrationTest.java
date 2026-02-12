@@ -11,6 +11,8 @@ import com.lh.assist.auth.domain.entity.EmailVerification;
 import com.lh.assist.auth.domain.enums.EmailVerificationPurpose;
 import com.lh.assist.auth.domain.repository.EmailVerificationRepository;
 import com.lh.assist.support.IntegrationTestBase;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import java.util.Map;
 
 import com.lh.assist.user.domain.entity.User;
@@ -27,8 +29,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
@@ -54,6 +58,9 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private SuggestionRepository suggestionRepository;
+
+    @MockBean
+    private JavaMailSender mailSender;
 
     @Test
     @DisplayName("회원가입 필수값이 누락되면 400이 반환되어야 한다")
@@ -110,6 +117,36 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.status").value(201))
                 .andExpect(jsonPath("$.data.email").value("tester1@lh.com"))
                 .andExpect(jsonPath("$.data.userId").isNumber());
+    }
+
+    @Test
+    @DisplayName("인증 메일 발송 실패가 발생해도 인증코드 발급 API는 성공해야 한다")
+    void 인증메일_발송_실패해도_API_성공() throws Exception {
+        org.mockito.Mockito.when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
+        org.mockito.Mockito.doThrow(new RuntimeException("smtp down"))
+                .when(mailSender).send(org.mockito.ArgumentMatchers.any(MimeMessage.class));
+
+        Map<String, Object> payload = Map.of(
+                "email", "verify-fail@lh.com",
+                "purpose", EmailVerificationPurpose.SIGNUP
+        );
+
+        mockMvc.perform(post("/api/v1/auth/email/verification/send")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.email").value("verify-fail@lh.com"))
+                .andExpect(jsonPath("$.data.purpose").value("SIGNUP"));
+
+        org.mockito.Mockito.verify(mailSender, org.mockito.Mockito.timeout(2000))
+                .send(org.mockito.ArgumentMatchers.any(MimeMessage.class));
+
+        org.assertj.core.api.Assertions.assertThat(
+                emailVerificationRepository.findTopByEmailAndPurposeOrderByCreatedAtDesc(
+                        "verify-fail@lh.com",
+                        EmailVerificationPurpose.SIGNUP
+                )
+        ).isPresent();
     }
 
     @Test

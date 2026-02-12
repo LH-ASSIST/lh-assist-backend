@@ -151,7 +151,7 @@ class UserControllerIntegrationTest extends IntegrationTestBase {
                         .content(objectMapper.writeValueAsString(payload)))
                 .andExpect(status().isOk());
 
-        org.mockito.Mockito.verify(mailSender).send(captor.capture());
+        org.mockito.Mockito.verify(mailSender, org.mockito.Mockito.timeout(2000)).send(captor.capture());
         MimeMessage message = captor.getValue();
         String tempPassword = extractTempPassword(extractBody(message));
 
