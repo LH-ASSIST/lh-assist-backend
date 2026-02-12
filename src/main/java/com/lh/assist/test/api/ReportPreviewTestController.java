@@ -3,6 +3,12 @@ package com.lh.assist.test.api;
 import com.lh.assist.analysis.application.ReportChartRenderer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -18,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Controller;
@@ -290,13 +297,13 @@ public class ReportPreviewTestController {
         viewData.put("priorityBubblePoints", priorityBubblePoints);
         viewData.put("totalScoreChartImage", reportChartRenderer
                 .renderTotalScoreChart(totalSafetyScore, actionPriorityLabel(totalSafetyScore))
-                .orElse(null));
+                .orElseGet(() -> buildChartUnavailableImage("종합 안전도 게이지")));
         viewData.put("pageSafetyChartImage", reportChartRenderer
                 .renderPageSafetyChart(pageSafetyStats)
-                .orElse(null));
+                .orElseGet(() -> buildChartUnavailableImage("페이지별 위험도 전이")));
         viewData.put("priorityDistributionChartImage", reportChartRenderer
                 .renderPriorityDistributionChart(priorityStats)
-                .orElse(null));
+                .orElseGet(() -> buildChartUnavailableImage("유형별 리스크 분포")));
         viewData.put("pageTypeHeatmapChartImage", reportChartRenderer
                 .renderPageTypeHeatmapChart(pageTypeHeatmapRows)
                 .orElse(null));
@@ -315,6 +322,31 @@ public class ReportPreviewTestController {
         model.addAttribute("data", viewData);
         model.addAttribute("showCover", showCover);
         return "report/summary";
+    }
+
+    private String buildChartUnavailableImage(String title) {
+        try {
+            BufferedImage image = new BufferedImage(920, 320, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = image.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(new Color(248, 250, 252));
+            g.fillRect(0, 0, image.getWidth(), image.getHeight());
+            g.setColor(new Color(203, 213, 225));
+            g.drawRect(16, 16, image.getWidth() - 32, image.getHeight() - 32);
+            g.setColor(new Color(51, 65, 85));
+            g.setFont(new Font("SansSerif", Font.BOLD, 22));
+            g.drawString(title, 32, 64);
+            g.setFont(new Font("SansSerif", Font.PLAIN, 16));
+            g.drawString("차트 렌더러가 이미지를 생성하지 못했습니다.", 32, 98);
+            g.drawString("Node/ECharts 경로 또는 데이터 상태를 확인하세요.", 32, 124);
+            g.dispose();
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", out);
+            return "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(out.toByteArray());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private JsonNode loadDummyJson() throws IOException {

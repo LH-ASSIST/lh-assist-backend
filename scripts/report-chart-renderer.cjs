@@ -1,5 +1,6 @@
 const fs = require("fs");
 const echarts = require("echarts");
+const { Resvg } = require("@resvg/resvg-js");
 
 const COLORS = {
   urgent: "#dc2626",
@@ -362,7 +363,13 @@ function main() {
   chart.setOption(option, true);
   const svg = chart.renderToSVGString();
   chart.dispose();
-  const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svg, "utf8").toString("base64")}`;
+  const pngBuffer = new Resvg(svg, {
+    fitTo: { mode: "width", value: width },
+    background: "white",
+  })
+    .render()
+    .asPng();
+  const dataUrl = `data:image/png;base64,${Buffer.from(pngBuffer).toString("base64")}`;
   process.stdout.write(dataUrl);
 }
 

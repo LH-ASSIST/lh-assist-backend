@@ -8,6 +8,7 @@
     "render:chart": "node scripts/report-chart-renderer.cjs"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "echarts": "^5.5.1"
   }
 }

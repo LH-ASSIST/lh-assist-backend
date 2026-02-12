@@ -167,7 +167,8 @@ public class AnalysisReportService {
                 log.warn("Korean font file (NotoSerifKR-Regular.ttf) not found. Text may be broken.");
             }
 
-            builder.withHtmlContent(htmlContent, null);
+            String baseUri = new File(".").getAbsoluteFile().toURI().toString();
+            builder.withHtmlContent(htmlContent, baseUri);
             builder.toStream(os);
             builder.run();
             return os.toByteArray();
@@ -743,19 +744,27 @@ public class AnalysisReportService {
         String titleNoExt = normalizedTitle.replaceFirst("\\.[^.]+$", "");
 
         String totalScoreChartImage = ensureChartImage(
-                buildTotalScoreChartImage(score),
+                reportChartRenderer
+                        .renderTotalScoreChart(score, resolveActionPriorityLabel(score))
+                        .orElseGet(() -> buildTotalScoreChartImage(score)),
                 "총 안전점수"
         );
         String pageSafetyChartImage = ensureChartImage(
-                buildPageSafetyChartImage(pageSafetyStats),
+                reportChartRenderer
+                        .renderPageSafetyChart(pageSafetyStats)
+                        .orElseGet(() -> buildPageSafetyChartImage(pageSafetyStats)),
                 "페이지별 위험도"
         );
         String priorityDistributionChartImage = ensureChartImage(
-                buildPriorityDistributionChartImage(priorityStats),
+                reportChartRenderer
+                        .renderPriorityDistributionChart(priorityStats)
+                        .orElseGet(() -> buildPriorityDistributionChartImage(priorityStats)),
                 "유형별 리스크 분포"
         );
         String deductionWaterfallChartImage = ensureChartImage(
-                buildDeductionWaterfallFallbackImage(score, deductionBreakdown),
+                reportChartRenderer
+                        .renderDeductionWaterfallChart(score, deductionBreakdown)
+                        .orElseGet(() -> buildDeductionWaterfallFallbackImage(score, deductionBreakdown)),
                 "총점 감점 요인"
         );
 

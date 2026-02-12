@@ -32,3 +32,7 @@ app:
     allowed-origins:
       - "https://d1v7ka3ykr3zod.cloudfront.net"
       - "https://lh-assist.cloud"
+
+logging:
+  level:
+    org.apache.fontbox.ttf.CmapSubtable: ERROR

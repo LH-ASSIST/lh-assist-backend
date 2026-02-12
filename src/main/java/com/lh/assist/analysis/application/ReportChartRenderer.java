@@ -104,8 +104,8 @@ public class ReportChartRenderer {
             if (out.startsWith("data:image/png")) {
                 return Optional.of(out);
             }
-            // PDF 렌더 경로(openhtmltopdf)에서 SVG data URI는 Batik 호환 이슈가 있어
-            // 여기서는 사용하지 않고 호출부의 PNG fallback(XChart)로 넘긴다.
+            log.warn("Chart render returned unexpected format for kind={}, prefix={}",
+                    kind, out.length() > 24 ? out.substring(0, 24) : out);
             return Optional.empty();
         } catch (IOException e) {
             log.warn("Node chart renderer unavailable for kind={} (node/script/dependency issue)", kind, e);
