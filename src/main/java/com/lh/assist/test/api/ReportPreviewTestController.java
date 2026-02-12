@@ -1,9 +1,12 @@
 package com.lh.assist.test.api;
 
+import com.lh.assist.analysis.application.ReportChartRenderer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -33,6 +36,7 @@ public class ReportPreviewTestController {
     private static final int TOP_ACTION_LIMIT = 5;
 
     private final ObjectMapper objectMapper;
+    private final ReportChartRenderer reportChartRenderer;
 
     @GetMapping("/test/report-preview")
     public String preview(
@@ -78,8 +82,10 @@ public class ReportPreviewTestController {
 
         Map<Long, Integer> markerBySection = buildMarkers(sections);
         Map<Long, Integer> riskItemCountBySection = new HashMap<>();
+        Map<Long, List<RiskItemRaw>> riskItemsBySection = new HashMap<>();
         for (RiskItemRaw item : riskItems) {
             riskItemCountBySection.merge(item.sectionId(), 1, Integer::sum);
+            riskItemsBySection.computeIfAbsent(item.sectionId(), ignored -> new ArrayList<>()).add(item);
         }
 
         int totalSections = sections.size();
@@ -158,6 +164,11 @@ public class ReportPreviewTestController {
 
         List<Map<String, Object>> typePriorityMatrix = buildTypePriorityMatrix(riskItems);
         List<Map<String, Object>> pageRiskProfiles = buildPageRiskProfiles(sectionsByPage);
+        List<Map<String, Object>> pageSafetyStats = buildPageSafetyStats(sectionsByPage);
+        List<Map<String, Object>> pageTypeHeatmapRows = buildPageTypeHeatmapRows(sectionsByPage, riskItems);
+        List<Map<String, Object>> riskProfileAxes = buildRiskProfileAxes(riskTypeCount, riskItems.size(), priorityBucket, dominantViolationPageCount, violationCount);
+        List<Map<String, Object>> deductionBreakdown = buildDeductionBreakdown(riskTypeCount, totalSafetyScore);
+        List<Map<String, Object>> priorityBubblePoints = buildPriorityBubblePoints(sections, riskItemCountBySection, markerBySection);
 
         List<String> keyInsights = new ArrayList<>();
         keyInsights.add(String.format(
@@ -193,6 +204,11 @@ public class ReportPreviewTestController {
                 .sorted(topActionOrder)
                 .limit(TOP_ACTION_LIMIT)
                 .map(section -> {
+                    List<RiskItemRaw> sectionItems = riskItemsBySection.getOrDefault(section.sectionId(), List.of());
+                    RiskItemRaw primary = sectionItems.stream()
+                            .sorted(Comparator.comparingLong(RiskItemRaw::riskId))
+                            .findFirst()
+                            .orElse(null);
                     Map<String, Object> row = new HashMap<>();
                     row.put("marker", markerBySection.get(section.sectionId()));
                     row.put("pageNumber", section.pageNumber());
@@ -201,6 +217,11 @@ public class ReportPreviewTestController {
                     row.put("actionPriorityCssClass", actionPriorityCssClass(section.safetyScore()));
                     row.put("riskItemCount", riskItemCountBySection.getOrDefault(section.sectionId(), 0));
                     row.put("violation", section.violation());
+                    row.put("riskTypeLabel", primary == null ? "-" : riskTypeLabel(primary.riskType()));
+                    row.put("keyReason", primary == null ? "-" : truncateSummaryText(firstNonBlank(primary.reasoning(), primary.guideMessage(), primary.detectedText()), 70));
+                    row.put("liabilityRef", primary == null ? "-" : extractLiabilityReference(primary));
+                    row.put("liabilitySourceLabel", "-");
+                    row.put("liabilitySourceUrl", null);
                     return row;
                 })
                 .toList();
@@ -225,6 +246,10 @@ public class ReportPreviewTestController {
                     row.put("detectedText", item.detectedText());
                     row.put("guideMessage", item.guideMessage());
                     row.put("reasoning", item.reasoning());
+                    row.put("liabilityRef", extractLiabilityReference(item));
+                    row.put("liabilitySourceLabel", "-");
+                    row.put("liabilitySourceUrl", null);
+                    row.put("evidenceQuote", null);
                     itemsByPage.computeIfAbsent(item.pageNumber(), ignored -> new ArrayList<>()).add(row);
                 });
 
@@ -258,6 +283,32 @@ public class ReportPreviewTestController {
         viewData.put("priorityStats", priorityStats);
         viewData.put("typePriorityMatrix", typePriorityMatrix);
         viewData.put("pageRiskProfiles", pageRiskProfiles);
+        viewData.put("pageSafetyStats", pageSafetyStats);
+        viewData.put("pageTypeHeatmapRows", pageTypeHeatmapRows);
+        viewData.put("riskProfileAxes", riskProfileAxes);
+        viewData.put("deductionBreakdown", deductionBreakdown);
+        viewData.put("priorityBubblePoints", priorityBubblePoints);
+        viewData.put("totalScoreChartImage", reportChartRenderer
+                .renderTotalScoreChart(totalSafetyScore, actionPriorityLabel(totalSafetyScore))
+                .orElse(null));
+        viewData.put("pageSafetyChartImage", reportChartRenderer
+                .renderPageSafetyChart(pageSafetyStats)
+                .orElse(null));
+        viewData.put("priorityDistributionChartImage", reportChartRenderer
+                .renderPriorityDistributionChart(priorityStats)
+                .orElse(null));
+        viewData.put("pageTypeHeatmapChartImage", reportChartRenderer
+                .renderPageTypeHeatmapChart(pageTypeHeatmapRows)
+                .orElse(null));
+        viewData.put("riskProfileRadarChartImage", reportChartRenderer
+                .renderRiskProfileRadarChart(riskProfileAxes)
+                .orElse(null));
+        viewData.put("deductionWaterfallChartImage", reportChartRenderer
+                .renderDeductionWaterfallChart(totalSafetyScore, deductionBreakdown)
+                .orElse(null));
+        viewData.put("priorityBubbleChartImage", reportChartRenderer
+                .renderPriorityBubbleChart(priorityBubblePoints)
+                .orElse(null));
         viewData.put("keyInsights", keyInsights);
         viewData.put("itemsByPage", itemsByPage);
 
@@ -267,10 +318,34 @@ public class ReportPreviewTestController {
     }
 
     private JsonNode loadDummyJson() throws IOException {
-        ClassPathResource resource = new ClassPathResource("templates/report/dumy.json");
-        try (InputStream inputStream = resource.getInputStream()) {
-            return objectMapper.readTree(inputStream);
+        List<String> classpathCandidates = List.of(
+                "templates/report/dumy.json",
+                "templates/report/dummy.json"
+        );
+        for (String candidate : classpathCandidates) {
+            ClassPathResource resource = new ClassPathResource(candidate);
+            if (!resource.exists()) {
+                continue;
+            }
+            try (InputStream inputStream = resource.getInputStream()) {
+                return objectMapper.readTree(inputStream);
+            }
         }
+
+        List<Path> fileCandidates = List.of(
+                Path.of("src/main/resources/templates/report/dumy.json"),
+                Path.of("src/main/resources/templates/report/dummy.json")
+        );
+        for (Path path : fileCandidates) {
+            if (!Files.exists(path)) {
+                continue;
+            }
+            try (InputStream inputStream = Files.newInputStream(path)) {
+                return objectMapper.readTree(inputStream);
+            }
+        }
+
+        throw new IOException("report preview json not found: templates/report/dumy.json or templates/report/dummy.json");
     }
 
     private List<Map<String, Object>> buildPageStats(Map<Integer, Integer> pageCount, int violationCount) {
@@ -434,6 +509,172 @@ public class ReportPreviewTestController {
                 .toList();
     }
 
+    private List<Map<String, Object>> buildPageSafetyStats(Map<Integer, List<SectionRaw>> sectionsByPage) {
+        return sectionsByPage.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    List<SectionRaw> sections = entry.getValue();
+                    Integer minSafety = sections.stream()
+                            .map(SectionRaw::safetyScore)
+                            .min(Integer::compareTo)
+                            .orElse(null);
+                    boolean hasViolation = sections.stream().anyMatch(SectionRaw::violation);
+                    int violationCount = (int) sections.stream().filter(SectionRaw::violation).count();
+
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("pageNumber", entry.getKey());
+                    row.put("minSafetyScore", minSafety);
+                    row.put("actionPriorityLabel", actionPriorityLabelNullable(minSafety));
+                    row.put("actionPriorityCssClass", actionPriorityCssClassNullable(minSafety));
+                    row.put("scoreBarPercent", minSafety == null ? 0 : minSafety);
+                    row.put("hasViolation", hasViolation);
+                    row.put("violationCount", violationCount);
+                    row.put("sectionCount", sections.size());
+                    return row;
+                })
+                .toList();
+    }
+
+    private List<Map<String, Object>> buildPageTypeHeatmapRows(
+            Map<Integer, List<SectionRaw>> sectionsByPage,
+            List<RiskItemRaw> riskItems
+    ) {
+        Map<Integer, Map<String, Integer>> countMap = new HashMap<>();
+        for (RiskItemRaw item : riskItems) {
+            if (item.pageNumber() == null) {
+                continue;
+            }
+            String label = riskTypeLabel(item.riskType());
+            countMap.computeIfAbsent(item.pageNumber(), ignored -> new HashMap<>())
+                    .merge(label, 1, Integer::sum);
+        }
+
+        int maxCount = countMap.values().stream()
+                .flatMap(v -> v.values().stream())
+                .mapToInt(Integer::intValue)
+                .max()
+                .orElse(0);
+
+        List<String> typeOrder = List.of("누락", "적정성", "명확성", "절차준수");
+        return sectionsByPage.keySet().stream()
+                .sorted()
+                .map(page -> {
+                    Map<String, Integer> pageCount = countMap.getOrDefault(page, Map.of());
+                    List<Map<String, Object>> cells = new ArrayList<>();
+                    int total = 0;
+                    for (String type : typeOrder) {
+                        int count = pageCount.getOrDefault(type, 0);
+                        total += count;
+                        Map<String, Object> cell = new HashMap<>();
+                        cell.put("riskTypeLabel", type);
+                        cell.put("count", count);
+                        cell.put("style", buildHeatCellStyle(count, maxCount));
+                        cells.add(cell);
+                    }
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("pageNumber", page);
+                    row.put("cells", cells);
+                    row.put("totalCount", total);
+                    return row;
+                })
+                .toList();
+    }
+
+    private List<Map<String, Object>> buildRiskProfileAxes(
+            Map<String, Integer> riskTypeCount,
+            int totalRiskItems,
+            Map<String, Integer> priorityBucket,
+            int dominantViolationPageCount,
+            int violationCount
+    ) {
+        List<String> typeOrder = List.of("누락", "적정성", "명확성", "절차준수");
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (String label : typeOrder) {
+            rows.add(profileAxis(label, percent(riskTypeCount.getOrDefault(label, 0), Math.max(totalRiskItems, 1))));
+        }
+        rows.add(profileAxis("긴급 비율", percent(priorityBucket.getOrDefault("urgent", 0), Math.max(totalRiskItems, 1))));
+        rows.add(profileAxis("페이지 편중도", percent(dominantViolationPageCount, Math.max(violationCount, 1))));
+        return rows;
+    }
+
+    private List<Map<String, Object>> buildDeductionBreakdown(Map<String, Integer> riskTypeCount, int totalSafetyScore) {
+        int totalDeduction = Math.max(0, 100 - totalSafetyScore);
+        List<String> typeOrder = List.of("누락", "적정성", "명확성", "절차준수");
+        int totalTypeCount = riskTypeCount.values().stream().mapToInt(Integer::intValue).sum();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (totalDeduction == 0 || totalTypeCount == 0) {
+            for (String label : typeOrder) {
+                rows.add(deductionRow(label, 0));
+            }
+            return rows;
+        }
+
+        Map<String, Integer> allocated = new LinkedHashMap<>();
+        int sum = 0;
+        String maxLabel = typeOrder.get(0);
+        int maxCount = -1;
+        for (String label : typeOrder) {
+            int count = riskTypeCount.getOrDefault(label, 0);
+            if (count > maxCount) {
+                maxCount = count;
+                maxLabel = label;
+            }
+            int value = (int) Math.round((count / (double) totalTypeCount) * totalDeduction);
+            allocated.put(label, value);
+            sum += value;
+        }
+        int drift = totalDeduction - sum;
+        allocated.compute(maxLabel, (k, v) -> (v == null ? 0 : v) + drift);
+
+        for (String label : typeOrder) {
+            rows.add(deductionRow(label, -Math.max(0, allocated.getOrDefault(label, 0))));
+        }
+        return rows;
+    }
+
+    private List<Map<String, Object>> buildPriorityBubblePoints(
+            List<SectionRaw> sections,
+            Map<Long, Integer> riskItemCountBySection,
+            Map<Long, Integer> markerBySection
+    ) {
+        return sections.stream()
+                .filter(section -> section.pageNumber() != null)
+                .sorted(Comparator
+                        .comparingInt(SectionRaw::safetyScore)
+                        .thenComparing(section -> section.pageNumber() != null ? section.pageNumber() : Integer.MAX_VALUE)
+                        .thenComparingLong(SectionRaw::sectionId))
+                .limit(28)
+                .map(section -> {
+                    int itemCount = riskItemCountBySection.getOrDefault(section.sectionId(), 0);
+                    int bubbleSize = 10 + Math.min(34, itemCount * 4);
+                    Integer marker = markerBySection.get(section.sectionId());
+                    String label = "P" + section.pageNumber() + (marker != null ? " #" + marker : "");
+
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("label", label);
+                    row.put("safetyScore", section.safetyScore());
+                    row.put("riskItemCount", itemCount);
+                    row.put("bubbleSize", bubbleSize);
+                    row.put("priorityCssClass", actionPriorityCssClass(section.safetyScore()));
+                    return row;
+                })
+                .toList();
+    }
+
+    private Map<String, Object> profileAxis(String label, int value) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("label", label);
+        row.put("value", value);
+        return row;
+    }
+
+    private Map<String, Object> deductionRow(String label, int delta) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("label", label);
+        row.put("delta", delta);
+        return row;
+    }
+
     private Map<String, Object> priorityRow(String label, String cssClass, Integer count, int total) {
         int normalizedCount = count == null ? 0 : count;
         Map<String, Object> row = new HashMap<>();
@@ -529,6 +770,62 @@ public class ReportPreviewTestController {
             return "medium";
         }
         return "low";
+    }
+
+    private String actionPriorityLabelNullable(Integer safetyScore) {
+        if (safetyScore == null) {
+            return "미확정";
+        }
+        return actionPriorityLabel(safetyScore);
+    }
+
+    private String actionPriorityCssClassNullable(Integer safetyScore) {
+        if (safetyScore == null) {
+            return "unknown";
+        }
+        return actionPriorityCssClass(safetyScore);
+    }
+
+    private String buildHeatCellStyle(int count, int maxCount) {
+        if (count <= 0 || maxCount <= 0) {
+            return "background:#f3f6fb;color:#667085;";
+        }
+        double ratio = Math.min(1.0, count / (double) maxCount);
+        double alpha = 0.18 + (ratio * 0.72);
+        String textColor = alpha >= 0.5 ? "#ffffff" : "#1e3a5f";
+        return String.format(Locale.US, "background:rgba(30,136,229,%.2f);color:%s;", alpha, textColor);
+    }
+
+    private String extractLiabilityReference(RiskItemRaw item) {
+        String source = firstNonBlank(item.reasoning(), item.guideMessage(), item.detectedText());
+        if (source == null) {
+            return "-";
+        }
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(제\\s*\\d+\\s*조(?:\\s*\\d+\\s*항)?)").matcher(source);
+        if (matcher.find()) {
+            return matcher.group(1).replaceAll("\\s+", "");
+        }
+        return "-";
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String truncateSummaryText(String text, int maxLength) {
+        if (text == null || text.isBlank()) {
+            return "-";
+        }
+        String normalized = text.replaceAll("\\s+", " ").trim();
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, Math.max(0, maxLength - 1)) + "…";
     }
 
     private String riskTypeLabel(String type) {

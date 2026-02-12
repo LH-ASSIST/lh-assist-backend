@@ -3,272 +3,305 @@
 <head>
     <meta charset="UTF-8"/>
     <style>
-        @page { size: A4; margin: 14mm; }
-        body { font-family: 'NotoSerifKR', serif; color: #1f2a37; line-height: 1.45; font-size: 12px; }
+        @page { size: A4; margin: 15mm; }
+        body { font-family: 'NotoSerifKR', serif; color: #334155; line-height: 1.55; font-size: 12px; background: #fff; }
 
-        .section { margin-bottom: 16px; page-break-inside: avoid; }
-        .page-break { page-break-before: always; }
+        :root {
+            --lh-navy: #002D56;
+            --lh-emerald: #00A082;
+            --risk-red: #E11D48;
+            --risk-amber: #F59E0B;
+            --risk-green: #16A34A;
+            --line: #dbe4f0;
+            --bg-soft: #f8fafc;
+        }
 
-        .header { border-bottom: 2px solid #1f3f74; padding-bottom: 10px; margin-bottom: 12px; }
-        .title { font-size: 22px; font-weight: bold; color: #102a56; }
-        .meta { color: #546173; font-size: 11px; margin-top: 4px; }
+        .section { margin-bottom: 18px; page-break-inside: avoid; }
+        .header {
+            border-bottom: 3px solid var(--lh-navy);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: table;
+            width: 100%;
+        }
+        .header-left, .header-right { display: table-cell; vertical-align: bottom; }
+        .header-right { text-align: right; color: #64748b; font-size: 10px; }
+        .main-title { font-size: 24px; font-weight: 800; color: var(--lh-navy); letter-spacing: -0.3px; }
+        .sub-title { font-size: 12px; color: #64748b; margin-top: 4px; }
 
-        .notice-box { border: 1px solid #dae2ee; background: #f6f9ff; border-radius: 6px; padding: 9px 10px; font-size: 10px; color: #334155; line-height: 1.6; }
+        .notice-box {
+            border: 1px solid #d9e7f5;
+            background: #f4f9ff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 10px;
+            line-height: 1.7;
+            color: #334155;
+        }
 
-        .kpi-container { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .kpi-container td { border: 1px solid #e5eaf3; background: #fbfcff; padding: 10px 8px; text-align: center; }
-        .kpi-value { display: block; font-size: 22px; font-weight: bold; color: #102a56; margin-bottom: 3px; }
-        .kpi-label { font-size: 10px; color: #4b5563; }
-        .kpi-value.urgent { color: #b91c1c; }
-        .kpi-value.high { color: #c2410c; }
-        .kpi-value.medium { color: #a16207; }
-        .kpi-value.low { color: #166534; }
+        .kpi-table { width: 100%; border-collapse: separate; border-spacing: 10px; margin-top: 12px; }
+        .kpi-box {
+            border: 1px solid #dbe4f0;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            padding: 11px;
+            text-align: center;
+        }
+        .kpi-label { display: block; font-size: 10px; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+        .kpi-value { font-size: 23px; font-weight: 800; color: var(--lh-navy); }
+        .kpi-warning { border-left: 5px solid var(--risk-red); }
 
-        .card { border: 1px solid #d9e2ef; border-radius: 7px; padding: 10px 12px; background: #fff; }
-        .chart-title { font-size: 13px; font-weight: bold; color: #0f2d5f; margin-bottom: 8px; }
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--lh-navy);
+            margin: 22px 0 10px 0;
+        }
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 15px;
+            background: var(--lh-emerald);
+            border-radius: 2px;
+            margin-right: 7px;
+            vertical-align: -2px;
+        }
 
-        .insight-list { margin: 0; padding-left: 18px; }
-        .insight-list li { margin-bottom: 5px; }
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: #fff;
+            padding: 12px;
+        }
+        .panel-title { font-size: 12px; font-weight: 700; color: #0f2d5f; margin-bottom: 8px; }
+        .panel-sub { font-size: 10px; color: #64748b; margin-top: 6px; }
 
-        .bar-track { height: 12px; width: 100%; background: #edf1f7; border-radius: 8px; overflow: hidden; }
+        .split-table { width: 100%; border-collapse: separate; border-spacing: 12px; }
+
+        .modern-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 10px; }
+        .modern-table thead th {
+            background: var(--lh-navy);
+            color: #fff;
+            padding: 10px 6px;
+            font-weight: 600;
+            border: 1px solid #143a67;
+        }
+        .modern-table tbody td {
+            padding: 10px 7px;
+            border: 1px solid #e5ecf5;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .modern-table tbody tr:nth-child(even) td { background: #f9fcff; }
+
+        .priority-chip { display: inline-block; border-radius: 11px; padding: 2px 8px; font-size: 9px; font-weight: 700; color: #fff; }
+        .priority-chip.urgent { background: #dc2626; }
+        .priority-chip.high { background: #f97316; }
+        .priority-chip.medium { background: #f59e0b; }
+        .priority-chip.low { background: #22c55e; }
+        .priority-chip.unknown { background: #94a3b8; }
+
+        .bar-track { height: 11px; width: 100%; background: #edf2f7; border-radius: 6px; overflow: hidden; }
         .bar-segment { height: 100%; float: left; }
         .bar-urgent { background: #dc2626; }
         .bar-high { background: #f97316; }
         .bar-medium { background: #f59e0b; }
         .bar-low { background: #22c55e; }
+        .bar-unknown { background: #94a3b8; }
 
-        .legend { margin-top: 8px; font-size: 10px; }
-        .legend-item { display: inline-block; margin-right: 10px; }
+        .risk-group-title { font-size: 16px; font-weight: 700; color: var(--lh-navy); margin: 24px 0 10px 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+        .risk-card {
+            border: 1px solid #e2e8f0;
+            border-left: 6px solid #f97316;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 18px;
+            background: #fff;
+            page-break-inside: avoid;
+        }
+        .risk-card.urgent { border-left-color: #dc2626; }
+        .risk-card.high { border-left-color: #f97316; }
+        .risk-card.medium { border-left-color: #f59e0b; }
+        .risk-card.low { border-left-color: #22c55e; }
+        .risk-head { display: table; width: 100%; margin-bottom: 12px; }
+        .risk-head-left, .risk-head-right { display: table-cell; vertical-align: middle; }
+        .risk-head-right { text-align: right; color: #64748b; font-weight: 600; }
 
-        .matrix-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .matrix-table th { background: #eff4fb; color: #243b64; font-weight: bold; border: 1px solid #d7dfec; padding: 6px; text-align: center; }
-        .matrix-table td { border: 1px solid #e1e7f2; padding: 6px; }
+        .risk-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 10px;
+        }
+        .type-missing { background: #fee2e2; color: #dc2626; }
+        .type-appropriateness { background: #ffedd5; color: #d97706; }
+        .type-clarity { background: #dcfce7; color: #15803d; }
+        .type-procedure { background: #dbeafe; color: #1d4ed8; }
 
-        .profile-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .profile-table th { background: #eff4fb; color: #243b64; font-weight: bold; border: 1px solid #d7dfec; padding: 6px; text-align: center; }
-        .profile-table td { border: 1px solid #e1e7f2; padding: 6px; vertical-align: middle; }
-        .profile-risk-bar { height: 10px; width: 100%; background: #edf1f7; border-radius: 6px; overflow: hidden; }
-
-        .top-actions { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .top-actions th { background: #eff4fb; color: #243b64; border: 1px solid #d7dfec; padding: 6px; text-align: left; }
-        .top-actions td { border: 1px solid #e1e7f2; padding: 6px; }
-
-        .priority-chip { display: inline-block; border-radius: 10px; padding: 2px 7px; font-size: 9px; font-weight: bold; color: #fff; }
-        .priority-chip.urgent { background: #b91c1c; }
-        .priority-chip.high { background: #c2410c; }
-        .priority-chip.medium { background: #a16207; }
-        .priority-chip.low { background: #166534; }
-
-        .risk-group-title { font-size: 16px; font-weight: bold; margin: 24px 0 9px 0; border-bottom: 1px solid #d9e2ef; padding-bottom: 4px; color: #0f2d5f; }
-        .risk-card { border: 1px solid #e0e6f2; border-radius: 6px; padding: 10px; margin-bottom: 16px; background: #fff; page-break-inside: avoid; }
-        .risk-head-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-        .risk-head-table td { padding: 2px 0; vertical-align: top; }
-
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 11px; font-size: 10px; color: #fff; font-weight: bold; }
-        .type-missing { background: #D32F2F; }
-        .type-appropriateness { background: #F57C00; }
-        .type-clarity { background: #388E3C; }
-        .type-procedure { background: #1976D2; }
-
-        .risk-content { font-size: 11px; line-height: 1.8; }
-        .text-label { font-weight: bold; color: #334155; display: inline-block; width: 62px; }
-        .guide-box { background: #eef5ff; border: 1px solid #d6e4fa; padding: 10px; border-radius: 4px; margin-top: 10px; color: #123b78; }
+        .block-title { color: var(--lh-navy); font-weight: 700; margin-bottom: 2px; }
+        .detected-block { background: #fff7ed; padding: 6px 8px; border-radius: 6px; }
+        .guide-panel {
+            background: #f0f9ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid #e0f2fe;
+            font-size: 11px;
+            line-height: 1.7;
+        }
+        .guide-panel b { color: #0369a1; display: block; margin-bottom: 4px; }
     </style>
 </head>
 <body>
 
 <div th:if="${showCover}">
     <div class="header">
-        <div class="title">LH 공공사업 리스크 분석 보고서</div>
-        <div class="meta">
-            문서명: <span th:text="${data.title}">문서명</span> |
-            분석일: <span th:text="${data.analyzedDate}">2026-02-12</span>
+        <div class="header-left">
+            <div class="main-title">LH 공공사업 규정 준수 검증 보고서</div>
+            <div class="sub-title">AI 기반 리스크 탐지 시스템 분석 결과</div>
+        </div>
+        <div class="header-right">
+            발행번호: LH-<span th:text="${data.analyzedDate != null ? #strings.replace(data.analyzedDate, '-', '') : '20260212'}">20260212</span>-001<br/>
+            분석일시: <span th:text="${data.analyzedDate}">2026-02-12</span>
         </div>
     </div>
 
     <div class="section notice-box">
-        <div>본 보고서의 점수는 안전도 지표(0~100)이며, 낮을수록 우선 조치가 필요합니다.</div>
-        <div>위반 가능성은 자동 분석 기반 참고 지표이며 최종 판정은 담당자 검토로 확정해야 합니다.</div>
+        <div>✅ 안전점수는 0~100이며 높을수록 안전합니다. 긴급(0~59) / 높음(60~79) / 중간(80~89) / 낮음(90~100)</div>
+        <div>⚠ 위반 의심 항목은 자동 탐지 결과이므로 결재/감사 제출 전 담당자 검토로 확정해야 합니다.</div>
     </div>
 
-    <div class="section">
-        <table class="kpi-container">
-            <tr>
-                <td>
-                    <span class="kpi-value" th:text="${data.totalScore}">85</span>
-                    <span class="kpi-label">총 안전점수</span>
-                </td>
-                <td>
-                    <span class="kpi-value" th:text="${data.violationCount}">12</span>
-                    <span class="kpi-label">위반 가능성 섹션</span>
-                </td>
-                <td>
-                    <span class="kpi-value" th:text="${data.violationRatePercent} + '%'">32%</span>
-                    <span class="kpi-label">위반 비율(섹션 기준)</span>
-                </td>
-                <td>
-                    <span class="kpi-value" th:text="${data.averageSectionSafetyScore}">78</span>
-                    <span class="kpi-label">평균 섹션 안전점수</span>
-                </td>
-                <td>
-                    <span class="kpi-value" th:classappend="${data.actionPriorityCssClass}" th:text="${data.actionPriorityLabel}">높음</span>
-                    <span class="kpi-label">종합 조치 우선순위</span>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <table class="kpi-table section">
+        <tr>
+            <td class="kpi-box" style="width:25%;">
+                <span class="kpi-label">종합 안전 점수</span>
+                <div class="kpi-value" th:text="${data.totalScore}">78</div>
+            </td>
+            <td class="kpi-box kpi-warning" style="width:25%;">
+                <span class="kpi-label">위반 의심 항목</span>
+                <div class="kpi-value" th:text="${data.violationCount}">12</div>
+            </td>
+            <td class="kpi-box" style="width:25%;">
+                <span class="kpi-label">검토 대상 페이지</span>
+                <div class="kpi-value" th:text="${data.totalPageCount}">5</div>
+            </td>
+            <td class="kpi-box" style="width:25%;">
+                <span class="kpi-label">최고 위험 등급</span>
+                <div class="kpi-value" style="color:var(--risk-red);"
+                     th:text="${data.highRiskSectionCount > 0 ? '긴급' : (data.mediumRiskSectionCount > 0 ? '높음' : (data.lowRiskSectionCount > 0 ? '중간' : '낮음'))}">긴급</div>
+            </td>
+        </tr>
+    </table>
 
-    <div class="section card">
-        <div class="chart-title">핵심 진단 인사이트</div>
-        <ol class="insight-list">
-            <li th:each="insight : ${data.keyInsights}" th:text="${insight}">요약 문장</li>
-        </ol>
-    </div>
+    <div class="section-title">주요 리스크 통계</div>
+    <table class="split-table section">
+        <tr>
+            <td style="width:50%; vertical-align:top;">
+                <div class="panel">
+                    <div class="panel-title">🧭 종합 안전도 게이지</div>
+                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" style="width:100%; height:auto;"/>
+                    <div class="panel-sub">문서의 현재 규정 준수 상태를 한눈에 제공합니다.</div>
+                </div>
+            </td>
+            <td style="width:50%; vertical-align:top;">
+                <div class="panel">
+                    <div class="panel-title">📉 총점 감점 요인 워터폴</div>
+                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 워터폴" style="width:100%; height:auto;"/>
+                    <div class="panel-sub">기준점수 100점에서 유형별 감점 누적 결과로 최종 안전점수를 설명합니다.</div>
+                </div>
+            </td>
+        </tr>
+    </table>
 
-    <div class="section card">
-        <div class="chart-title">리스크 항목 우선순위 분포</div>
-        <div class="bar-track">
-            <div th:each="p : ${data.priorityStats}" class="bar-segment"
-                 th:classappend="' bar-' + ${p.cssClass}"
-                 th:style="'width:' + ${p.percent} + '%'">
-            </div>
-        </div>
-        <div class="legend">
-            <span class="legend-item" th:each="p : ${data.priorityStats}">
-                <span th:text="${p.label}">긴급</span>
-                <span th:text="' ' + ${p.count} + '건 (' + ${p.percent} + '%)'"> 3건 (25%)</span>
-            </span>
-        </div>
-    </div>
+    <div class="section-title">페이지 리스크 분석</div>
+    <table class="split-table section">
+        <tr>
+            <td style="width:58%; vertical-align:top;">
+                <div class="panel">
+                    <div class="panel-title">📌 페이지별 위험도 전이</div>
+                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" style="width:100%; height:auto;"/>
+                </div>
+            </td>
+            <td style="width:42%; vertical-align:top;">
+                <div class="panel">
+                    <div class="panel-title">🧩 유형별 리스크 분포</div>
+                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="유형 분포" style="width:100%; height:auto;"/>
+                </div>
+            </td>
+        </tr>
+    </table>
 
-    <div class="section card">
-        <div class="chart-title">리스크 유형 x 우선순위 매트릭스</div>
-        <table class="matrix-table">
-            <thead>
-            <tr>
-                <th style="width:22%;">리스크 유형</th>
-                <th style="width:13%;">긴급</th>
-                <th style="width:13%;">높음</th>
-                <th style="width:13%;">중간</th>
-                <th style="width:13%;">낮음</th>
-                <th style="width:13%;">합계</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="row : ${data.typePriorityMatrix}">
-                <td>
-                    <span th:style="'color:' + ${row.color}" th:text="'● ' + ${row.label}">● 누락</span>
-                </td>
-                <td style="text-align:center;" th:text="${row.urgentCount}">1</td>
-                <td style="text-align:center;" th:text="${row.highCount}">2</td>
-                <td style="text-align:center;" th:text="${row.mediumCount}">0</td>
-                <td style="text-align:center;" th:text="${row.lowCount}">0</td>
-                <td style="text-align:center; font-weight:bold;" th:text="${row.totalCount}">3</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="section card">
-        <div class="chart-title">페이지별 리스크 프로파일</div>
-        <table class="profile-table">
-            <thead>
-            <tr>
-                <th style="width:10%;">페이지</th>
-                <th style="width:16%;">위반/섹션</th>
-                <th style="width:14%;">평균 안전점수</th>
-                <th style="width:42%;">우선순위 구성(섹션 기준)</th>
-                <th style="width:18%;">판단</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="p : ${data.pageRiskProfiles}">
-                <td style="text-align:center;" th:text="'P' + ${p.pageNumber}">P1</td>
-                <td style="text-align:center;" th:text="${p.violationCount} + ' / ' + ${p.totalSectionCount}">2 / 4</td>
-                <td style="text-align:center; font-weight:bold;" th:text="${p.averageSafetyScore}">68</td>
-                <td>
-                    <div class="profile-risk-bar">
-                        <div class="bar-segment bar-urgent" th:style="'width:' + ${p.urgentPercent} + '%'"></div>
-                        <div class="bar-segment bar-high" th:style="'width:' + ${p.highPercent} + '%'"></div>
-                        <div class="bar-segment bar-medium" th:style="'width:' + ${p.mediumPercent} + '%'"></div>
-                        <div class="bar-segment bar-low" th:style="'width:' + ${p.lowPercent} + '%'"></div>
-                    </div>
-                    <div style="font-size:9px; color:#475569; margin-top:4px;">
-                        긴급 <span th:text="${p.urgentCount}">0</span> / 높음 <span th:text="${p.highCount}">0</span> / 중간 <span th:text="${p.mediumCount}">0</span> / 낮음 <span th:text="${p.lowCount}">0</span>
-                    </div>
-                </td>
-                <td style="text-align:center;" th:text="${p.averageSafetyScore <= 59 ? '즉시 시정 권고' : (p.averageSafetyScore <= 79 ? '단기 개선 권고' : (p.averageSafetyScore <= 89 ? '모니터링 권고' : '현 수준 유지'))}">단기 개선 권고</td>
-            </tr>
-            </tbody>
-        </table>
-        <div style="font-size:10px; color:#475569; margin-top:7px;">
-            페이지 커버리지: <span th:text="${data.violationPageCount}">0</span>/<span th:text="${data.totalPageCount}">0</span> 페이지
-            (<span th:text="${data.pageCoveragePercent}">0</span>%),
-            최대 집중 페이지: <span th:text="${data.dominantViolationPage > 0 ? 'P' + data.dominantViolationPage : '-'}">P1</span>
-            (<span th:text="${data.dominantViolationPageCount}">0</span>건)
-        </div>
-    </div>
-
-    <div class="section card">
-        <div class="chart-title">TOP 5 최우선 조치 섹션</div>
-        <table class="top-actions">
-            <thead>
-            <tr>
-                <th style="width:9%;">마커</th>
-                <th style="width:11%;">페이지</th>
-                <th style="width:18%;">조치 우선순위</th>
-                <th style="width:17%;">섹션 안전점수</th>
-                <th style="width:14%;">리스크 항목 수</th>
-                <th style="width:13%;">위반</th>
-                <th style="width:18%;">권고</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="a : ${data.topActions}">
-                <td th:text="${a.marker != null ? '#' + a.marker : '-'}">#1</td>
-                <td th:text="'P' + ${a.pageNumber}">P3</td>
-                <td><span class="priority-chip" th:classappend="${a.actionPriorityCssClass}" th:text="${a.actionPriorityLabel}">긴급</span></td>
-                <td th:text="${a.sectionSafetyScore}">55</td>
-                <td th:text="${a.riskItemCount} + '건'">3건</td>
-                <td th:text="${a.violation ? '있음' : '없음'}">있음</td>
-                <td th:text="${a.sectionSafetyScore <= 59 ? '즉시 시정' : (a.sectionSafetyScore <= 79 ? '우선 개선' : (a.sectionSafetyScore <= 89 ? '보완 검토' : '모니터링'))}">우선 개선</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+    <div class="section-title">즉시 조치 권고 항목 (Top 5)</div>
+    <table class="modern-table section">
+        <thead>
+        <tr>
+            <th style="width:8%;">순위</th>
+            <th style="width:10%;">페이지</th>
+            <th style="width:12%;">위험 유형</th>
+            <th style="width:10%;">안전점수</th>
+            <th style="width:40%;">핵심 위반 근거</th>
+            <th style="width:10%;">근거 출처</th>
+            <th style="width:10%;">우선순위</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="a : ${data.topActions}">
+            <td th:text="${a.marker != null ? '#' + a.marker : '-'}">#1</td>
+            <td th:text="'P' + ${a.pageNumber}">P3</td>
+            <td th:text="${a.riskTypeLabel}">절차 누락</td>
+            <td style="font-weight:800; color: var(--risk-red);" th:text="${a.sectionSafetyScore}">55</td>
+            <td style="text-align:left;" th:text="${a.keyReason}">공고문 내 접수증 교부 절차 누락...</td>
+            <td style="font-size:9px; text-align:left;">
+                <div style="font-weight:700;" th:text="${a.liabilityRef}">제19조7항</div>
+                <div style="color:#64748b;" th:text="${a.liabilitySourceLabel}">규정 조항</div>
+            </td>
+            <td><span class="priority-chip" th:classappend="${a.actionPriorityCssClass}" th:text="${a.actionPriorityLabel}">긴급</span></td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 
 <div th:if="${!showCover}">
+    <div style="page-break-before: always;"></div>
+    <div class="section-title">항목별 상세 분석 결과</div>
+
     <div th:each="entry : ${data.itemsByPage}">
-        <div class="risk-group-title">PAGE <span th:text="${entry.key}">1</span></div>
-        <div style="font-size:10px; color:#64748b; margin: -4px 0 10px 0;">각주 마커는 원본 문서 하이라이트와 연계됩니다.</div>
+        <div th:each="item : ${entry.value}" class="risk-card" th:classappend="${item.actionPriorityCssClass}">
+            <div class="risk-head">
+                <div class="risk-head-left">
+                    <span class="risk-tag" th:classappend="'type-' + ${item.cssClass}" th:text="${item.riskTypeLabel}">누락</span>
+                    <span style="font-weight:800; font-size:13px; margin-left:8px;" th:text="'마커 #' + ${item.marker}">#1</span>
+                </div>
+                <div class="risk-head-right">
+                    페이지 <span th:text="${item.pageNumber}">3</span> | 안전점수 <span th:text="${item.sectionSafetyScore}">55</span>
+                </div>
+            </div>
 
-        <div th:each="item : ${entry.value}" class="risk-card">
-            <table class="risk-head-table">
-                <tr>
-                    <td style="width:72%;">
-                        <span style="font-weight:bold; font-size:12px; margin-right:6px;" th:text="${item.marker != null ? '#' + item.marker : '-'}">#1</span>
-                        <span class="badge" th:classappend="'type-' + ${item.cssClass}" th:text="${item.riskTypeLabel}">누락</span>
-                        <span style="margin-left:7px;" class="priority-chip" th:classappend="${item.actionPriorityCssClass}" th:text="${item.actionPriorityLabel}">긴급</span>
-                    </td>
-                    <td style="width:28%; text-align:right; font-weight:bold; color:#166534;">
-                        섹션 안전점수 <span th:text="${item.sectionSafetyScore}">90</span>
-                    </td>
-                </tr>
-            </table>
+            <div style="margin-bottom:10px;">
+                <div class="block-title">[검출 텍스트]</div>
+                <div class="detected-block" th:text="${item.detectedText}">텍스트 내용</div>
+            </div>
 
-            <div class="risk-content">
+            <div style="margin-bottom:10px;">
+                <div class="block-title">[분석 결과 및 판단 근거]</div>
+                <div th:text="${item.reasoning}">판단 근거 상세 내용</div>
+            </div>
+
+            <div style="margin-bottom:10px;">
+                <div class="block-title">[근거 출처]</div>
                 <div>
-                    <span class="text-label">검출 내용</span>
-                    <span th:text="${item.detectedText}">...</span>
+                    <span th:text="${item.liabilityRef}">제19조7항</span>
+                    <span style="color:#64748b;" th:text="' | ' + ${item.liabilitySourceLabel}"> | 규정 조항</span>
                 </div>
-                <div>
-                    <span class="text-label">판단 근거</span>
-                    <span th:text="${item.reasoning}">...</span>
-                </div>
-                <div class="guide-box">
-                    <strong>가이드:</strong> <span th:text="${item.guideMessage}">...</span>
-                </div>
+                <div th:if="${item.liabilitySourceUrl != null}" style="font-size:10px; color:#0369a1;" th:text="${item.liabilitySourceUrl}">https://example.com</div>
+                <div th:if="${item.evidenceQuote != null}" style="margin-top:4px; font-size:10px; color:#475569;" th:text="${item.evidenceQuote}">근거 인용문</div>
+            </div>
+
+            <div class="guide-panel">
+                <b>💡 규정 준수를 위한 수정 가이드</b>
+                <span th:text="${item.guideMessage}">가이드 내용</span>
             </div>
         </div>
     </div>

@@ -1,0 +1,13 @@
+{
+  "name": "lh-assist-backend-report-charts",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Server-side ECharts renderer for PDF report charts",
+  "type": "commonjs",
+  "scripts": {
+    "render:chart": "node scripts/report-chart-renderer.cjs"
+  },
+  "dependencies": {
+    "echarts": "^5.5.1"
+  }
+}

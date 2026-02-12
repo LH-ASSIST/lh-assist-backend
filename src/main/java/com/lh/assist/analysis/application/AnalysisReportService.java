@@ -3,9 +3,12 @@ package com.lh.assist.analysis.application;
 import com.lh.assist.analysis.domain.entity.AnalysisResult;
 import com.lh.assist.analysis.domain.entity.AnalysisRiskItem;
 import com.lh.assist.analysis.domain.entity.AnalysisSection;
+import com.lh.assist.analysis.domain.entity.AnalysisEvidence;
 import com.lh.assist.analysis.domain.enums.AnalysisResultStatus;
 import com.lh.assist.analysis.domain.enums.AnalysisRiskType;
+import com.lh.assist.analysis.domain.enums.AnalysisEvidenceSourceType;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
+import com.lh.assist.analysis.domain.repository.AnalysisEvidenceRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
 import com.lh.assist.common.exception.AnalysisException;
@@ -13,6 +16,12 @@ import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.infrastructure.aws.s3.S3Service;
+import com.lh.assist.reg.domain.entity.AuditItem;
+import com.lh.assist.reg.domain.entity.AuditManualItem;
+import com.lh.assist.reg.domain.entity.RegItem;
+import com.lh.assist.reg.domain.repository.AuditItemRepository;
+import com.lh.assist.reg.domain.repository.AuditManualItemRepository;
+import com.lh.assist.reg.domain.repository.RegItemRepository;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -21,6 +30,11 @@ import com.openhtmltopdf.extend.FSSupplier;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchart.BitmapEncoder;
+import org.knowm.xchart.CategoryChart;
+import org.knowm.xchart.CategoryChartBuilder;
+import org.knowm.xchart.PieChart;
+import org.knowm.xchart.PieChartBuilder;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -53,12 +67,18 @@ public class AnalysisReportService {
     private final AnalysisResultRepository analysisResultRepository;
     private final AnalysisSectionRepository analysisSectionRepository;
     private final AnalysisRiskItemRepository analysisRiskItemRepository;
+    private final AnalysisEvidenceRepository analysisEvidenceRepository;
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
+    private final RegItemRepository regItemRepository;
+    private final AuditManualItemRepository auditManualItemRepository;
+    private final AuditItemRepository auditItemRepository;
     private final S3Service s3Service;
     private final TemplateEngine templateEngine;
+    private final ReportChartRenderer reportChartRenderer;
 
     private static final Pattern BBOX_NUMBER = Pattern.compile("-?\\d+(?:\\.\\d+)?");
+    private static final Pattern LIABILITY_PATTERN = Pattern.compile("(제\\s*\\d+\\s*조(?:\\s*\\d+\\s*항)?)");
     private static final int HIGH_RISK_SAFETY_MAX = 59;
     private static final int MEDIUM_RISK_SAFETY_MAX = 79;
     private static final int MEDIUM_PRIORITY_SAFETY_MAX = 89;
@@ -512,6 +532,64 @@ public class AnalysisReportService {
                 })
                 .toList();
 
+        List<PageSafetyStatDto> pageSafetyStats = sectionsByPage.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    int pageNumber = entry.getKey();
+                    List<AnalysisSection> pageSections = entry.getValue();
+                    Integer pageMinSafetyScore = pageSections.stream()
+                            .map(AnalysisSection::getRiskScore)
+                            .filter(Objects::nonNull)
+                            .map(this::normalizeSafetyScore)
+                            .min(Integer::compareTo)
+                            .orElse(null);
+                    boolean hasViolation = pageSections.stream().anyMatch(AnalysisSection::isViolation);
+                    int pageViolationCount = (int) pageSections.stream().filter(AnalysisSection::isViolation).count();
+                    String priorityCss = resolveActionPriorityCssClassNullable(pageMinSafetyScore);
+                    String priorityLabel = resolveActionPriorityLabelNullable(pageMinSafetyScore);
+                    return new PageSafetyStatDto(
+                            pageNumber,
+                            pageMinSafetyScore,
+                            priorityLabel,
+                            priorityCss,
+                            pageMinSafetyScore == null ? 0 : pageMinSafetyScore,
+                            hasViolation,
+                            pageViolationCount,
+                            pageSections.size()
+                    );
+                })
+                .toList();
+
+        Map<Integer, Map<AnalysisRiskType, Long>> heatCounts = riskItems.stream()
+                .filter(item -> item.getAnalysisSection().getPageNumber() != null)
+                .collect(Collectors.groupingBy(
+                        item -> item.getAnalysisSection().getPageNumber(),
+                        Collectors.groupingBy(AnalysisRiskItem::getRiskType, Collectors.counting())
+                ));
+        int heatMax = heatCounts.values().stream()
+                .flatMap(typeMap -> typeMap.values().stream())
+                .mapToInt(Long::intValue)
+                .max()
+                .orElse(0);
+        List<PageTypeHeatmapRowDto> pageTypeHeatmapRows = sectionsByPage.keySet().stream()
+                .sorted()
+                .map(pageNumber -> {
+                    Map<AnalysisRiskType, Long> rowCounts = heatCounts.getOrDefault(pageNumber, Map.of());
+                    List<HeatmapCellDto> cells = Arrays.stream(AnalysisRiskType.values())
+                            .map(type -> {
+                                int count = rowCounts.getOrDefault(type, 0L).intValue();
+                                return new HeatmapCellDto(
+                                        type.getDescription(),
+                                        count,
+                                        buildHeatCellStyle(count, heatMax)
+                                );
+                            })
+                            .toList();
+                    int rowTotal = cells.stream().mapToInt(HeatmapCellDto::count).sum();
+                    return new PageTypeHeatmapRowDto(pageNumber, cells, rowTotal);
+                })
+                .toList();
+
         List<String> keyInsights = new ArrayList<>();
         keyInsights.add(String.format(
                 "전체 섹션 %d건 중 위반 가능성 섹션은 %d건(%d%%)으로 확인되었습니다.",
@@ -539,6 +617,38 @@ public class AnalysisReportService {
                         item -> item.getAnalysisSection().getSectionId(),
                         Collectors.summingInt(item -> 1)
                 ));
+        Map<Long, List<AnalysisRiskItem>> riskItemsBySection = riskItems.stream()
+                .collect(Collectors.groupingBy(
+                        item -> item.getAnalysisSection().getSectionId()
+                ));
+        Map<Long, EvidenceResolvedDto> evidenceByRiskId = buildEvidenceResolvedMap(riskItems);
+
+        List<RiskProfileAxisDto> riskProfileAxes = buildRiskProfileAxes(
+                typeCounts,
+                riskItems.size(),
+                priorityBucket.getOrDefault("urgent", 0),
+                dominantViolationPageCount,
+                violationCount
+        );
+        List<DeductionBreakdownDto> deductionBreakdown = buildDeductionBreakdown(typeCounts, score);
+        List<PriorityBubblePointDto> priorityBubblePoints = sections.stream()
+                .filter(section -> section.getPageNumber() != null)
+                .sorted(Comparator.comparing(
+                        (AnalysisSection section) -> normalizeSafetyScore(section.getRiskScore()))
+                        .thenComparing(section -> section.getPageNumber() != null ? section.getPageNumber() : Integer.MAX_VALUE)
+                        .thenComparing(section -> section.getSectionId() != null ? section.getSectionId() : Long.MAX_VALUE))
+                .limit(28)
+                .map(section -> {
+                    int safetyScore = normalizeSafetyScore(section.getRiskScore());
+                    int itemCount = riskItemCountBySection.getOrDefault(section.getSectionId(), 0);
+                    String priorityCss = resolveActionPriorityCssClassNullable(section.getRiskScore());
+                    int bubbleSize = 10 + Math.min(34, itemCount * 4);
+                    Integer marker = sectionMarkers.get(section.getSectionId());
+                    String label = "P" + section.getPageNumber() + (marker != null ? " #" + marker : "");
+                    return new PriorityBubblePointDto(label, safetyScore, itemCount, bubbleSize, priorityCss);
+                })
+                .toList();
+
         Comparator<AnalysisSection> sectionPriorityComparator = buildSectionPriorityComparator(riskItemCountBySection);
 
         // 4. 상세 내역 (페이지별 그룹핑)
@@ -560,7 +670,7 @@ public class AnalysisReportService {
                 .collect(Collectors.groupingBy(
                         item -> item.getAnalysisSection().getPageNumber(),
                         LinkedHashMap::new,
-                        Collectors.mapping(item -> toItemDto(item, sectionMarkers), Collectors.toList())
+                        Collectors.mapping(item -> toItemDto(item, sectionMarkers, evidenceByRiskId), Collectors.toList())
                 ));
 
         List<TopActionDto> topActions = sections.stream()
@@ -569,6 +679,19 @@ public class AnalysisReportService {
                 .limit(TOP_ACTION_LIMIT)
                 .map(section -> {
                     int sectionSafetyScore = normalizeSafetyScore(section.getRiskScore());
+                    List<AnalysisRiskItem> sectionRiskItems = riskItemsBySection.getOrDefault(section.getSectionId(), List.of());
+                    AnalysisRiskItem primary = sectionRiskItems.stream()
+                            .sorted(Comparator.comparing(AnalysisRiskItem::getRiskId, Comparator.nullsLast(Long::compareTo)))
+                            .findFirst()
+                            .orElse(null);
+                    String primaryRiskType = primary == null ? "-" : primary.getRiskType().getDescription();
+                    String primaryReason = primary == null ? "-"
+                            : truncateSummaryText(
+                            firstNonBlank(primary.getReasoning(), primary.getGuideMessage(), primary.getDetectedText()),
+                            70
+                    );
+                    EvidenceResolvedDto evidence = primary == null ? null : evidenceByRiskId.get(primary.getRiskId());
+                    String liabilityRef = evidence == null ? extractLiabilityReference(primary) : evidence.reference();
                     return new TopActionDto(
                             sectionMarkers.get(section.getSectionId()),
                             section.getPageNumber(),
@@ -576,7 +699,12 @@ public class AnalysisReportService {
                             resolveActionPriorityLabel(sectionSafetyScore),
                             resolveActionPriorityCssClass(sectionSafetyScore),
                             riskItemCountBySection.getOrDefault(section.getSectionId(), 0),
-                            section.isViolation()
+                            section.isViolation(),
+                            primaryRiskType,
+                            primaryReason,
+                            liabilityRef,
+                            evidence == null ? "-" : evidence.sourceLabel(),
+                            evidence == null ? null : evidence.sourceUrl()
                     );
                 })
                 .toList();
@@ -615,6 +743,32 @@ public class AnalysisReportService {
                 .priorityStats(priorityStats)
                 .typePriorityMatrix(typePriorityMatrix)
                 .pageRiskProfiles(pageRiskProfiles)
+                .pageSafetyStats(pageSafetyStats)
+                .pageTypeHeatmapRows(pageTypeHeatmapRows)
+                .totalScoreChartImage(reportChartRenderer
+                        .renderTotalScoreChart(score, resolveActionPriorityLabel(score))
+                        .orElseGet(() -> buildTotalScoreChartImage(score)))
+                .pageSafetyChartImage(reportChartRenderer
+                        .renderPageSafetyChart(pageSafetyStats)
+                        .orElseGet(() -> buildPageSafetyChartImage(pageSafetyStats)))
+                .priorityDistributionChartImage(reportChartRenderer
+                        .renderPriorityDistributionChart(priorityStats)
+                        .orElseGet(() -> buildPriorityDistributionChartImage(priorityStats)))
+                .pageTypeHeatmapChartImage(reportChartRenderer
+                        .renderPageTypeHeatmapChart(pageTypeHeatmapRows)
+                        .orElse(null))
+                .riskProfileRadarChartImage(reportChartRenderer
+                        .renderRiskProfileRadarChart(riskProfileAxes)
+                        .orElse(null))
+                .deductionWaterfallChartImage(reportChartRenderer
+                        .renderDeductionWaterfallChart(score, deductionBreakdown)
+                        .orElse(null))
+                .priorityBubbleChartImage(reportChartRenderer
+                        .renderPriorityBubbleChart(priorityBubblePoints)
+                        .orElse(null))
+                .riskProfileAxes(riskProfileAxes)
+                .deductionBreakdown(deductionBreakdown)
+                .priorityBubblePoints(priorityBubblePoints)
                 .keyInsights(keyInsights)
                 .itemsByPage(itemsByPage)
                 .build();
@@ -660,6 +814,18 @@ public class AnalysisReportService {
                 .priorityStats(fullData.priorityStats())
                 .typePriorityMatrix(fullData.typePriorityMatrix())
                 .pageRiskProfiles(fullData.pageRiskProfiles())
+                .pageSafetyStats(fullData.pageSafetyStats())
+                .pageTypeHeatmapRows(fullData.pageTypeHeatmapRows())
+                .totalScoreChartImage(fullData.totalScoreChartImage())
+                .pageSafetyChartImage(fullData.pageSafetyChartImage())
+                .priorityDistributionChartImage(fullData.priorityDistributionChartImage())
+                .pageTypeHeatmapChartImage(fullData.pageTypeHeatmapChartImage())
+                .riskProfileRadarChartImage(fullData.riskProfileRadarChartImage())
+                .deductionWaterfallChartImage(fullData.deductionWaterfallChartImage())
+                .priorityBubbleChartImage(fullData.priorityBubbleChartImage())
+                .riskProfileAxes(fullData.riskProfileAxes())
+                .deductionBreakdown(fullData.deductionBreakdown())
+                .priorityBubblePoints(fullData.priorityBubblePoints())
                 .keyInsights(fullData.keyInsights())
                 .itemsByPage(filtered)
                 .build();
@@ -675,9 +841,15 @@ public class AnalysisReportService {
         );
     }
 
-    private RiskItemViewDto toItemDto(AnalysisRiskItem item, Map<Long, Integer> sectionMarkers) {
+    private RiskItemViewDto toItemDto(
+            AnalysisRiskItem item,
+            Map<Long, Integer> sectionMarkers,
+            Map<Long, EvidenceResolvedDto> evidenceByRiskId
+    ) {
         int sectionSafetyScore = normalizeSafetyScore(item.getAnalysisSection().getRiskScore());
         Integer marker = sectionMarkers.get(item.getAnalysisSection().getSectionId());
+        EvidenceResolvedDto evidence = evidenceByRiskId.get(item.getRiskId());
+        String liabilityRef = evidence == null ? extractLiabilityReference(item) : evidence.reference();
         return new RiskItemViewDto(
                 marker,
                 item.getRiskType().getDescription(),
@@ -688,8 +860,175 @@ public class AnalysisReportService {
                 sectionSafetyScore,
                 item.getDetectedText(),
                 item.getGuideMessage(),
-                item.getReasoning()
+                item.getReasoning(),
+                liabilityRef,
+                evidence == null ? "-" : evidence.sourceLabel(),
+                evidence == null ? null : evidence.sourceUrl(),
+                evidence == null ? null : evidence.quote()
         );
+    }
+
+    private Map<Long, EvidenceResolvedDto> buildEvidenceResolvedMap(List<AnalysisRiskItem> riskItems) {
+        List<Long> riskIds = riskItems.stream()
+                .map(AnalysisRiskItem::getRiskId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (riskIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<AnalysisEvidence> evidences = analysisEvidenceRepository.findAllByAnalysisRiskItem_RiskIdIn(riskIds);
+        if (evidences.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, RegItem> regItemById = loadRegItems(evidences);
+        Map<Long, AuditManualItem> manualItemById = loadManualItems(evidences);
+        Map<Long, AuditItem> auditItemById = loadAuditItems(evidences);
+
+        Map<Long, List<AnalysisEvidence>> evidenceByRisk = evidences.stream()
+                .filter(e -> e.getAnalysisRiskItem() != null && e.getAnalysisRiskItem().getRiskId() != null)
+                .collect(Collectors.groupingBy(e -> e.getAnalysisRiskItem().getRiskId()));
+
+        Map<Long, EvidenceResolvedDto> resolved = new HashMap<>();
+        for (Map.Entry<Long, List<AnalysisEvidence>> entry : evidenceByRisk.entrySet()) {
+            AnalysisEvidence primary = entry.getValue().stream()
+                    .sorted(Comparator.comparingInt((AnalysisEvidence e) -> evidencePriority(e.getSourceType())))
+                    .findFirst()
+                    .orElse(null);
+            if (primary == null) {
+                continue;
+            }
+            EvidenceResolvedDto dto = resolveEvidence(primary, regItemById, manualItemById, auditItemById);
+            if (dto != null) {
+                resolved.put(entry.getKey(), dto);
+            }
+        }
+        return resolved;
+    }
+
+    private Map<Long, RegItem> loadRegItems(List<AnalysisEvidence> evidences) {
+        List<Long> ids = evidences.stream()
+                .filter(e -> e.getSourceType() == AnalysisEvidenceSourceType.REG_ITEM)
+                .map(AnalysisEvidence::getSourceId)
+                .map(this::parseLongOrNull)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return regItemRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(RegItem::getItemId, item -> item));
+    }
+
+    private Map<Long, AuditManualItem> loadManualItems(List<AnalysisEvidence> evidences) {
+        List<Long> ids = evidences.stream()
+                .filter(e -> e.getSourceType() == AnalysisEvidenceSourceType.AUDIT_MANUAL_ITEM)
+                .map(AnalysisEvidence::getSourceId)
+                .map(this::parseLongOrNull)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return auditManualItemRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(AuditManualItem::getManualItemId, item -> item));
+    }
+
+    private Map<Long, AuditItem> loadAuditItems(List<AnalysisEvidence> evidences) {
+        List<Long> ids = evidences.stream()
+                .filter(e -> e.getSourceType() == AnalysisEvidenceSourceType.AUDIT_ITEM)
+                .map(AnalysisEvidence::getSourceId)
+                .map(this::parseLongOrNull)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return auditItemRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(AuditItem::getItemId, item -> item));
+    }
+
+    private EvidenceResolvedDto resolveEvidence(
+            AnalysisEvidence evidence,
+            Map<Long, RegItem> regItemById,
+            Map<Long, AuditManualItem> manualItemById,
+            Map<Long, AuditItem> auditItemById
+    ) {
+        Long sourceId = parseLongOrNull(evidence.getSourceId());
+        if (sourceId == null) {
+            return null;
+        }
+        return switch (evidence.getSourceType()) {
+            case REG_ITEM -> {
+                RegItem regItem = regItemById.get(sourceId);
+                if (regItem == null || regItem.getRegulation() == null) {
+                    yield null;
+                }
+                String ref = firstNonBlank(regItem.getClauseNumber(), regItem.getSectionTitle(), "규정 조항");
+                yield new EvidenceResolvedDto(
+                        "규정 조항",
+                        ref,
+                        regItem.getRegulation().getSourceUrl(),
+                        truncateSummaryText(evidence.getQuote(), 120)
+                );
+            }
+            case AUDIT_MANUAL_ITEM -> {
+                AuditManualItem item = manualItemById.get(sourceId);
+                if (item == null) {
+                    yield null;
+                }
+                String ref = (item.getArticleName() != null ? item.getArticleName() : "매뉴얼")
+                        + (item.getSectionNumber() != null ? " §" + item.getSectionNumber() : "");
+                String sourceLabel = item.getAuditManual() != null
+                        ? "감사 매뉴얼: " + item.getAuditManual().getTitle()
+                        : "감사 매뉴얼";
+                yield new EvidenceResolvedDto(
+                        sourceLabel,
+                        ref,
+                        null,
+                        truncateSummaryText(evidence.getQuote(), 120)
+                );
+            }
+            case AUDIT_ITEM -> {
+                AuditItem item = auditItemById.get(sourceId);
+                if (item == null) {
+                    yield null;
+                }
+                String ref = "유사사례 " + (item.getDocTitle() != null ? item.getDocTitle() : item.getDocId());
+                yield new EvidenceResolvedDto(
+                        "유사 감사 지적 사례",
+                        ref,
+                        item.getSourcePath(),
+                        truncateSummaryText(evidence.getQuote(), 120)
+                );
+            }
+        };
+    }
+
+    private int evidencePriority(AnalysisEvidenceSourceType sourceType) {
+        if (sourceType == null) {
+            return 99;
+        }
+        return switch (sourceType) {
+            case REG_ITEM -> 0;
+            case AUDIT_MANUAL_ITEM -> 1;
+            case AUDIT_ITEM -> 2;
+        };
+    }
+
+    private Long parseLongOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private Comparator<AnalysisSection> buildSectionPriorityComparator(Map<Long, Integer> riskItemCountBySection) {
@@ -818,6 +1157,247 @@ public class AnalysisReportService {
         return "low";
     }
 
+    private String resolveActionPriorityLabelNullable(Integer safetyScore) {
+        if (safetyScore == null) {
+            return "미확정";
+        }
+        return resolveActionPriorityLabel(safetyScore);
+    }
+
+    private String resolveActionPriorityCssClassNullable(Integer safetyScore) {
+        if (safetyScore == null) {
+            return "unknown";
+        }
+        return resolveActionPriorityCssClass(safetyScore);
+    }
+
+    private String buildHeatCellStyle(int count, int maxCount) {
+        if (count <= 0 || maxCount <= 0) {
+            return "background:#f3f6fb;color:#667085;";
+        }
+        double ratio = Math.min(1.0, count / (double) maxCount);
+        double alpha = 0.18 + (ratio * 0.72);
+        String textColor = alpha >= 0.5 ? "#ffffff" : "#1e3a5f";
+        return String.format(Locale.US, "background:rgba(30,136,229,%.2f);color:%s;", alpha, textColor);
+    }
+
+    private String extractLiabilityReference(AnalysisRiskItem item) {
+        if (item == null) {
+            return "-";
+        }
+        String source = firstNonBlank(item.getReasoning(), item.getGuideMessage(), item.getDetectedText());
+        if (source == null) {
+            return "-";
+        }
+        Matcher matcher = LIABILITY_PATTERN.matcher(source);
+        if (matcher.find()) {
+            return matcher.group(1).replaceAll("\\s+", "");
+        }
+        return "-";
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String truncateSummaryText(String text, int maxLength) {
+        if (text == null || text.isBlank()) {
+            return "-";
+        }
+        String normalized = text.replaceAll("\\s+", " ").trim();
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, Math.max(0, maxLength - 1)) + "…";
+    }
+
+    private List<RiskProfileAxisDto> buildRiskProfileAxes(
+            Map<AnalysisRiskType, Long> typeCounts,
+            int totalRiskItems,
+            int urgentCount,
+            int dominantViolationPageCount,
+            int violationCount
+    ) {
+        List<RiskProfileAxisDto> axes = new ArrayList<>();
+        for (AnalysisRiskType type : AnalysisRiskType.values()) {
+            int typeCount = typeCounts.getOrDefault(type, 0L).intValue();
+            axes.add(new RiskProfileAxisDto(
+                    type.getDescription(),
+                    calculatePercent(typeCount, Math.max(totalRiskItems, 1))
+            ));
+        }
+        axes.add(new RiskProfileAxisDto(
+                "긴급 비율",
+                calculatePercent(urgentCount, Math.max(totalRiskItems, 1))
+        ));
+        axes.add(new RiskProfileAxisDto(
+                "페이지 편중도",
+                calculatePercent(dominantViolationPageCount, Math.max(violationCount, 1))
+        ));
+        return axes;
+    }
+
+    private List<DeductionBreakdownDto> buildDeductionBreakdown(Map<AnalysisRiskType, Long> typeCounts, int totalScore) {
+        int totalDeduction = Math.max(0, 100 - normalizeSafetyScore(totalScore));
+        int totalTypeCount = typeCounts.values().stream().mapToInt(Long::intValue).sum();
+        if (totalDeduction == 0 || totalTypeCount == 0) {
+            return Arrays.stream(AnalysisRiskType.values())
+                    .map(type -> new DeductionBreakdownDto(type.getDescription(), 0))
+                    .toList();
+        }
+
+        Map<AnalysisRiskType, Integer> rounded = new EnumMap<>(AnalysisRiskType.class);
+        int allocated = 0;
+        AnalysisRiskType maxType = null;
+        long maxCount = -1;
+        for (AnalysisRiskType type : AnalysisRiskType.values()) {
+            int count = typeCounts.getOrDefault(type, 0L).intValue();
+            if (count > maxCount) {
+                maxCount = count;
+                maxType = type;
+            }
+            int value = (int) Math.round((count / (double) totalTypeCount) * totalDeduction);
+            rounded.put(type, value);
+            allocated += value;
+        }
+
+        int drift = totalDeduction - allocated;
+        if (drift != 0 && maxType != null) {
+            rounded.compute(maxType, (k, v) -> (v == null ? 0 : v) + drift);
+        }
+
+        return Arrays.stream(AnalysisRiskType.values())
+                .map(type -> new DeductionBreakdownDto(
+                        type.getDescription(),
+                        -Math.max(0, rounded.getOrDefault(type, 0))
+                ))
+                .toList();
+    }
+
+    private String buildTotalScoreChartImage(int totalScore) {
+        try {
+            int safeScore = normalizeSafetyScore(totalScore);
+            PieChart chart = new PieChartBuilder()
+                    .width(520)
+                    .height(280)
+                    .title("총 안전점수")
+                    .build();
+            chart.getStyler().setLegendVisible(false);
+            chart.getStyler().setPlotContentSize(0.7);
+            chart.getStyler().setDonutThickness(0.45);
+            chart.getStyler().setSeriesColors(new Color[]{
+                    resolvePriorityColor(resolveActionPriorityCssClass(safeScore)),
+                    new Color(229, 231, 235)
+            });
+            chart.addSeries("안전점수", safeScore);
+            chart.addSeries("잔여", Math.max(0, 100 - safeScore));
+            return toDataUriPng(chart);
+        } catch (Exception e) {
+            log.warn("Failed to render total score chart image", e);
+            return null;
+        }
+    }
+
+    private String buildPageSafetyChartImage(List<PageSafetyStatDto> pageSafetyStats) {
+        try {
+            if (pageSafetyStats == null || pageSafetyStats.isEmpty()) {
+                return null;
+            }
+            List<String> xData = pageSafetyStats.stream()
+                    .map(stat -> "P" + stat.pageNumber())
+                    .toList();
+            List<Integer> yData = pageSafetyStats.stream()
+                    .map(stat -> stat.minSafetyScore() == null ? 0 : stat.minSafetyScore())
+                    .toList();
+            List<Integer> violationMarkerData = pageSafetyStats.stream()
+                    .map(stat -> stat.hasViolation() ? 100 : 0)
+                    .toList();
+
+            CategoryChart chart = new CategoryChartBuilder()
+                    .width(920)
+                    .height(320)
+                    .title("페이지별 최소 안전점수")
+                    .xAxisTitle("페이지")
+                    .yAxisTitle("안전점수")
+                    .build();
+            chart.getStyler().setLegendVisible(true);
+            chart.getStyler().setYAxisMin(0.0);
+            chart.getStyler().setYAxisMax(105.0);
+            chart.getStyler().setAvailableSpaceFill(0.8);
+            chart.getStyler().setOverlapped(false);
+            chart.getStyler().setSeriesColors(new Color[]{
+                    new Color(59, 130, 246),
+                    new Color(220, 38, 38)
+            });
+
+            chart.addSeries("최소 안전점수", xData, yData);
+            chart.addSeries("위반 마커", xData, violationMarkerData);
+            return toDataUriPng(chart);
+        } catch (Exception e) {
+            log.warn("Failed to render page safety chart image", e);
+            return null;
+        }
+    }
+
+    private String buildPriorityDistributionChartImage(List<PriorityStatDto> priorityStats) {
+        try {
+            if (priorityStats == null || priorityStats.isEmpty()) {
+                return null;
+            }
+            PieChart chart = new PieChartBuilder()
+                    .width(700)
+                    .height(320)
+                    .title("조치 우선순위 분포")
+                    .build();
+            chart.getStyler().setLegendVisible(true);
+            chart.getStyler().setDonutThickness(0.5);
+            chart.getStyler().setSeriesColors(new Color[]{
+                    resolvePriorityColor("urgent"),
+                    resolvePriorityColor("high"),
+                    resolvePriorityColor("medium"),
+                    resolvePriorityColor("low")
+            });
+
+            for (PriorityStatDto stat : priorityStats) {
+                if (stat.count() <= 0) {
+                    continue;
+                }
+                chart.addSeries(stat.label(), stat.count());
+            }
+            return toDataUriPng(chart);
+        } catch (Exception e) {
+            log.warn("Failed to render priority distribution chart image", e);
+            return null;
+        }
+    }
+
+    private Color resolvePriorityColor(String cssClass) {
+        return switch (cssClass) {
+            case "urgent" -> new Color(220, 38, 38);
+            case "high" -> new Color(249, 115, 22);
+            case "medium" -> new Color(245, 158, 11);
+            case "low" -> new Color(34, 197, 94);
+            default -> new Color(148, 163, 184);
+        };
+    }
+
+    private String toDataUriPng(Object chart) throws IOException {
+        byte[] bytes;
+        if (chart instanceof PieChart pieChart) {
+            bytes = BitmapEncoder.getBitmapBytes(pieChart, BitmapEncoder.BitmapFormat.PNG);
+        } else if (chart instanceof CategoryChart categoryChart) {
+            bytes = BitmapEncoder.getBitmapBytes(categoryChart, BitmapEncoder.BitmapFormat.PNG);
+        } else {
+            return null;
+        }
+        return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
+    }
+
     private int calculatePercent(int count, int total) {
         return total == 0 ? 0 : (int) Math.round(((double) count / total) * 100);
     }
@@ -871,6 +1451,18 @@ public class AnalysisReportService {
             List<PriorityStatDto> priorityStats,
             List<TypePriorityMatrixDto> typePriorityMatrix,
             List<PageRiskProfileDto> pageRiskProfiles,
+            List<PageSafetyStatDto> pageSafetyStats,
+            List<PageTypeHeatmapRowDto> pageTypeHeatmapRows,
+            String totalScoreChartImage,
+            String pageSafetyChartImage,
+            String priorityDistributionChartImage,
+            String pageTypeHeatmapChartImage,
+            String riskProfileRadarChartImage,
+            String deductionWaterfallChartImage,
+            String priorityBubbleChartImage,
+            List<RiskProfileAxisDto> riskProfileAxes,
+            List<DeductionBreakdownDto> deductionBreakdown,
+            List<PriorityBubblePointDto> priorityBubblePoints,
             List<String> keyInsights,
             Map<Integer, List<RiskItemViewDto>> itemsByPage
     ) {}
@@ -907,7 +1499,12 @@ public class AnalysisReportService {
             String actionPriorityLabel,
             String actionPriorityCssClass,
             int riskItemCount,
-            boolean violation
+            boolean violation,
+            String riskTypeLabel,
+            String keyReason,
+            String liabilityRef,
+            String liabilitySourceLabel,
+            String liabilitySourceUrl
     ) {}
 
     public record PriorityStatDto(
@@ -942,6 +1539,47 @@ public class AnalysisReportService {
             int lowPercent
     ) {}
 
+    public record PageSafetyStatDto(
+            int pageNumber,
+            Integer minSafetyScore,
+            String actionPriorityLabel,
+            String actionPriorityCssClass,
+            int scoreBarPercent,
+            boolean hasViolation,
+            int violationCount,
+            int sectionCount
+    ) {}
+
+    public record PageTypeHeatmapRowDto(
+            int pageNumber,
+            List<HeatmapCellDto> cells,
+            int totalCount
+    ) {}
+
+    public record HeatmapCellDto(
+            String riskTypeLabel,
+            int count,
+            String style
+    ) {}
+
+    public record RiskProfileAxisDto(
+            String label,
+            int value
+    ) {}
+
+    public record DeductionBreakdownDto(
+            String label,
+            int delta
+    ) {}
+
+    public record PriorityBubblePointDto(
+            String label,
+            int safetyScore,
+            int riskItemCount,
+            int bubbleSize,
+            String priorityCssClass
+    ) {}
+
     public record RiskItemViewDto(
             Integer marker,
             String riskTypeLabel,
@@ -952,6 +1590,17 @@ public class AnalysisReportService {
             Integer sectionSafetyScore,
             String detectedText,
             String guideMessage,
-            String reasoning
+            String reasoning,
+            String liabilityRef,
+            String liabilitySourceLabel,
+            String liabilitySourceUrl,
+            String evidenceQuote
+    ) {}
+
+    public record EvidenceResolvedDto(
+            String sourceLabel,
+            String reference,
+            String sourceUrl,
+            String quote
     ) {}
 }
