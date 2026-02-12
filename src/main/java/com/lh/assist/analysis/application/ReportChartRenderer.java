@@ -100,7 +100,9 @@ public class ReportChartRenderer {
                 return Optional.empty();
             }
 
-            String out = readAll(process.getInputStream()).trim();
+            String out = readAll(process.getInputStream())
+                    .replaceAll("[\\r\\n\\t ]", "")
+                    .trim();
             if (out.startsWith("data:image/png")) {
                 return Optional.of(out);
             }

@@ -12,7 +12,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /opt/report-charts
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nodejs npm \
+    && apt-get install -y --no-install-recommends nodejs npm fontconfig fonts-liberation fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 ARG JAR_FILE=/workspace/build/libs/*.jar

@@ -36,3 +36,4 @@ app:
 logging:
   level:
     org.apache.fontbox.ttf.CmapSubtable: ERROR
+    org.apache.pdfbox.pdmodel.font.PDType1Font: ERROR

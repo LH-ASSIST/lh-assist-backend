@@ -4,7 +4,11 @@
     <meta charset="UTF-8"/>
     <style>
         @page { size: A4; margin: 15mm; }
-        body { font-family: 'NotoSerifKR', serif; color: #334155; line-height: 1.55; font-size: 12px; background: #fff; }
+        body, div, span, p, td, th, img {
+            font-family: 'NotoSerifKR', serif;
+            color: #334155;
+        }
+        body { line-height: 1.55; font-size: 12px; background: #fff; }
 
         .section { margin-bottom: 18px; page-break-inside: avoid; }
         .header {
@@ -66,6 +70,7 @@
         }
         .panel-title { font-size: 12px; font-weight: 700; color: #0f2d5f; margin-bottom: 8px; }
         .panel-sub { font-size: 10px; color: #64748b; margin-top: 6px; }
+        .chart-image { display: block; width: 100%; height: auto; }
 
         .split-table { width: 100%; border-collapse: separate; border-spacing: 12px; }
 
@@ -191,14 +196,14 @@
             <td style="width:50%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">🧭 종합 안전도 게이지</div>
-                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" style="width:100%; height:auto;"/>
+                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" class="chart-image"/>
                     <div class="panel-sub">문서의 현재 규정 준수 상태를 한눈에 제공합니다.</div>
                 </div>
             </td>
             <td style="width:50%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">📉 총점 감점 요인 워터폴</div>
-                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 워터폴" style="width:100%; height:auto;"/>
+                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 워터폴" class="chart-image"/>
                     <div class="panel-sub">기준점수 100점에서 유형별 감점 누적 결과로 최종 안전점수를 설명합니다.</div>
                 </div>
             </td>
@@ -211,13 +216,13 @@
             <td style="width:58%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">📌 페이지별 위험도 전이</div>
-                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" style="width:100%; height:auto;"/>
+                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" class="chart-image"/>
                 </div>
             </td>
             <td style="width:42%; vertical-align:top;">
                 <div class="panel">
                     <div class="panel-title">🧩 유형별 리스크 분포</div>
-                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="유형 분포" style="width:100%; height:auto;"/>
+                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="유형 분포" class="chart-image"/>
                 </div>
             </td>
         </tr>
