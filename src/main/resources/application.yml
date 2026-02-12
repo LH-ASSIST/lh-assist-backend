@@ -90,7 +90,7 @@ app:
   chatbot:
     fastapi:
       base-url: ${CHATBOT_FASTAPI_BASE_URL:http://localhost:8000}
-      stream-path: ${CHATBOT_FASTAPI_STREAM_PATH:/generate-stream}
+      stream-path: ${CHATBOT_FASTAPI_STREAM_PATH:/ai/generate-stream}
     sse:
       timeout-ms: 60000
       heartbeat-ms: 15000

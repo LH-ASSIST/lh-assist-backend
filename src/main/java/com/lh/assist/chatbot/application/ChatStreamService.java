@@ -48,7 +48,7 @@ public class ChatStreamService {
     private final TaskScheduler chatStreamTaskScheduler;
     private final AnalysisResultRepository analysisResultRepository;
 
-    @Value("${app.chatbot.fastapi.stream-path:/generate-stream}")
+    @Value("${app.chatbot.fastapi.stream-path:/ai/generate-stream}")
     private String streamPath;
 
     @Value("${app.chatbot.sse.timeout-ms:60000}")
