@@ -18,6 +18,8 @@ services:
       AWS_SECRET_KEY: ${AWS_SECRET_KEY:-}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
       SQS_DOCUMENT_ANALYZE_QUEUE_URL: ${SQS_DOCUMENT_ANALYZE_QUEUE_URL:-}
+      CHATBOT_FASTAPI_BASE_URL: ${CHATBOT_FASTAPI_BASE_URL:?CHATBOT_FASTAPI_BASE_URL is required}
+      CHATBOT_FASTAPI_STREAM_PATH: ${CHATBOT_FASTAPI_STREAM_PATH:-/ai/generate-stream}
     depends_on:
       db:
         condition: service_healthy

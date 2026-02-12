@@ -81,6 +81,8 @@ jobs:
           AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           SQS_DOCUMENT_ANALYZE_QUEUE_URL: ${{ secrets.SQS_DOCUMENT_ANALYZE_QUEUE_URL }}
+          CHATBOT_FASTAPI_BASE_URL: ${{ secrets.CHATBOT_FASTAPI_BASE_URL }}
+          CHATBOT_FASTAPI_STREAM_PATH: ${{ vars.CHATBOT_FASTAPI_STREAM_PATH }}
         with:
           host: ${{ env.EC2_PRIVATE_IP }}
           username: ubuntu
@@ -88,18 +90,26 @@ jobs:
           proxy_host: ${{ secrets.NAT_PUBLIC_IP }}
           proxy_username: ec2-user
           proxy_key: ${{ secrets.KEY }}
-          envs: DOCKER_USERNAME,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,SPRING_REDIS_HOST,SPRING_REDIS_PORT,JWT_SECRET,EMAIL_ADDRESS,EMAIL_PASSWORD,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_S3_BUCKET,SQS_DOCUMENT_ANALYZE_QUEUE_URL
+          envs: DOCKER_USERNAME,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,SPRING_REDIS_HOST,SPRING_REDIS_PORT,JWT_SECRET,EMAIL_ADDRESS,EMAIL_PASSWORD,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_S3_BUCKET,SQS_DOCUMENT_ANALYZE_QUEUE_URL,CHATBOT_FASTAPI_BASE_URL,CHATBOT_FASTAPI_STREAM_PATH
           script: |
             missing=0
-            for v in DOCKER_USERNAME POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD SPRING_REDIS_HOST SPRING_REDIS_PORT JWT_SECRET EMAIL_ADDRESS EMAIL_PASSWORD AWS_ACCESS_KEY AWS_SECRET_KEY AWS_S3_BUCKET SQS_DOCUMENT_ANALYZE_QUEUE_URL; do
-              if ! printenv "$v" >/dev/null; then
-                echo "Missing env: $v"
+            for v in DOCKER_USERNAME POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD SPRING_REDIS_HOST SPRING_REDIS_PORT JWT_SECRET EMAIL_ADDRESS EMAIL_PASSWORD AWS_ACCESS_KEY AWS_SECRET_KEY AWS_S3_BUCKET SQS_DOCUMENT_ANALYZE_QUEUE_URL CHATBOT_FASTAPI_BASE_URL; do
+              if [ -z "$(printenv "$v")" ]; then
+                echo "Missing or empty env: $v"
                 missing=1
               fi
             done
             if [ "$missing" -eq 1 ]; then
               exit 1
             fi
+
+            case "$CHATBOT_FASTAPI_BASE_URL" in
+              http://*|https://*) ;;
+              *)
+                echo "CHATBOT_FASTAPI_BASE_URL must start with http:// or https://"
+                exit 1
+                ;;
+            esac
             cd /home/ubuntu/lh-assist-backend
             docker rm -f lh-assist-backend || true
             docker compose pull spring-app
