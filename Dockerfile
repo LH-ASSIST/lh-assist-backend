@@ -6,7 +6,7 @@ RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && ./gradlew clean bootJar -x t
 FROM node:20-bookworm-slim AS node_deps
 WORKDIR /opt/report-charts
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev || npm install --omit=dev; else npm install --omit=dev; fi
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/report-charts
