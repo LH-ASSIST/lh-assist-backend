@@ -101,7 +101,9 @@ public class ReportChartRenderer {
             }
 
             String out = readAll(process.getInputStream()).trim();
-            if (out.startsWith("data:image/")) {
+            // openhtmltopdf + Batik 조합에서 SVG data URI 렌더링이 불안정하여
+            // 보고서 PDF 경로에서는 PNG data URI만 허용한다.
+            if (out.startsWith("data:image/png")) {
                 return Optional.of(out);
             }
             return Optional.empty();
