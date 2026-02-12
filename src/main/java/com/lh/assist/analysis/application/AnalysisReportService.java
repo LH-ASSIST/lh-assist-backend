@@ -1423,7 +1423,6 @@ public class AnalysisReportService {
                     .yAxisTitle("점수/감점")
                     .build();
             chart.getStyler().setLegendVisible(false);
-            chart.getStyler().setHasAnnotations(true);
             chart.getStyler().setYAxisMin(-100.0);
             chart.getStyler().setYAxisMax(100.0);
             chart.getStyler().setAvailableSpaceFill(0.85);
