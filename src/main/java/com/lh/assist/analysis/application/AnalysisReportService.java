@@ -167,7 +167,7 @@ public class AnalysisReportService {
                 log.warn("Korean font file (NotoSerifKR-Regular.ttf) not found. Text may be broken.");
             }
 
-            String baseUri = new File(".").getAbsoluteFile().toURI().toString();
+            String baseUri = "file:/";
             builder.withHtmlContent(htmlContent, baseUri);
             builder.toStream(os);
             builder.run();
@@ -767,6 +767,10 @@ public class AnalysisReportService {
                         .orElseGet(() -> buildDeductionWaterfallFallbackImage(score, deductionBreakdown)),
                 "총점 감점 요인"
         );
+        totalScoreChartImage = sanitizeDataUri(totalScoreChartImage);
+        pageSafetyChartImage = sanitizeDataUri(pageSafetyChartImage);
+        priorityDistributionChartImage = sanitizeDataUri(priorityDistributionChartImage);
+        deductionWaterfallChartImage = sanitizeDataUri(deductionWaterfallChartImage);
 
         log.info(
                 "Report charts prepared: total={}, page={}, priority={}, waterfall={}",
@@ -1522,6 +1526,13 @@ public class AnalysisReportService {
 
     private int safeLength(String s) {
         return s == null ? 0 : s.length();
+    }
+
+    private String sanitizeDataUri(String dataUri) {
+        if (dataUri == null || dataUri.isBlank()) {
+            return dataUri;
+        }
+        return dataUri.replaceAll("\\r\\n|\\r|\\n", "").trim();
     }
 
     private int calculatePercent(int count, int total) {
