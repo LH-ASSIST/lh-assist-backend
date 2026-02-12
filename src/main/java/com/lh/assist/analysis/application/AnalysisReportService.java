@@ -25,7 +25,6 @@ import com.lh.assist.reg.domain.repository.RegItemRepository;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import com.openhtmltopdf.extend.FSSupplier;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +49,10 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -59,6 +62,7 @@ import java.text.Normalizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
 
 @Service
 @RequiredArgsConstructor
@@ -149,7 +153,6 @@ public class AnalysisReportService {
             if (!showCover) {
                 builder.useFastMode();
             }
-            builder.useSVGDrawer(new BatikSVGDrawer());
 
             // 한글 폰트 설정 (필수: resources/fonts/NotoSerifKR-Regular.ttf)
             ClassPathResource fontResource = new ClassPathResource("fonts/NotoSerifKR-Regular.ttf");
@@ -739,6 +742,31 @@ public class AnalysisReportService {
         String normalizedTitle = Normalizer.normalize(rawTitle, Normalizer.Form.NFKC);
         String titleNoExt = normalizedTitle.replaceFirst("\\.[^.]+$", "");
 
+        String totalScoreChartImage = ensureChartImage(
+                buildTotalScoreChartImage(score),
+                "총 안전점수"
+        );
+        String pageSafetyChartImage = ensureChartImage(
+                buildPageSafetyChartImage(pageSafetyStats),
+                "페이지별 위험도"
+        );
+        String priorityDistributionChartImage = ensureChartImage(
+                buildPriorityDistributionChartImage(priorityStats),
+                "유형별 리스크 분포"
+        );
+        String deductionWaterfallChartImage = ensureChartImage(
+                buildDeductionWaterfallFallbackImage(score, deductionBreakdown),
+                "총점 감점 요인"
+        );
+
+        log.info(
+                "Report charts prepared: total={}, page={}, priority={}, waterfall={}",
+                safeLength(totalScoreChartImage),
+                safeLength(pageSafetyChartImage),
+                safeLength(priorityDistributionChartImage),
+                safeLength(deductionWaterfallChartImage)
+        );
+
         return ReportViewDto.builder()
                 .title(titleNoExt)
                 .analyzedDate(LocalDate.now().format(DateTimeFormatter.ISO_DATE))
@@ -771,24 +799,16 @@ public class AnalysisReportService {
                 .pageRiskProfiles(pageRiskProfiles)
                 .pageSafetyStats(pageSafetyStats)
                 .pageTypeHeatmapRows(pageTypeHeatmapRows)
-                .totalScoreChartImage(reportChartRenderer
-                        .renderTotalScoreChart(score, resolveActionPriorityLabel(score))
-                        .orElseGet(() -> buildTotalScoreChartImage(score)))
-                .pageSafetyChartImage(reportChartRenderer
-                        .renderPageSafetyChart(pageSafetyStats)
-                        .orElseGet(() -> buildPageSafetyChartImage(pageSafetyStats)))
-                .priorityDistributionChartImage(reportChartRenderer
-                        .renderPriorityDistributionChart(priorityStats)
-                        .orElseGet(() -> buildPriorityDistributionChartImage(priorityStats)))
+                .totalScoreChartImage(totalScoreChartImage)
+                .pageSafetyChartImage(pageSafetyChartImage)
+                .priorityDistributionChartImage(priorityDistributionChartImage)
                 .pageTypeHeatmapChartImage(reportChartRenderer
                         .renderPageTypeHeatmapChart(pageTypeHeatmapRows)
                         .orElse(null))
                 .riskProfileRadarChartImage(reportChartRenderer
                         .renderRiskProfileRadarChart(riskProfileAxes)
                         .orElse(null))
-                .deductionWaterfallChartImage(reportChartRenderer
-                        .renderDeductionWaterfallChart(score, deductionBreakdown)
-                        .orElseGet(() -> buildDeductionWaterfallFallbackImage(score, deductionBreakdown)))
+                .deductionWaterfallChartImage(deductionWaterfallChartImage)
                 .priorityBubbleChartImage(reportChartRenderer
                         .renderPriorityBubbleChart(priorityBubblePoints)
                         .orElse(null))
@@ -1456,6 +1476,43 @@ public class AnalysisReportService {
             return null;
         }
         return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
+    }
+
+    private String ensureChartImage(String dataUri, String chartName) {
+        if (dataUri != null && !dataUri.isBlank()) {
+            return dataUri;
+        }
+        return buildChartUnavailableImage(chartName);
+    }
+
+    private String buildChartUnavailableImage(String chartName) {
+        try {
+            BufferedImage image = new BufferedImage(920, 320, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = image.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(new Color(248, 250, 252));
+            g.fillRect(0, 0, image.getWidth(), image.getHeight());
+            g.setColor(new Color(203, 213, 225));
+            g.drawRect(16, 16, image.getWidth() - 32, image.getHeight() - 32);
+            g.setColor(new Color(71, 85, 105));
+            g.setFont(new Font("SansSerif", Font.BOLD, 22));
+            g.drawString(chartName, 32, 64);
+            g.setFont(new Font("SansSerif", Font.PLAIN, 16));
+            g.drawString("차트 데이터를 생성하지 못했습니다.", 32, 98);
+            g.drawString("Node 렌더러/데이터 상태를 확인하세요.", 32, 124);
+            g.dispose();
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", out);
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(out.toByteArray());
+        } catch (Exception e) {
+            log.warn("Failed to build fallback unavailable chart image for {}", chartName, e);
+            return null;
+        }
+    }
+
+    private int safeLength(String s) {
+        return s == null ? 0 : s.length();
     }
 
     private int calculatePercent(int count, int total) {
