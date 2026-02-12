@@ -35,5 +35,9 @@ app:
 
 logging:
   level:
-    org.apache.fontbox.ttf.CmapSubtable: ERROR
-    org.apache.pdfbox.pdmodel.font.PDType1Font: ERROR
+    root: INFO
+    org.apache.fontbox: ERROR
+    org.apache.pdfbox: ERROR
+    com.openhtmltopdf: WARN
+    org.springframework.web: INFO
+    org.springframework.web.servlet.resource.ResourceHttpRequestHandler: ERROR
