@@ -1,0 +1,16 @@
+.git
+.github
+.idea
+.gradle
+.gradle-local
+build
+out
+
+node_modules
+npm-debug.log*
+
+postgres_data
+tools
+
+.env
+*.log
