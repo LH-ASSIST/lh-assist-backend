@@ -2,6 +2,7 @@ package com.lh.assist.common.security;
 
 import com.lh.assist.common.security.jwt.JwtAuthenticationFilter;
 import com.lh.assist.chatbot.api.filter.ChatRateLimitFilter;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -48,12 +49,14 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
+						.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 				.requestMatchers(
 						"/v3/api-docs/**",
 						"/swagger-ui/**",
 						"/swagger-ui.html",
 						"/api/v1/auth/**",
 						"/api/v1/chat/**",
+						"/error",
 						"/test/**",
 						"/actuator/health",
 						"/actuator/health/**"

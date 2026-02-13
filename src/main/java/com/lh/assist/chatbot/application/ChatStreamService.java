@@ -85,7 +85,9 @@ public class ChatStreamService {
         try {
             emitter.send(SseEmitter.event().name(EVENT_PING).data("heartbeat"));
         } catch (IOException ex) {
-            emitter.completeWithError(ex);
+            log.debug("초기 heartbeat 전송 실패: {}", ex.getMessage());
+            emitter.complete();
+            return emitter;
         }
         StringBuilder answerBuffer = new StringBuilder();
         AtomicReference<List<RagReference>> ragReferences = new AtomicReference<>(null);
@@ -116,7 +118,7 @@ public class ChatStreamService {
             if (finished.compareAndSet(false, true)) {
                 log.warn("챗봇 스트리밍 초기화 중 오류 발생: {}", ex.getMessage(), ex);
                 sendErrorEvent(emitter);
-                emitter.completeWithError(ex);
+                emitter.complete();
             }
             heartbeatFuture.cancel(true);
             return emitter;
@@ -335,7 +337,8 @@ public class ChatStreamService {
             try {
                 emitter.send(SseEmitter.event().name(EVENT_PING).data("heartbeat"));
             } catch (IOException ex) {
-                emitter.completeWithError(ex);
+                log.debug("heartbeat 전송 실패: {}", ex.getMessage());
+                emitter.complete();
             }
         }, Duration.ofMillis(heartbeatMs));
     }
@@ -389,7 +392,7 @@ public class ChatStreamService {
             try {
                 emitter.send(SseEmitter.event().name(EVENT_DONE).data("[DONE]"));
             } catch (IOException ex) {
-                emitter.completeWithError(ex);
+                emitter.complete();
                 return;
             }
             emitter.complete();
@@ -400,7 +403,7 @@ public class ChatStreamService {
                 String payload = data == null ? ERROR_STREAMING_MESSAGE : data;
                 emitter.send(SseEmitter.event().name(EVENT_ERROR).data(payload));
             } catch (IOException ex) {
-                emitter.completeWithError(ex);
+                emitter.complete();
             }
             emitter.complete();
             return;
@@ -418,7 +421,7 @@ public class ChatStreamService {
             builder.data(data);
             emitter.send(builder);
         } catch (IOException ex) {
-            emitter.completeWithError(ex);
+            emitter.complete();
         }
     }
 
@@ -439,7 +442,7 @@ public class ChatStreamService {
         if (finished.compareAndSet(false, true)) {
             log.warn("챗봇 스트리밍 중 오류 발생: {}", error.getMessage(), error);
             sendErrorEvent(emitter);
-            emitter.completeWithError(error);
+            emitter.complete();
             heartbeatFuture.cancel(true);
         }
     }
