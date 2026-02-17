@@ -91,7 +91,9 @@ public class SecurityConfig {
 		configuration.setAllowedOrigins(List.of(
 				"https://lh-assist.cloud",
 				"https://d1v7ka3ykr3zod.cloudfront.net",
-				"http://localhost:5173"
+				"http://localhost:5173",
+				"http://127.0.0.1:5173"
+				
 		));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
