@@ -10,7 +10,8 @@ import lombok.RequiredArgsConstructor;
 public enum RagReferenceType {
     REGULATION("법령/규정"),
     CASE("사례/감사결과"),
-    MANUAL("매뉴얼/가이드라인");
+    MANUAL("매뉴얼/가이드라인"),
+    AUDIT_MANUAL("매뉴얼/가이드라인");
 
     private final String description;
 }
