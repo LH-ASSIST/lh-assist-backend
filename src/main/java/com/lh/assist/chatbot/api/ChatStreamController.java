@@ -32,15 +32,24 @@ public class ChatStreamController {
             @RequestParam String question,
             @RequestParam(required = false) Long itemId,
             @RequestParam(required = false) Long analysisResultId,
-            @RequestParam(required = false) Long docId
+            @RequestParam(required = false) Long docId,
+            @RequestParam(required = false) Long analysisId,
+            @RequestParam(required = false) Boolean documentSelected,
+            @RequestParam(required = false) Boolean analysisSelected,
+            @RequestParam(required = false) String parsedJsonS3Key,
+            @RequestParam(required = false) Boolean useRag
     ) {
         ChatStreamRequest request = new ChatStreamRequest(
                 sessionId,
                 question,
                 itemId,
                 analysisResultId,
-                null,
-                docId
+                parsedJsonS3Key,
+                docId,
+                analysisId,
+                documentSelected,
+                analysisSelected,
+                useRag
         );
         return chatStreamService.streamChat(principal, request, authorization);
     }

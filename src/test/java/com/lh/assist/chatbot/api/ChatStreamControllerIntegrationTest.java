@@ -56,6 +56,7 @@ class ChatStreamControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("정상 요청이면 SSE 응답을 반환하고 파라미터를 전달해야 한다")
     void stream_request_delegates_to_service() throws Exception {
+        Mockito.clearInvocations(chatStreamService);
         when(chatStreamService.streamChat(isNull(), any(ChatStreamRequest.class), isNull()))
                 .thenReturn(new SseEmitter(1000L));
 
@@ -79,6 +80,42 @@ class ChatStreamControllerIntegrationTest extends IntegrationTestBase {
         org.assertj.core.api.Assertions.assertThat(captured.sessionId()).isEqualTo("session-1");
         org.assertj.core.api.Assertions.assertThat(captured.question()).isEqualTo("질문");
         org.assertj.core.api.Assertions.assertThat(captured.itemId()).isEqualTo(123L);
+        org.assertj.core.api.Assertions.assertThat(captured.analysisId()).isNull();
+        org.assertj.core.api.Assertions.assertThat(captured.documentSelected()).isNull();
+        org.assertj.core.api.Assertions.assertThat(captured.analysisSelected()).isNull();
+    }
+
+    @Test
+    @DisplayName("선택 관련 파라미터를 전달하면 요청 DTO에 매핑되어야 한다")
+    void stream_request_maps_selection_params() throws Exception {
+        Mockito.clearInvocations(chatStreamService);
+        when(chatStreamService.streamChat(isNull(), any(ChatStreamRequest.class), isNull()))
+                .thenReturn(new SseEmitter(1000L));
+
+        RequestPostProcessor clientIp = request -> {
+            request.setRemoteAddr("203.0.113.20");
+            return request;
+        };
+
+        mockMvc.perform(get("/api/v1/chat/stream")
+                        .with(clientIp)
+                        .param("sessionId", "session-1")
+                        .param("question", "질문")
+                        .param("analysisId", "99")
+                        .param("documentSelected", "true")
+                        .param("analysisSelected", "false")
+                        .param("parsedJsonS3Key", "analysis/99/parsed.json")
+                        .accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(request().asyncStarted())
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<ChatStreamRequest> requestCaptor = ArgumentCaptor.forClass(ChatStreamRequest.class);
+        verify(chatStreamService).streamChat(isNull(), requestCaptor.capture(), isNull());
+        ChatStreamRequest captured = requestCaptor.getValue();
+        org.assertj.core.api.Assertions.assertThat(captured.analysisId()).isEqualTo(99L);
+        org.assertj.core.api.Assertions.assertThat(captured.documentSelected()).isTrue();
+        org.assertj.core.api.Assertions.assertThat(captured.analysisSelected()).isFalse();
+        org.assertj.core.api.Assertions.assertThat(captured.parsedJsonS3Key()).isEqualTo("analysis/99/parsed.json");
     }
 
     @Test
