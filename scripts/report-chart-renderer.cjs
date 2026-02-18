@@ -48,6 +48,7 @@ function buildOption(kind, data) {
       series: [
         {
           type: "gauge",
+          center: ["50%", "50%"],
           startAngle: 210,
           endAngle: -30,
           min: 0,
@@ -148,8 +149,49 @@ function buildOption(kind, data) {
 
   if (kind === "priorityDistribution") {
     const rows = Array.isArray(data.rows) ? data.rows : [];
-    const values = rows.map((r) => Number(r.count || 0));
-    const maxValue = Math.max(...values, 1);
+    const categories = rows.map((r) => String(r.label || ""));
+    const counts = rows.map((r) => Number(r.count || 0));
+    const colors = rows.map((r) => COLORS[String(r.cssClass || "unknown")] || COLORS.unknown);
+    return {
+      animation: false,
+      grid: { left: 62, right: 30, top: 18, bottom: 26 },
+      xAxis: {
+        type: "value",
+        min: 0,
+        axisLabel: { color: "#475569", fontSize: 10, fontFamily: "Noto Sans KR" },
+        splitLine: { lineStyle: { color: "#e2e8f0" } },
+      },
+      yAxis: {
+        type: "category",
+        data: categories,
+        axisLabel: { color: "#334155", fontSize: 11, fontFamily: "Noto Sans KR" },
+      },
+      series: [
+        {
+          name: "리스크 건수",
+          type: "bar",
+          data: counts,
+          barWidth: 18,
+          itemStyle: {
+            borderRadius: [0, 5, 5, 0],
+            color: (params) => colors[params.dataIndex],
+          },
+          label: {
+            show: true,
+            position: "right",
+            color: "#1e293b",
+            fontSize: 10,
+            fontFamily: "Noto Sans KR",
+          },
+        },
+      ],
+    };
+  }
+
+  if (kind === "riskTypeBar") {
+    const rows = Array.isArray(data.rows) ? data.rows : [];
+    const counts = rows.map((r) => Number(r.count || 0));
+    const maxValue = Math.max(...counts, 1);
     const indicators = rows.map((r) => ({
       name: String(r.label || ""),
       max: Math.ceil(maxValue * 1.2),
@@ -157,25 +199,25 @@ function buildOption(kind, data) {
     return {
       animation: false,
       radar: {
-        center: ["50%", "54%"],
-        radius: "66%",
+        center: ["50%", "50%"],
+        radius: "74%",
         indicator: indicators,
         splitNumber: 4,
-        axisName: { color: "#334155", fontFamily: "Noto Sans KR", fontSize: 11 },
+        axisName: { color: "#334155", fontFamily: "Noto Sans KR", fontSize: 14, fontWeight: 600 },
         axisLine: { lineStyle: { color: "#cbd5e1" } },
         splitLine: { lineStyle: { color: "#dbe5f1" } },
         splitArea: { areaStyle: { color: ["#f8fbff", "#eef6ff"] } },
       },
       series: [
         {
-          name: "우선순위 분포",
+          name: "리스크 유형 분포",
           type: "radar",
           data: [
             {
-              value: values,
-              areaStyle: { color: "rgba(0, 160, 130, 0.28)" },
-              lineStyle: { color: COLORS.emerald, width: 2.5 },
-              itemStyle: { color: COLORS.navy },
+              value: counts,
+              areaStyle: { color: "rgba(30,136,229,0.24)" },
+              lineStyle: { color: "#1e88e5", width: 2 },
+              itemStyle: { color: "#1e88e5" },
             },
           ],
         },

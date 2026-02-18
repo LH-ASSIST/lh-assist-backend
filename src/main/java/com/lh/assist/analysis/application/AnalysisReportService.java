@@ -276,13 +276,12 @@ public class AnalysisReportService {
 
             int pageCount = highlightedDoc.getNumberOfPages();
             for (int i = 0; i < pageCount; i++) {
-                out.importPage(highlightedDoc.getPage(i));
-
                 int pageNumber = i + 1;
                 byte[] summaryPdf = pageSummaryPdfs.get(pageNumber);
                 if (summaryPdf == null) {
                     continue;
                 }
+                out.importPage(highlightedDoc.getPage(i));
                 PDDocument summaryDoc = PDDocument.load(summaryPdf);
                 openedSummaries.add(summaryDoc);
                 for (PDPage summaryPage : summaryDoc.getPages()) {
@@ -425,6 +424,7 @@ public class AnalysisReportService {
 
         Map<Integer, Long> pageCounts = sections.stream()
                 .filter(AnalysisSection::isViolation)
+                .filter(section -> section.getPageNumber() != null)
                 .collect(Collectors.groupingBy(AnalysisSection::getPageNumber, Collectors.counting()));
 
         int maxPageCount = pageCounts.values().stream()
@@ -641,6 +641,38 @@ public class AnalysisReportService {
                 priorityBucket.get("medium"),
                 priorityBucket.get("low")
         ));
+        typeCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .ifPresent(topType -> keyInsights.add(String.format(
+                        "가장 많이 탐지된 리스크 유형은 %s이며, 총 %d건입니다.",
+                        topType.getKey().getDescription(),
+                        topType.getValue()
+                )));
+        keyInsights.add(String.format(
+                "전체 섹션 평균 안전점수는 %d점이며, 검토 대상 페이지 %d건 중 위반이 확인된 페이지는 %d건(%d%%)입니다.",
+                averageSectionSafetyScore,
+                totalPageCount,
+                violationPageCount,
+                pageCoveragePercent
+        ));
+        List<Integer> cleanPages = sectionsByPage.entrySet().stream()
+                .filter(entry -> entry.getValue().stream().noneMatch(AnalysisSection::isViolation))
+                .map(Map.Entry::getKey)
+                .sorted()
+                .toList();
+        if (!cleanPages.isEmpty()) {
+            String cleanPageLabel = cleanPages.stream()
+                    .limit(3)
+                    .map(page -> "P" + page)
+                    .collect(Collectors.joining(", "));
+            if (cleanPages.size() > 3) {
+                cleanPageLabel = cleanPageLabel + " 외 " + (cleanPages.size() - 3) + "건";
+            }
+            keyInsights.add(String.format(
+                    "무위반 페이지는 %s로 확인되며, 우선 검토 대상에서 제외할 수 있습니다.",
+                    cleanPageLabel
+            ));
+        }
 
         Map<Long, Integer> riskItemCountBySection = riskItems.stream()
                 .collect(Collectors.groupingBy(
@@ -683,6 +715,8 @@ public class AnalysisReportService {
 
         // 4. 상세 내역 (페이지별 그룹핑)
         Map<Integer, List<RiskItemViewDto>> itemsByPage = riskItems.stream()
+                .filter(item -> item.getAnalysisSection() != null && item.getAnalysisSection().isViolation())
+                .filter(item -> item.getAnalysisSection() != null && item.getAnalysisSection().getPageNumber() != null)
                 .sorted(Comparator
                         .comparing(
                                 (AnalysisRiskItem i) -> i.getAnalysisSection().getPageNumber(),
@@ -705,7 +739,9 @@ public class AnalysisReportService {
 
         List<TopActionDto> topActions = sections.stream()
                 .sorted(sectionPriorityComparator)
+                .filter(AnalysisSection::isViolation)
                 .filter(section -> section.getPageNumber() != null)
+                .filter(section -> riskItemCountBySection.getOrDefault(section.getSectionId(), 0) > 0)
                 .limit(TOP_ACTION_LIMIT)
                 .map(section -> {
                     int sectionSafetyScore = normalizeSafetyScore(section.getRiskScore());
@@ -761,6 +797,12 @@ public class AnalysisReportService {
                         .orElseGet(() -> buildPriorityDistributionChartImage(priorityStats)),
                 "유형별 리스크 분포"
         );
+        String riskTypeChartImage = ensureChartImage(
+                reportChartRenderer
+                        .renderRiskTypeChart(typeStats)
+                        .orElseGet(() -> buildRiskTypeChartImage(typeStats)),
+                "리스크 유형별 건수"
+        );
         String deductionWaterfallChartImage = ensureChartImage(
                 reportChartRenderer
                         .renderDeductionWaterfallChart(score, deductionBreakdown)
@@ -770,6 +812,7 @@ public class AnalysisReportService {
         totalScoreChartImage = sanitizeDataUri(totalScoreChartImage);
         pageSafetyChartImage = sanitizeDataUri(pageSafetyChartImage);
         priorityDistributionChartImage = sanitizeDataUri(priorityDistributionChartImage);
+        riskTypeChartImage = sanitizeDataUri(riskTypeChartImage);
         deductionWaterfallChartImage = sanitizeDataUri(deductionWaterfallChartImage);
 
         log.info(
@@ -815,16 +858,17 @@ public class AnalysisReportService {
                 .totalScoreChartImage(totalScoreChartImage)
                 .pageSafetyChartImage(pageSafetyChartImage)
                 .priorityDistributionChartImage(priorityDistributionChartImage)
+                .riskTypeChartImage(riskTypeChartImage)
                 .pageTypeHeatmapChartImage(reportChartRenderer
                         .renderPageTypeHeatmapChart(pageTypeHeatmapRows)
-                        .orElse(null))
+                        .orElseGet(() -> buildChartUnavailableImage("페이지-유형 리스크 히트맵")))
                 .riskProfileRadarChartImage(reportChartRenderer
                         .renderRiskProfileRadarChart(riskProfileAxes)
-                        .orElse(null))
+                        .orElseGet(() -> buildChartUnavailableImage("리스크 프로파일 레이더")))
                 .deductionWaterfallChartImage(deductionWaterfallChartImage)
                 .priorityBubbleChartImage(reportChartRenderer
                         .renderPriorityBubbleChart(priorityBubblePoints)
-                        .orElse(null))
+                        .orElseGet(() -> buildChartUnavailableImage("우선순위 버블 맵")))
                 .riskProfileAxes(riskProfileAxes)
                 .deductionBreakdown(deductionBreakdown)
                 .priorityBubblePoints(priorityBubblePoints)
@@ -878,6 +922,7 @@ public class AnalysisReportService {
                 .totalScoreChartImage(fullData.totalScoreChartImage())
                 .pageSafetyChartImage(fullData.pageSafetyChartImage())
                 .priorityDistributionChartImage(fullData.priorityDistributionChartImage())
+                .riskTypeChartImage(fullData.riskTypeChartImage())
                 .pageTypeHeatmapChartImage(fullData.pageTypeHeatmapChartImage())
                 .riskProfileRadarChartImage(fullData.riskProfileRadarChartImage())
                 .deductionWaterfallChartImage(fullData.deductionWaterfallChartImage())
@@ -1408,29 +1453,60 @@ public class AnalysisReportService {
             if (priorityStats == null || priorityStats.isEmpty()) {
                 return null;
             }
-            PieChart chart = new PieChartBuilder()
-                    .width(700)
-                    .height(320)
-                    .title("조치 우선순위 분포")
-                    .build();
-            chart.getStyler().setLegendVisible(true);
-            chart.getStyler().setDonutThickness(0.5);
-            chart.getStyler().setSeriesColors(new Color[]{
-                    resolvePriorityColor("urgent"),
-                    resolvePriorityColor("high"),
-                    resolvePriorityColor("medium"),
-                    resolvePriorityColor("low")
-            });
+            List<String> xData = priorityStats.stream()
+                    .map(PriorityStatDto::label)
+                    .toList();
+            List<Integer> yData = priorityStats.stream()
+                    .map(PriorityStatDto::count)
+                    .toList();
 
-            for (PriorityStatDto stat : priorityStats) {
-                if (stat.count() <= 0) {
-                    continue;
-                }
-                chart.addSeries(stat.label(), stat.count());
-            }
+            CategoryChart chart = new CategoryChartBuilder()
+                    .width(900)
+                    .height(340)
+                    .title("우선순위별 리스크 건수")
+                    .xAxisTitle("우선순위")
+                    .yAxisTitle("건수")
+                    .build();
+            chart.getStyler().setLegendVisible(false);
+            chart.getStyler().setYAxisMin(0.0);
+            chart.getStyler().setAvailableSpaceFill(0.7);
+            chart.getStyler().setOverlapped(false);
+            chart.getStyler().setSeriesColors(new Color[]{new Color(0, 45, 86)});
+            chart.addSeries("리스크 건수", xData, yData);
             return toDataUriPng(chart);
         } catch (Exception e) {
             log.warn("Failed to render priority distribution chart image", e);
+            return null;
+        }
+    }
+
+    private String buildRiskTypeChartImage(List<RiskTypeStatDto> typeStats) {
+        try {
+            if (typeStats == null || typeStats.isEmpty()) {
+                return null;
+            }
+            List<String> xData = typeStats.stream()
+                    .map(RiskTypeStatDto::label)
+                    .toList();
+            List<Integer> yData = typeStats.stream()
+                    .map(RiskTypeStatDto::count)
+                    .toList();
+            CategoryChart chart = new CategoryChartBuilder()
+                    .width(900)
+                    .height(340)
+                    .title("리스크 유형별 건수")
+                    .xAxisTitle("리스크 유형")
+                    .yAxisTitle("건수")
+                    .build();
+            chart.getStyler().setLegendVisible(false);
+            chart.getStyler().setYAxisMin(0.0);
+            chart.getStyler().setAvailableSpaceFill(0.72);
+            chart.getStyler().setOverlapped(false);
+            chart.getStyler().setSeriesColors(new Color[]{new Color(0, 45, 86)});
+            chart.addSeries("리스크 건수", xData, yData);
+            return toDataUriPng(chart);
+        } catch (Exception e) {
+            log.warn("Failed to render risk type chart image", e);
             return null;
         }
     }
@@ -1593,6 +1669,7 @@ public class AnalysisReportService {
             String totalScoreChartImage,
             String pageSafetyChartImage,
             String priorityDistributionChartImage,
+            String riskTypeChartImage,
             String pageTypeHeatmapChartImage,
             String riskProfileRadarChartImage,
             String deductionWaterfallChartImage,

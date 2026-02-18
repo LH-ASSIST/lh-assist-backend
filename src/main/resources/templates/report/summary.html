@@ -77,10 +77,28 @@
             height: auto;
             page-break-inside: avoid;
         }
-        .chart-cover-small { max-height: 200px; }
-        .chart-cover-wide { max-height: 220px; }
-
+        .chart-cover-large { max-height: 300px; }
+        .chart-cover-focus { max-height: 330px; }
+        .chart-section .panel { margin-bottom: 10px; }
         .split-table { width: 100%; border-collapse: separate; border-spacing: 8px; table-layout: fixed; }
+        .chart-main-equal {
+            width: 98%;
+            max-width: 560px;
+            max-height: 250px;
+            margin: 8px 0 6px 0;
+            object-fit: contain;
+        }
+        .chart-main-block {
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-center { text-align: center; }
+        .chart-center .chart-image { display: inline-block; }
+        .chart-main-block .panel-title,
+        .chart-main-block .panel-sub {
+            text-align: left;
+        }
 
         .modern-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 10px; }
         .modern-table thead th {
@@ -155,6 +173,13 @@
             line-height: 1.7;
         }
         .guide-panel b { color: #0369a1; display: block; margin-bottom: 4px; }
+        .insight-list { margin: 0; padding-left: 16px; }
+        .insight-list li { margin-bottom: 4px; font-size: 11px; }
+        .small-table { font-size: 9.5px; }
+        .left-cell { text-align: left !important; }
+        .tiny-note { font-size: 9px; color: #64748b; margin-top: 4px; }
+        .page-break-before { page-break-before: always; break-before: page; }
+        .section-gap-lg { margin-bottom: 72px !important; }
     </style>
 </head>
 <body>
@@ -191,49 +216,97 @@
                 <div class="kpi-value" th:text="${data.totalPageCount}">5</div>
             </td>
             <td class="kpi-box" style="width:25%;">
-                <span class="kpi-label">최고 위험 등급</span>
-                <div class="kpi-value" style="color:#E11D48;"
-                     th:text="${data.highRiskSectionCount > 0 ? '긴급' : (data.mediumRiskSectionCount > 0 ? '높음' : (data.lowRiskSectionCount > 0 ? '중간' : '낮음'))}">긴급</div>
+                <span class="kpi-label">종합 안전 등급</span>
+                <div class="kpi-value"
+                     th:style="${data.actionPriorityCssClass == 'urgent' ? 'color:#E11D48;' : (data.actionPriorityCssClass == 'high' ? 'color:#F97316;' : (data.actionPriorityCssClass == 'medium' ? 'color:#F59E0B;' : 'color:#22C55E;'))}"
+                     th:text="${data.actionPriorityLabel}">중간</div>
             </td>
         </tr>
     </table>
 
     <div class="section-title">주요 리스크 통계</div>
-    <table class="split-table section">
-        <tr>
-            <td style="width:50%; vertical-align:top;">
-                <div class="panel">
-                    <div class="panel-title">🧭 종합 안전도 게이지</div>
-                    <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" class="chart-image chart-cover-small"/>
-                    <div class="panel-sub">문서의 현재 규정 준수 상태를 한눈에 제공합니다.</div>
-                </div>
-            </td>
-            <td style="width:50%; vertical-align:top;">
-                <div class="panel">
-                    <div class="panel-title">📉 총점 감점 요인 선버스트</div>
-                    <img th:if="${data.deductionWaterfallChartImage != null}" th:src="${data.deductionWaterfallChartImage}" alt="감점 선버스트" class="chart-image chart-cover-small"/>
-                    <div class="panel-sub">최종 점수와 유형별 감점 비중을 원형 계층 구조로 요약합니다.</div>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <div class="section chart-section section-gap-lg">
+        <div class="panel chart-main-block">
+            <div class="panel-title">🧭 종합 안전도 게이지</div>
+            <div class="chart-center">
+                <img th:if="${data.totalScoreChartImage != null}" th:src="${data.totalScoreChartImage}" alt="총 안전점수 차트" class="chart-image chart-main-equal"/>
+            </div>
+            <div class="panel-sub">문서의 현재 규정 준수 상태를 한눈에 제공합니다.</div>
+        </div>
+        <div class="panel chart-main-block">
+            <div class="panel-title">🧱 리스크 유형별 분포(방사형)</div>
+            <div class="chart-center">
+                <img th:if="${data.riskTypeChartImage != null}" th:src="${data.riskTypeChartImage}" alt="리스크 유형별 분포 방사형 차트" class="chart-image chart-main-equal"/>
+            </div>
+            <div class="panel-sub">어떤 유형의 문제가 많은지 우선순위를 정하는 기준입니다.</div>
+        </div>
+    </div>
 
     <div class="section-title">페이지 리스크 분석</div>
-    <table class="split-table section">
+    <div class="section chart-section">
+        <div class="panel">
+            <div class="panel-title">📌 페이지별 위험도 전이(영역형)</div>
+            <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" class="chart-image chart-cover-focus"/>
+        </div>
+        <div class="panel">
+            <div class="panel-title">🧩 우선순위별 리스크 건수(막대형)</div>
+            <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="우선순위 리스크 분포 막대그래프" class="chart-image chart-cover-focus"/>
+            <div class="panel-sub">조치 긴급도 기준으로 업무 배분 우선순위를 결정합니다.</div>
+        </div>
+    </div>
+
+    <div class="section-title">핵심 인사이트</div>
+    <div class="panel section" th:if="${data.keyInsights != null and !#lists.isEmpty(data.keyInsights)}">
+        <ul class="insight-list">
+            <li th:each="insight : ${data.keyInsights}" th:text="${insight}">인사이트</li>
+        </ul>
+    </div>
+
+    <div class="section-title page-break-before">리스크 유형 및 우선순위 요약</div>
+    <table class="modern-table small-table section" th:if="${data.riskTypeStats != null and !#lists.isEmpty(data.riskTypeStats)}">
+        <thead>
         <tr>
-            <td style="width:58%; vertical-align:top;">
-                <div class="panel">
-                    <div class="panel-title">📌 페이지별 위험도 전이(영역형)</div>
-                    <img th:if="${data.pageSafetyChartImage != null}" th:src="${data.pageSafetyChartImage}" alt="페이지별 위험도" class="chart-image chart-cover-wide"/>
-                </div>
-            </td>
-            <td style="width:42%; vertical-align:top;">
-                <div class="panel">
-                    <div class="panel-title">🧩 우선순위 리스크 프로파일(방사형)</div>
-                    <img th:if="${data.priorityDistributionChartImage != null}" th:src="${data.priorityDistributionChartImage}" alt="우선순위 리스크 프로파일" class="chart-image chart-cover-wide"/>
+            <th style="width:24%;">리스크 유형</th>
+            <th style="width:12%;">건수</th>
+            <th style="width:12%;">비율</th>
+            <th style="width:52%;">상대 규모</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="t : ${data.riskTypeStats}">
+            <td class="left-cell" th:text="${t.label}">누락</td>
+            <td th:text="${t.count}">0</td>
+            <td th:text="${t.percent + '%'}">0%</td>
+            <td>
+                <div class="bar-track">
+                    <div class="bar-segment" th:style="${t.widthStyle}"></div>
                 </div>
             </td>
         </tr>
+        </tbody>
+    </table>
+
+    <table class="modern-table small-table section" th:if="${data.priorityStats != null and !#lists.isEmpty(data.priorityStats)}">
+        <thead>
+        <tr>
+            <th style="width:30%;">조치 우선순위</th>
+            <th style="width:35%;">분포</th>
+            <th style="width:15%;">건수</th>
+            <th style="width:20%;">비율</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p : ${data.priorityStats}">
+            <td><span class="priority-chip" th:classappend="${p.cssClass}" th:text="${p.label}">긴급</span></td>
+            <td class="left-cell">
+                <div class="bar-track">
+                    <div class="bar-segment" th:classappend="' bar-' + ${p.cssClass}" th:style="'width:' + ${p.percent} + '%;'"></div>
+                </div>
+            </td>
+            <td th:text="${p.count}">0</td>
+            <td th:text="${p.percent + '%'}">0%</td>
+        </tr>
+        </tbody>
     </table>
 
     <div class="section-title">즉시 조치 권고 항목 (Top 5)</div>
@@ -261,6 +334,9 @@
                 <div style="color:#64748b;" th:text="${a.liabilitySourceLabel}">규정 조항</div>
             </td>
             <td><span class="priority-chip" th:classappend="${a.actionPriorityCssClass}" th:text="${a.actionPriorityLabel}">긴급</span></td>
+        </tr>
+        <tr th:if="${data.topActions == null or #lists.isEmpty(data.topActions)}">
+            <td colspan="7">즉시 조치 권고 항목이 없습니다.</td>
         </tr>
         </tbody>
     </table>

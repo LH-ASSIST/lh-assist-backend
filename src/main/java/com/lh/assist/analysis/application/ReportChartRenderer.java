@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -23,8 +25,11 @@ public class ReportChartRenderer {
 
     private static final Duration NODE_RENDER_TIMEOUT = Duration.ofSeconds(8);
     private static final String SCRIPT_PATH = "scripts/report-chart-renderer.cjs";
+    private static final Path RESVG_MODULE_MANIFEST = Path.of("node_modules", "@resvg", "resvg-js", "package.json");
 
     private final ObjectMapper objectMapper;
+    private volatile boolean nodeRendererAvailable = true;
+    private volatile boolean missingDependencyWarned = false;
 
     public Optional<String> renderTotalScoreChart(int totalScore, String actionPriorityLabel) {
         return render("totalScore", Map.of(
@@ -43,6 +48,12 @@ public class ReportChartRenderer {
         return render("priorityDistribution", Map.of(
                 "rows", priorityStats
         ), 700, 320);
+    }
+
+    public Optional<String> renderRiskTypeChart(List<?> riskTypeStats) {
+        return render("riskTypeBar", Map.of(
+                "rows", riskTypeStats
+        ), 640, 420);
     }
 
     public Optional<String> renderPageTypeHeatmapChart(List<?> pageTypeHeatmapRows) {
@@ -71,6 +82,10 @@ public class ReportChartRenderer {
     }
 
     private Optional<String> render(String kind, Map<String, Object> data, int width, int height) {
+        if (!isNodeRendererAvailable()) {
+            return Optional.empty();
+        }
+
         Process process = null;
         try {
             Map<String, Object> payload = new LinkedHashMap<>();
@@ -128,6 +143,21 @@ public class ReportChartRenderer {
             in.transferTo(out);
             return out.toString(StandardCharsets.UTF_8);
         }
+    }
+
+    private boolean isNodeRendererAvailable() {
+        if (!nodeRendererAvailable) {
+            return false;
+        }
+        if (Files.exists(RESVG_MODULE_MANIFEST)) {
+            return true;
+        }
+        nodeRendererAvailable = false;
+        if (!missingDependencyWarned) {
+            missingDependencyWarned = true;
+            log.warn("Node chart renderer disabled: missing dependency {}", RESVG_MODULE_MANIFEST);
+        }
+        return false;
     }
 
 }
