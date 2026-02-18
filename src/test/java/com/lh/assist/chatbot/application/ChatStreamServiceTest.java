@@ -43,7 +43,18 @@ class ChatStreamServiceTest {
         ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
 
         String question = "a".repeat(501);
-        ChatStreamRequest request = new ChatStreamRequest("session-1", question, null, null, null, null);
+        ChatStreamRequest request = new ChatStreamRequest(
+                "session-1",
+                question,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
 
         assertThatThrownBy(() -> service.streamChat(null, request, null))
                 .isInstanceOf(ChatbotException.class)
@@ -81,11 +92,52 @@ class ChatStreamServiceTest {
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
         ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
 
-        ChatStreamRequest request = new ChatStreamRequest(" ", "질문", null, null, null, null);
+        ChatStreamRequest request = new ChatStreamRequest(
+                " ",
+                "질문",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
 
         assertThatThrownBy(() -> service.streamChat(null, request, null))
                 .isInstanceOf(ChatbotException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    @Test
+    @DisplayName("로그인+선택 상태에서 parsedJsonS3Key가 없으면 DOCUMENT_CONTEXT_REQUIRED가 발생해야 한다")
+    void 로그인_선택_키누락() {
+        ChatStreamService service = new ChatStreamService(
+                webClient,
+                objectMapper,
+                taskScheduler,
+                analysisResultRepository
+        );
+        ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
+        ReflectionTestUtils.setField(service, "sseTimeoutMs", 1000L);
+
+        ChatStreamRequest request = new ChatStreamRequest(
+                "session-1",
+                "질문",
+                1L,
+                null,
+                null,
+                null,
+                null,
+                true,
+                false
+        );
+
+        assertThatThrownBy(() -> service.streamChat(null, request, "Bearer token"))
+                .isInstanceOf(ChatbotException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.DOCUMENT_CONTEXT_REQUIRED);
     }
 }

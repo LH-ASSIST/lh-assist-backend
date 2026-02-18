@@ -32,6 +32,8 @@ public enum ErrorCode {
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "공지사항을 찾을 수 없습니다."),
 
     RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "C004", "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
+    DOCUMENT_CONTEXT_REQUIRED(HttpStatus.BAD_REQUEST, "C005", "parsedJsonS3Key required"),
+    DOCUMENT_CONTEXT_LOAD_FAILED(HttpStatus.BAD_REQUEST, "C006", "문서 컨텍스트를 불러오지 못했습니다."),
 
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "S001", "권한이 없습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "S002", "인증 정보가 유효하지 않습니다.");

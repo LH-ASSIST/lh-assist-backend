@@ -13,8 +13,7 @@ import com.lh.assist.common.security.UserPrincipal;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.time.Duration;
-import java.util.concurrent.ScheduledFuture;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +21,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import jakarta.servlet.http.HttpServletResponse;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
@@ -43,19 +45,20 @@ public class ChatStreamService {
     private static final String EVENT_ERROR = "error";
     private static final String ERROR_STREAMING_MESSAGE = "스트리밍 중 오류가 발생했습니다.";
 
+    private record UpstreamStream(Flux<ServerSentEvent<String>> events, String streamId) {}
+
     private final WebClient chatbotWebClient;
     private final ObjectMapper objectMapper;
-    private final TaskScheduler chatStreamTaskScheduler;
     private final AnalysisResultRepository analysisResultRepository;
 
     @Value("${app.chatbot.fastapi.stream-path:/ai/generate-stream}")
     private String streamPath;
 
-    @Value("${app.chatbot.sse.timeout-ms:60000}")
+    @Value("${app.chatbot.sse.timeout-ms:600000}")
     private long sseTimeoutMs;
 
-    @Value("${app.chatbot.sse.heartbeat-ms:15000}")
-    private long heartbeatMs;
+    @Value("${app.chatbot.fastapi.connect-timeout-ms:15000}")
+    private long upstreamConnectTimeoutMs;
 
     /**
      * FastAPI에서 SSE 스트림을 받아 클라이언트로 중계하고,
@@ -70,40 +73,46 @@ public class ChatStreamService {
             @NonNull ChatStreamRequest request,
             String authorization
     ) {
-        validateStreamRequest(request);
+        boolean hasAuth = authorization != null;
+        boolean hasSelection = request.hasSelection();
+        boolean hasParsedJsonS3Key = request.hasParsedJsonS3Key();
+        log.info(
+                "chat_stream_validation auth={}, selection={}, parsedJsonS3KeyPresent={}",
+                hasAuth,
+                hasSelection,
+                hasParsedJsonS3Key
+        );
+        validateStreamRequest(request, hasAuth);
 
-        log.debug("streamChat: principalId={}, isGuest={}, sessionId={}, questionLen={}, itemId={}, analysisResultId={}, docId={}",
+        log.debug("streamChat: principalId={}, isGuest={}, sessionId={}, questionLen={}, itemId={}, analysisResultId={}, analysisId={}, docId={}",
                 principal == null ? null : principal.userId(),
                 principal != null && principal.isGuest(),
                 request.sessionId(),
                 request.question() == null ? null : request.question().length(),
                 request.itemId(),
                 request.analysisResultId(),
+                request.analysisId(),
                 request.docId());
 
-        SseEmitter emitter = new SseEmitter(sseTimeoutMs);
-        try {
-            emitter.send(SseEmitter.event().name(EVENT_PING).data("heartbeat"));
-        } catch (IOException ex) {
-            log.debug("초기 heartbeat 전송 실패: {}", ex.getMessage());
-            emitter.complete();
-            return emitter;
-        }
+        long effectiveTimeoutMs = Math.max(sseTimeoutMs, 600_000L);
+        log.info("chat_stream_timeout effectiveTimeoutMs={} (configured={})", effectiveTimeoutMs, sseTimeoutMs);
+        SseEmitter emitter = new SseEmitter(effectiveTimeoutMs);
         StringBuilder answerBuffer = new StringBuilder();
         AtomicReference<List<RagReference>> ragReferences = new AtomicReference<>(null);
         AtomicReference<Disposable> subscriptionRef = new AtomicReference<>(null);
         AtomicBoolean finished = new AtomicBoolean(false);
-        ScheduledFuture<?> heartbeatFuture = startHeartbeat(emitter, finished);
 
-        emitter.onCompletion(() -> cleanup(subscriptionRef, heartbeatFuture, false, emitter));
-        emitter.onTimeout(() -> cleanup(subscriptionRef, heartbeatFuture, true, emitter));
+        emitter.onCompletion(() -> cleanup(subscriptionRef, false, emitter));
+        emitter.onTimeout(() -> cleanup(subscriptionRef, true, emitter));
 
         try {
             ChatStreamRequest enrichedRequest = enrichRequest(principal, request);
-            Flux<ServerSentEvent<String>> stream = createStream(enrichedRequest, authorization);
+            UpstreamStream upstreamStream = createStream(enrichedRequest, authorization);
+            applySseProxyHeaders(upstreamStream.streamId());
+            Flux<ServerSentEvent<String>> stream = upstreamStream.events();
             Disposable subscription = stream.subscribe(
                     event -> handleStreamEvent(emitter, event, answerBuffer, ragReferences),
-                    error -> handleStreamError(emitter, error, finished, heartbeatFuture),
+                    error -> handleStreamError(emitter, error, finished),
                     () -> handleStreamComplete(
                             emitter,
                             principal != null ? principal.userId() : null,
@@ -120,7 +129,6 @@ public class ChatStreamService {
                 sendErrorEvent(emitter);
                 emitter.complete();
             }
-            heartbeatFuture.cancel(true);
             return emitter;
         }
 
@@ -242,7 +250,10 @@ public class ChatStreamService {
      *
      * @param request 스트림 요청 정보
      */
-    private void validateStreamRequest(@NonNull ChatStreamRequest request) {
+    private void validateStreamRequest(
+            @NonNull ChatStreamRequest request,
+            boolean hasAuth
+    ) {
         if (request == null) {
             throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -258,19 +269,33 @@ public class ChatStreamService {
         if (request.analysisResultId() != null && request.analysisResultId() <= 0) {
             throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
         }
+        if (request.analysisId() != null && request.analysisId() <= 0) {
+            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (request.docId() != null && request.docId() <= 0) {
+            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (request.itemId() != null && request.itemId() <= 0) {
+            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (hasAuth && request.hasSelection() && !request.hasParsedJsonS3Key()) {
+            throw new ChatbotException(ErrorCode.DOCUMENT_CONTEXT_REQUIRED);
+        }
     }
 
     private ChatStreamRequest enrichRequest(
             UserPrincipal principal,
             @NonNull ChatStreamRequest request
     ) {
-        log.debug("enrichRequest: principalId={}, isGuest={}, analysisResultId={}, reqDocId={}",
+        Long resolvedAnalysisId = request.resolvedAnalysisId();
+        log.debug("enrichRequest: principalId={}, isGuest={}, analysisResultId={}, analysisId={}, reqDocId={}",
                 principal == null ? null : principal.userId(),
                 principal != null && principal.isGuest(),
                 request.analysisResultId(),
+                request.analysisId(),
                 request.docId());
 
-        if (request.analysisResultId() == null) {
+        if (resolvedAnalysisId == null) {
             if (principal == null || principal.isGuest()) {
                 return withoutAnalysis(request);
             }
@@ -280,8 +305,8 @@ public class ChatStreamService {
             return withoutAnalysis(request);
         }
 
-        AnalysisResult result = analysisResultRepository.findById(request.analysisResultId())
-                .orElseThrow(() -> new ChatbotException(ErrorCode.INVALID_INPUT_VALUE));
+        AnalysisResult result = analysisResultRepository.findById(resolvedAnalysisId)
+                .orElseThrow(() -> new ChatbotException(ErrorCode.DOCUMENT_CONTEXT_LOAD_FAILED));
         log.debug("analysisResult: id={}, status={}, documentId={}, ownerId={}, parsedJsonS3Key={}",
                 result.getAnalysisId(),
                 result.getStatus(),
@@ -289,13 +314,16 @@ public class ChatStreamService {
                 result.getDocument().getUser().getUserId(),
                 result.getParsedJsonS3Key());
         if (result.getStatus() != AnalysisResultStatus.SUCCEEDED) {
-            throw new ChatbotException(ErrorCode.INVALID_INPUT_VALUE);
+            throw new ChatbotException(ErrorCode.DOCUMENT_CONTEXT_LOAD_FAILED);
         }
         log.debug("ownerCheck: principalId={}, ownerId={}",
                 principal.userId(),
                 result.getDocument().getUser().getUserId());
         if (!Objects.equals(result.getDocument().getUser().getUserId(), principal.userId())) {
             throw new ChatbotException(ErrorCode.ACCESS_DENIED);
+        }
+        if (result.getParsedJsonS3Key() == null || result.getParsedJsonS3Key().isBlank()) {
+            throw new ChatbotException(ErrorCode.DOCUMENT_CONTEXT_LOAD_FAILED);
         }
 
         return new ChatStreamRequest(
@@ -304,7 +332,11 @@ public class ChatStreamService {
                 request.itemId(),
                 request.analysisResultId(),
                 result.getParsedJsonS3Key(),
-                result.getDocument().getDocId()
+                result.getDocument().getDocId(),
+                result.getAnalysisId(),
+                request.documentSelected(),
+                request.analysisSelected(),
+                request.useRag()
         );
     }
 
@@ -315,32 +347,12 @@ public class ChatStreamService {
                 request.itemId(),
                 null,
                 null,
-                null
+                null,
+                null,
+                null,
+                null,
+                request.useRag()
         );
-    }
-
-    /**
-     * SSE 하트비트를 주기적으로 전송한다
-     *
-     * @param emitter SSE emitter
-     * @param finished 스트리밍 완료 여부
-     * @return 하트비트 스케줄러
-     */
-    private ScheduledFuture<?> startHeartbeat(
-            @NonNull SseEmitter emitter,
-            @NonNull AtomicBoolean finished
-    ) {
-        return chatStreamTaskScheduler.scheduleAtFixedRate(() -> {
-            if (finished.get()) {
-                return;
-            }
-            try {
-                emitter.send(SseEmitter.event().name(EVENT_PING).data("heartbeat"));
-            } catch (IOException ex) {
-                log.debug("heartbeat 전송 실패: {}", ex.getMessage());
-                emitter.complete();
-            }
-        }, Duration.ofMillis(heartbeatMs));
     }
 
     /**
@@ -349,7 +361,25 @@ public class ChatStreamService {
      * @param request 스트림 요청 정보
      * @return SSE 스트림
      */
-    private Flux<ServerSentEvent<String>> createStream(
+    private void applySseProxyHeaders(String upstreamStreamId) {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
+        HttpServletResponse response = attributes.getResponse();
+        if (response == null) {
+            return;
+        }
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache, no-transform");
+        response.setHeader("X-Accel-Buffering", "no");
+        response.setHeader(HttpHeaders.CONNECTION, "keep-alive");
+        String exposedStreamId = (upstreamStreamId == null || upstreamStreamId.isBlank())
+                ? UUID.randomUUID().toString()
+                : upstreamStreamId;
+        response.setHeader("X-Stream-Id", exposedStreamId);
+    }
+
+    private UpstreamStream createStream(
             @NonNull ChatStreamRequest request,
             String authorization
     ) {
@@ -361,7 +391,7 @@ public class ChatStreamService {
         if (authorization != null && !authorization.isBlank()) {
             spec = spec.header("Authorization", authorization);
         }
-        return spec.bodyValue(request)
+        Flux<ServerSentEvent<String>> body = spec.bodyValue(request)
                 .retrieve()
                 .bodyToFlux(new ParameterizedTypeReference<ServerSentEvent<String>>() {})
                 .doOnNext(event -> log.debug(
@@ -369,6 +399,7 @@ public class ChatStreamService {
                         event.event(),
                         event.data() == null ? null : event.data().length()
                 ));
+        return new UpstreamStream(body, null);
     }
 
     /**
@@ -431,19 +462,16 @@ public class ChatStreamService {
      * @param emitter SSE emitter
      * @param error 오류
      * @param finished 스트리밍 완료 여부
-     * @param heartbeatFuture 하트비트
      */
     private void handleStreamError(
             @NonNull SseEmitter emitter,
             @NonNull Throwable error,
-            @NonNull AtomicBoolean finished,
-            @NonNull ScheduledFuture<?> heartbeatFuture
+            @NonNull AtomicBoolean finished
     ) {
         if (finished.compareAndSet(false, true)) {
             log.warn("챗봇 스트리밍 중 오류 발생: {}", error.getMessage(), error);
             sendErrorEvent(emitter);
             emitter.complete();
-            heartbeatFuture.cancel(true);
         }
     }
 
@@ -472,16 +500,14 @@ public class ChatStreamService {
     }
 
     /**
-     * 구독과 하트비트 스케줄러를 정리한다
+     * 구독을 정리한다
      *
      * @param subscriptionRef 스트림 구독 참조
-     * @param heartbeatFuture 하트비트
      * @param completeEmitter emitter 완료 여부
      * @param emitter SSE emitter
      */
     private void cleanup(
             @NonNull AtomicReference<Disposable> subscriptionRef,
-            @NonNull ScheduledFuture<?> heartbeatFuture,
             boolean completeEmitter,
             @NonNull SseEmitter emitter
     ) {
@@ -489,7 +515,6 @@ public class ChatStreamService {
         if (subscription != null) {
             subscription.dispose();
         }
-        heartbeatFuture.cancel(true);
         if (completeEmitter) {
             emitter.complete();
         }
