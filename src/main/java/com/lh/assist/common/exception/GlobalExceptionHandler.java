@@ -22,7 +22,7 @@ public class GlobalExceptionHandler {
         log.error("비즈니스 예외 발생: {}", e.getErrorCode().getMessage());
         ErrorCode errorCode = e.getErrorCode();
         return new ResponseEntity<>(
-                ApiResponse.error(errorCode.getMessage(), errorCode.getStatus().value()),
+                ApiResponse.error(errorCode),
                 errorCode.getStatus()
         );
     }
@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
         log.error("시스템 예외 발생: {}", e.getErrorCode().getMessage(), e);
         ErrorCode errorCode = e.getErrorCode();
         return new ResponseEntity<>(
-                ApiResponse.error(errorCode.getMessage(), errorCode.getStatus().value()),
+                ApiResponse.error(errorCode),
                 errorCode.getStatus()
         );
     }
@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         log.error("입력값 검증 실패: {}", e.getMessage());
         return new ResponseEntity<>(
-                ApiResponse.error("입력 데이터가 형식에 맞지 않습니다.", ErrorCode.INVALID_INPUT_VALUE.getStatus().value()),
+                ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE),
                 ErrorCode.INVALID_INPUT_VALUE.getStatus()
         );
     }
@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
         log.error("파일 크기 제한 초과: {}", e.getMessage());
         return new ResponseEntity<>(
-                ApiResponse.error(ErrorCode.FILE_SIZE_EXCEEDED.getMessage(), ErrorCode.FILE_SIZE_EXCEEDED.getStatus().value()),
+                ApiResponse.error(ErrorCode.FILE_SIZE_EXCEEDED),
                 ErrorCode.FILE_SIZE_EXCEEDED.getStatus()
         );
     }
@@ -71,7 +71,7 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(Exception e) {
         log.warn("접근 권한 없음: {}", e.getMessage());
         return new ResponseEntity<>(
-                ApiResponse.error(ErrorCode.ACCESS_DENIED.getMessage(), ErrorCode.ACCESS_DENIED.getStatus().value()),
+                ApiResponse.error(ErrorCode.ACCESS_DENIED),
                 ErrorCode.ACCESS_DENIED.getStatus()
         );
     }
@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
     protected ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("알 수 없는 예외 발생", e);
         return new ResponseEntity<>(
-                ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR.getMessage(), ErrorCode.INTERNAL_SERVER_ERROR.getStatus().value()),
+                ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR),
                 ErrorCode.INTERNAL_SERVER_ERROR.getStatus()
         );
     }

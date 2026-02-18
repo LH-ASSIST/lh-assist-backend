@@ -46,7 +46,7 @@ public class ChatRateLimitFilter extends OncePerRequestFilter {
             ErrorCode errorCode = ErrorCode.RATE_LIMIT_EXCEEDED;
             response.setStatus(errorCode.getStatus().value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            ApiResponse<Void> body = ApiResponse.error(errorCode.getMessage(), errorCode.getStatus().value());
+            ApiResponse<Void> body = ApiResponse.error(errorCode);
             objectMapper.writeValue(response.getWriter(), body);
             return;
         }
