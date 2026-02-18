@@ -1,3 +1,7 @@
+server:
+  compression:
+    enabled: false
+
 spring:
   application:
     name: lh-assist-backend
@@ -91,9 +95,10 @@ app:
     fastapi:
       base-url: ${CHATBOT_FASTAPI_BASE_URL:http://localhost:8000}
       stream-path: ${CHATBOT_FASTAPI_STREAM_PATH:/ai/generate-stream}
+      response-timeout-ms: ${CHATBOT_FASTAPI_RESPONSE_TIMEOUT_MS:600000}
+      connect-timeout-ms: ${CHATBOT_FASTAPI_CONNECT_TIMEOUT_MS:15000}
     sse:
-      timeout-ms: 60000
-      heartbeat-ms: 15000
+      timeout-ms: ${CHATBOT_SSE_TIMEOUT_MS:600000}
 
   admin:
     bootstrap:
