@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,14 +17,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class ReportChartRenderer {
 
-    private static final Duration NODE_RENDER_TIMEOUT = Duration.ofSeconds(8);
+    private static final Duration NODE_RENDER_TIMEOUT = Duration.ofSeconds(30);
     private static final String SCRIPT_PATH = "scripts/report-chart-renderer.cjs";
     private static final Path RESVG_MODULE_MANIFEST = Path.of("node_modules", "@resvg", "resvg-js", "package.json");
 
@@ -87,6 +93,7 @@ public class ReportChartRenderer {
         }
 
         Process process = null;
+        ExecutorService ioExecutor = null;
         try {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("kind", kind);
@@ -99,6 +106,12 @@ public class ReportChartRenderer {
                     .redirectErrorStream(false)
                     .start();
 
+            InputStream stdoutStream = process.getInputStream();
+            InputStream stderrStream = process.getErrorStream();
+            ioExecutor = Executors.newFixedThreadPool(2);
+            Future<String> stdoutFuture = ioExecutor.submit(() -> readAll(stdoutStream));
+            Future<String> stderrFuture = ioExecutor.submit(() -> readAll(stderrStream));
+
             try (OutputStream stdin = process.getOutputStream()) {
                 stdin.write(jsonPayload);
             }
@@ -109,17 +122,23 @@ public class ReportChartRenderer {
                 log.warn("Chart render timed out for kind={}", kind);
                 return Optional.empty();
             }
+
+            String stdout = getStreamOutput(stdoutFuture);
+            String stderr = getStreamOutput(stderrFuture);
+
             if (process.exitValue() != 0) {
-                String stderr = readAll(process.getErrorStream());
                 log.warn("Chart render failed for kind={}, exit={}, stderr={}", kind, process.exitValue(), stderr);
                 return Optional.empty();
             }
 
-            String out = readAll(process.getInputStream())
+            String out = stdout
                     .replaceAll("[\\r\\n\\t ]", "")
                     .trim();
             if (out.startsWith("data:image/png")) {
                 return Optional.of(out);
+            }
+            if (!stderr.isBlank()) {
+                log.debug("Chart renderer stderr for kind={}: {}", kind, stderr);
             }
             log.warn("Chart render returned unexpected format for kind={}, prefix={}",
                     kind, out.length() > 24 ? out.substring(0, 24) : out);
@@ -132,9 +151,25 @@ public class ReportChartRenderer {
             log.warn("Chart render interrupted for kind={}", kind, e);
             return Optional.empty();
         } finally {
+            if (ioExecutor != null) {
+                ioExecutor.shutdownNow();
+            }
             if (process != null && process.isAlive()) {
                 process.destroyForcibly();
             }
+        }
+    }
+
+    private String getStreamOutput(Future<String> streamFuture) throws IOException {
+        try {
+            return streamFuture.get(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while collecting renderer stream output", e);
+        } catch (ExecutionException e) {
+            throw new IOException("Failed to collect renderer stream output", e.getCause());
+        } catch (TimeoutException e) {
+            throw new IOException("Timed out while collecting renderer stream output", e);
         }
     }
 
