@@ -74,6 +74,8 @@ public class ChatStreamService {
             String authorization
     ) {
         boolean hasAuth = authorization != null;
+        validateStreamRequest(request, hasAuth);
+
         boolean hasSelection = request.hasSelection();
         boolean hasParsedJsonS3Key = request.hasParsedJsonS3Key();
         log.info(
@@ -82,7 +84,6 @@ public class ChatStreamService {
                 hasSelection,
                 hasParsedJsonS3Key
         );
-        validateStreamRequest(request, hasAuth);
 
         log.debug("streamChat: principalId={}, isGuest={}, sessionId={}, questionLen={}, itemId={}, analysisResultId={}, analysisId={}, docId={}",
                 principal == null ? null : principal.userId(),

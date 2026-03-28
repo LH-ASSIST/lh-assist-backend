@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -21,9 +20,6 @@ class ChatStreamServiceTest {
 
     @Mock
     private WebClient webClient;
-
-    @Mock
-    private TaskScheduler taskScheduler;
 
     @Mock
     private AnalysisResultRepository analysisResultRepository;
@@ -36,7 +32,6 @@ class ChatStreamServiceTest {
         ChatStreamService service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
@@ -68,7 +63,6 @@ class ChatStreamServiceTest {
         ChatStreamService service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
@@ -86,7 +80,6 @@ class ChatStreamServiceTest {
         ChatStreamService service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
@@ -117,7 +110,6 @@ class ChatStreamServiceTest {
         ChatStreamService service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
         ReflectionTestUtils.setField(service, "streamPath", "/generate-stream");
@@ -132,7 +124,8 @@ class ChatStreamServiceTest {
                 null,
                 null,
                 true,
-                false
+                false,
+                null
         );
 
         assertThatThrownBy(() -> service.streamChat(null, request, "Bearer token"))

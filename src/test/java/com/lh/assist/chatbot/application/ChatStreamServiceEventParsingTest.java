@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,9 +23,6 @@ class ChatStreamServiceEventParsingTest {
 
     @Mock
     private WebClient webClient;
-
-    @Mock
-    private TaskScheduler taskScheduler;
 
     @Mock
     private AnalysisResultRepository analysisResultRepository;
@@ -40,7 +36,6 @@ class ChatStreamServiceEventParsingTest {
         service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
     }
