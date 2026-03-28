@@ -1,72 +1,18 @@
 services:
   spring-app:
-    image: ${DOCKER_USERNAME:-local}/lh-assist-backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: lh-assist-backend
     ports:
       - "8080:8080"
+    env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://db:5432/${POSTGRES_DB}}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-${POSTGRES_USER}}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-${POSTGRES_PASSWORD}}
-      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST:-redis}
-      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT:-6379}
-      JWT_SECRET: ${JWT_SECRET:-}
-      EMAIL_ADDRESS: ${EMAIL_ADDRESS:-}
-      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
-      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY:-}
-      AWS_SECRET_KEY: ${AWS_SECRET_KEY:-}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
-      SQS_DOCUMENT_ANALYZE_QUEUE_URL: ${SQS_DOCUMENT_ANALYZE_QUEUE_URL:-}
-      CHATBOT_FASTAPI_BASE_URL: ${CHATBOT_FASTAPI_BASE_URL:?CHATBOT_FASTAPI_BASE_URL is required}
-      CHATBOT_FASTAPI_STREAM_PATH: ${CHATBOT_FASTAPI_STREAM_PATH:-/ai/generate-stream}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
-    networks:
-      - backend_network
-    restart: unless-stopped
-
-  db:
-    image: ankane/pgvector:latest
-    container_name: lh-assist-db
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ./postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - backend_network
-    restart: unless-stopped
-
-  redis:
-    image: redis:latest
-    container_name: lh-assist-redis
-    expose:
-      - "6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - backend_network
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
+      CHATBOT_FASTAPI_BASE_URL: ${CHATBOT_FASTAPI_BASE_URL}
     restart: unless-stopped
 
   prometheus:
@@ -74,8 +20,8 @@ services:
     container_name: lh-assist-prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    networks:
-      - backend_network
+    ports:
+      - "9090:9090"
     restart: unless-stopped
 
   grafana:
@@ -83,9 +29,6 @@ services:
     container_name: lh-assist-grafana
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-    networks:
-      - backend_network
+    ports:
+      - "3000:3000"
     restart: unless-stopped
-
-networks:
-  backend_network:
