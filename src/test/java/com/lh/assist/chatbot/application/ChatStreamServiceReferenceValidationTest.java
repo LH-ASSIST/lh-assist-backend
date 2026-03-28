@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,9 +23,6 @@ class ChatStreamServiceReferenceValidationTest {
 
     @Mock
     private WebClient webClient;
-
-    @Mock
-    private TaskScheduler taskScheduler;
 
     @Mock
     private AnalysisResultRepository analysisResultRepository;
@@ -39,7 +35,6 @@ class ChatStreamServiceReferenceValidationTest {
         ChatStreamService service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
         List<RagReference> references = List.of(new RagReference(null, 1L, "제목", 0.5, null, null, null));
@@ -53,7 +48,6 @@ class ChatStreamServiceReferenceValidationTest {
         ChatStreamService service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
         List<RagReference> references = List.of(new RagReference(RagReferenceType.REGULATION, null, "제목", 0.5, null, null, null));
@@ -67,7 +61,6 @@ class ChatStreamServiceReferenceValidationTest {
         ChatStreamService service = new ChatStreamService(
                 webClient,
                 objectMapper,
-                taskScheduler,
                 analysisResultRepository
         );
         List<RagReference> references = List.of(new RagReference(RagReferenceType.REGULATION, 1L, "제목", 1.5, null, null, null));
