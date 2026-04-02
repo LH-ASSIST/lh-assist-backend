@@ -1,118 +1,118 @@
-name: CD - Deploy
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    env:
-      AWS_REGION: us-east-1
-      IMAGE_NAME: lh-assist-backend
-      CONTAINER_NAME: lh-assist-backend
-      EC2_TAG_NAME: lh-assist-backend-server
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # 1. AWS 자격 증명 설정
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      # 2. 동적으로 EC2 프라이빗 IP 가져오기
-      - name: Get EC2 Private IP
-        id: get-ip
-        run: |
-          IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.EC2_TAG_NAME }}" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].PrivateIpAddress" --output text)
-          echo "EC2_PRIVATE_IP=$IP" >> $GITHUB_ENV
-
-      # 3. Docker build & push
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build & push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-
-      # 4. 프록시 경유 SSH 연결 확인
-      - name: Verify SSH via NAT proxy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.EC2_PRIVATE_IP }}
-          username: ubuntu
-          key: ${{ secrets.KEY }}
-          proxy_host: ${{ secrets.NAT_PUBLIC_IP }}
-          proxy_username: ec2-user
-          proxy_key: ${{ secrets.KEY }}
-          script: |
-            echo "SSH via NAT proxy OK"
-
-      # 5. EC2 접속 및 docker compose 배포
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-          SPRING_REDIS_HOST: ${{ secrets.SPRING_REDIS_HOST }}
-          SPRING_REDIS_PORT: ${{ secrets.SPRING_REDIS_PORT }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          SQS_DOCUMENT_ANALYZE_QUEUE_URL: ${{ secrets.SQS_DOCUMENT_ANALYZE_QUEUE_URL }}
-          CHATBOT_FASTAPI_BASE_URL: ${{ secrets.CHATBOT_FASTAPI_BASE_URL }}
-          CHATBOT_FASTAPI_STREAM_PATH: ${{ vars.CHATBOT_FASTAPI_STREAM_PATH }}
-        with:
-          host: ${{ env.EC2_PRIVATE_IP }}
-          username: ubuntu
-          key: ${{ secrets.KEY }}
-          proxy_host: ${{ secrets.NAT_PUBLIC_IP }}
-          proxy_username: ec2-user
-          proxy_key: ${{ secrets.KEY }}
-          envs: DOCKER_USERNAME,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,SPRING_REDIS_HOST,SPRING_REDIS_PORT,JWT_SECRET,EMAIL_ADDRESS,EMAIL_PASSWORD,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_S3_BUCKET,SQS_DOCUMENT_ANALYZE_QUEUE_URL,CHATBOT_FASTAPI_BASE_URL,CHATBOT_FASTAPI_STREAM_PATH
-          script: |
-            missing=0
-            for v in DOCKER_USERNAME POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD SPRING_REDIS_HOST SPRING_REDIS_PORT JWT_SECRET EMAIL_ADDRESS EMAIL_PASSWORD AWS_ACCESS_KEY AWS_SECRET_KEY AWS_S3_BUCKET SQS_DOCUMENT_ANALYZE_QUEUE_URL CHATBOT_FASTAPI_BASE_URL; do
-              if [ -z "$(printenv "$v")" ]; then
-                echo "Missing or empty env: $v"
-                missing=1
-              fi
-            done
-            if [ "$missing" -eq 1 ]; then
-              exit 1
-            fi
-
-            case "$CHATBOT_FASTAPI_BASE_URL" in
-              http://*|https://*) ;;
-              *)
-                echo "CHATBOT_FASTAPI_BASE_URL must start with http:// or https://"
-                exit 1
-                ;;
-            esac
-            cd /home/ubuntu/lh-assist-backend
-            docker rm -f lh-assist-backend || true
-            docker compose pull spring-app
-            docker compose up -d spring-app
-            docker compose ps
-            docker compose logs --tail=200 spring-app
+#name: CD - Deploy
+#on:
+#  push:
+#    branches: [ "main" ]
+#  workflow_dispatch:
+#
+#jobs:
+#  build-and-deploy:
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: read
+#    env:
+#      AWS_REGION: us-east-1
+#      IMAGE_NAME: lh-assist-backend
+#      CONTAINER_NAME: lh-assist-backend
+#      EC2_TAG_NAME: lh-assist-backend-server
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#
+#      # 1. AWS 자격 증명 설정
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ env.AWS_REGION }}
+#
+#      # 2. 동적으로 EC2 프라이빗 IP 가져오기
+#      - name: Get EC2 Private IP
+#        id: get-ip
+#        run: |
+#          IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ env.EC2_TAG_NAME }}" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].PrivateIpAddress" --output text)
+#          echo "EC2_PRIVATE_IP=$IP" >> $GITHUB_ENV
+#
+#      # 3. Docker build & push
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+#      - name: Login to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_PASSWORD }}
+#      - name: Build & push image
+#        uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          push: true
+#          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+#
+#      # 4. 프록시 경유 SSH 연결 확인
+#      - name: Verify SSH via NAT proxy
+#        uses: appleboy/ssh-action@v1.0.3
+#        with:
+#          host: ${{ env.EC2_PRIVATE_IP }}
+#          username: ubuntu
+#          key: ${{ secrets.KEY }}
+#          proxy_host: ${{ secrets.NAT_PUBLIC_IP }}
+#          proxy_username: ec2-user
+#          proxy_key: ${{ secrets.KEY }}
+#          script: |
+#            echo "SSH via NAT proxy OK"
+#
+#      # 5. EC2 접속 및 docker compose 배포
+#      - name: Deploy to EC2
+#        uses: appleboy/ssh-action@v1.0.3
+#        env:
+#          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+#          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+#          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+#          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+#          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+#          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+#          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+#          SPRING_REDIS_HOST: ${{ secrets.SPRING_REDIS_HOST }}
+#          SPRING_REDIS_PORT: ${{ secrets.SPRING_REDIS_PORT }}
+#          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+#          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+#          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+#          AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+#          AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY }}
+#          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+#          SQS_DOCUMENT_ANALYZE_QUEUE_URL: ${{ secrets.SQS_DOCUMENT_ANALYZE_QUEUE_URL }}
+#          CHATBOT_FASTAPI_BASE_URL: ${{ secrets.CHATBOT_FASTAPI_BASE_URL }}
+#          CHATBOT_FASTAPI_STREAM_PATH: ${{ vars.CHATBOT_FASTAPI_STREAM_PATH }}
+#        with:
+#          host: ${{ env.EC2_PRIVATE_IP }}
+#          username: ubuntu
+#          key: ${{ secrets.KEY }}
+#          proxy_host: ${{ secrets.NAT_PUBLIC_IP }}
+#          proxy_username: ec2-user
+#          proxy_key: ${{ secrets.KEY }}
+#          envs: DOCKER_USERNAME,POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,SPRING_REDIS_HOST,SPRING_REDIS_PORT,JWT_SECRET,EMAIL_ADDRESS,EMAIL_PASSWORD,AWS_ACCESS_KEY,AWS_SECRET_KEY,AWS_S3_BUCKET,SQS_DOCUMENT_ANALYZE_QUEUE_URL,CHATBOT_FASTAPI_BASE_URL,CHATBOT_FASTAPI_STREAM_PATH
+#          script: |
+#            missing=0
+#            for v in DOCKER_USERNAME POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD SPRING_REDIS_HOST SPRING_REDIS_PORT JWT_SECRET EMAIL_ADDRESS EMAIL_PASSWORD AWS_ACCESS_KEY AWS_SECRET_KEY AWS_S3_BUCKET SQS_DOCUMENT_ANALYZE_QUEUE_URL CHATBOT_FASTAPI_BASE_URL; do
+#              if [ -z "$(printenv "$v")" ]; then
+#                echo "Missing or empty env: $v"
+#                missing=1
+#              fi
+#            done
+#            if [ "$missing" -eq 1 ]; then
+#              exit 1
+#            fi
+#
+#            case "$CHATBOT_FASTAPI_BASE_URL" in
+#              http://*|https://*) ;;
+#              *)
+#                echo "CHATBOT_FASTAPI_BASE_URL must start with http:// or https://"
+#                exit 1
+#                ;;
+#            esac
+#            cd /home/ubuntu/lh-assist-backend
+#            docker rm -f lh-assist-backend || true
+#            docker compose pull spring-app
+#            docker compose up -d spring-app
+#            docker compose ps
+#            docker compose logs --tail=200 spring-app
