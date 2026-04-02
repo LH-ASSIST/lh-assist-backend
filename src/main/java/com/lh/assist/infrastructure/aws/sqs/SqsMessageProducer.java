@@ -42,6 +42,14 @@ public class SqsMessageProducer {
 			Long docId,
 			String s3Key
 	) {
+		// 1. [CHAOS TEST] 10%의 확률로 SQS 전송 시도조차 못 하고 예외 발생
+		// afterCommit 단계에서 터지므로 DB 커밋을 되돌릴 수 없음
+		if (Math.random() < 0.1) {
+			log.error("[CHAOS] 인위적 네트워크 장애 발생! SQS 발행 실패 - jobId: {}", jobId);
+			writeAuditLog(jobId, userId, "Simulated Network Timeout");
+			throw new SystemException(ErrorCode.INTERNAL_SERVER_ERROR);
+		}
+
 		String payload = toJson(jobId, userId, docId, s3Key);
 		int attempt = 0;
 		while (true) {
