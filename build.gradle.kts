@@ -42,6 +42,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	// 지표 데이터를 프로메테우스 포맷으로 변환
 	implementation("io.micrometer:micrometer-registry-prometheus")
+	implementation("com.github.loki4j:loki-logback-appender:1.6.0")
 	//swagger
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 	//보고서 문서 생성
@@ -53,7 +54,6 @@ dependencies {
 	implementation("org.apache.xmlgraphics:batik-svggen:1.17")
 	implementation("org.apache.xmlgraphics:batik-dom:1.17")
 	implementation("org.knowm.xchart:xchart:3.8.8")
-	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	// AWS S3 연동
 	implementation ("io.awspring.cloud:spring-cloud-starter-aws:2.4.4")
 	implementation("com.amazonaws:aws-java-sdk-sqs:1.12.710")
