@@ -24,8 +24,7 @@ spring:
       initialize-schema: never
 
   flyway:
-    enabled: true
-    baseline-on-migrate: true
+    enabled: false
 
 app:
   cors:
