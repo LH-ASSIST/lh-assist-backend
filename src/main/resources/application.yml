@@ -2,6 +2,18 @@ server:
   compression:
     enabled: false
 
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+      max-queue-capacity: 2147483647
+    max-connections: 8192
+    accept-count: 100
+    connection-timeout: 60000
+    keep-alive-timeout: 30000
+    max-http-header-size: 8192
+    max-keep-alive-requests: 100
+
 spring:
   application:
     name: lh-assist-backend
