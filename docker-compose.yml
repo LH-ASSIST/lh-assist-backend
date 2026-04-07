@@ -14,21 +14,3 @@ services:
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
       CHATBOT_FASTAPI_BASE_URL: ${CHATBOT_FASTAPI_BASE_URL}
     restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: lh-assist-prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: lh-assist-grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
