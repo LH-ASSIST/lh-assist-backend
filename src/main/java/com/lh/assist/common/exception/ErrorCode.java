@@ -12,6 +12,7 @@ public enum ErrorCode {
     AI_ANALYSIS_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "A001", "AI 분석 서버와 통신에 실패했습니다."),
     ANALYSIS_NOT_FOUND(HttpStatus.NOT_FOUND, "A003", "분석 결과를 찾을 수 없습니다."),
     DOCUMENT_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "A002", "지원하지 않는 문서 형식입니다."),
+    ANALYSIS_EVIDENCE_SOURCE_NOT_FOUND(HttpStatus.BAD_REQUEST, "A004", "AI가 인용한 근거 조항을 찾을 수 없습니다."),
 	S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I001", "S3 업로드에 실패했습니다."),
 	S3_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I002", "S3 삭제에 실패했습니다."),
 	S3_DOWNLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "I003", "S3 다운로드에 실패했습니다."),

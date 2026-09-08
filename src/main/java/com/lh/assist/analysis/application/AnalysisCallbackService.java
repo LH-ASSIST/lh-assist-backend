@@ -22,8 +22,15 @@ import com.lh.assist.audit.domain.enums.AuditActionType;
 import com.lh.assist.audit.domain.enums.AuditTargetType;
 import com.lh.assist.common.exception.AnalysisException;
 import com.lh.assist.common.exception.ErrorCode;
+import com.lh.assist.analysis.domain.enums.AnalysisEvidenceSourceType;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.enums.AnalysisStatus;
+import com.lh.assist.reg.domain.entity.AuditItem;
+import com.lh.assist.reg.domain.entity.AuditManualItem;
+import com.lh.assist.reg.domain.entity.RegItem;
+import com.lh.assist.reg.domain.repository.AuditItemRepository;
+import com.lh.assist.reg.domain.repository.AuditManualItemRepository;
+import com.lh.assist.reg.domain.repository.RegItemRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,6 +44,9 @@ public class AnalysisCallbackService {
 	private final AnalysisSectionRepository analysisSectionRepository;
 	private final AnalysisRiskItemRepository analysisRiskItemRepository;
 	private final AnalysisEvidenceRepository analysisEvidenceRepository;
+	private final RegItemRepository regItemRepository;
+	private final AuditManualItemRepository auditManualItemRepository;
+	private final AuditItemRepository auditItemRepository;
 	private final AuditLogService auditLogService;
 	private final ObjectMapper objectMapper;
 
@@ -142,15 +152,63 @@ public class AnalysisCallbackService {
                 }
 
                 for (AnalysisEvidencePayload evidencePayload : evidences) {
-                    analysisEvidenceRepository.save(AnalysisEvidence.builder()
+                    AnalysisEvidence.AnalysisEvidenceBuilder builder = AnalysisEvidence.builder()
                             .analysisSection(section)
                             .analysisRiskItem(riskItem)
                             .sourceType(evidencePayload.getSourceType())
                             .sourceId(evidencePayload.getSourceId())
-                            .quote(evidencePayload.getQuote())
-                            .build());
+                            .quote(evidencePayload.getQuote());
+
+                    resolveEvidenceSource(evidencePayload, builder);
+
+                    analysisEvidenceRepository.save(builder.build());
                 }
             }
+        }
+    }
+
+    /**
+     * AI가 인용한 근거의 source_id를 실제 조항 엔티티로 검증/해석한다
+     *
+     * AI가 존재하지 않는 조항 id를 근거로 들면(할루시네이션) 저장 시점에 걸러낸다
+     * REG_ITEM 근거는 판정 시점의 규정 버전/발효일을 스냅샷으로 함께 남긴다
+     *
+     * @param payload AI 콜백으로 전달된 근거 페이로드
+     * @param builder 채워 넣을 AnalysisEvidence 빌더
+     */
+    private void resolveEvidenceSource(
+            AnalysisEvidencePayload payload,
+            AnalysisEvidence.AnalysisEvidenceBuilder builder
+    ) {
+        AnalysisEvidenceSourceType sourceType = payload.getSourceType();
+        Long sourceId = parseSourceId(payload.getSourceId());
+
+        switch (sourceType) {
+            case REG_ITEM -> {
+                RegItem regItem = regItemRepository.findById(sourceId)
+                        .orElseThrow(() -> new AnalysisException(ErrorCode.ANALYSIS_EVIDENCE_SOURCE_NOT_FOUND));
+                builder.regItem(regItem)
+                        .regVersionSnapshot(regItem.getRegulation().getVersion())
+                        .regEffectiveDateSnapshot(regItem.getRegulation().getEffectiveDate());
+            }
+            case AUDIT_MANUAL_ITEM -> {
+                AuditManualItem auditManualItem = auditManualItemRepository.findById(sourceId)
+                        .orElseThrow(() -> new AnalysisException(ErrorCode.ANALYSIS_EVIDENCE_SOURCE_NOT_FOUND));
+                builder.auditManualItem(auditManualItem);
+            }
+            case AUDIT_ITEM -> {
+                AuditItem auditItem = auditItemRepository.findById(sourceId)
+                        .orElseThrow(() -> new AnalysisException(ErrorCode.ANALYSIS_EVIDENCE_SOURCE_NOT_FOUND));
+                builder.auditItem(auditItem);
+            }
+        }
+    }
+
+    private Long parseSourceId(String sourceId) {
+        try {
+            return Long.parseLong(sourceId);
+        } catch (NumberFormatException | NullPointerException ex) {
+            throw new AnalysisException(ErrorCode.ANALYSIS_EVIDENCE_SOURCE_NOT_FOUND);
         }
     }
 

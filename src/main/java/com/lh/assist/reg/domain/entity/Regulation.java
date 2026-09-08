@@ -20,10 +20,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.Check;
 
 @Getter
 @Entity
 @Table(name = "regulations")
+@Check(name = "chk_regulations_confirmed_before_effective",
+		constraints = "confirmed_date IS NULL OR confirmed_date <= effective_date")
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -46,6 +49,15 @@ public class Regulation extends BaseTimeEntity {
 
 	@Column(name = "expiry_date")
 	private LocalDate expiryDate;
+
+	/**
+	 * 확정일(공포/의결일)
+	 *
+	 * 기록용 메타데이터일 뿐 유효성 판정 쿼리의 조건에는 쓰지 않는다.
+	 * 실제 검색 대상 포함 여부는 항상 {@link #effectiveDate}(시행일)로만 판단한다
+	 */
+	@Column(name = "confirmed_date")
+	private LocalDate confirmedDate;
 
 	@Column(name = "is_active", nullable = false)
 	private boolean active;

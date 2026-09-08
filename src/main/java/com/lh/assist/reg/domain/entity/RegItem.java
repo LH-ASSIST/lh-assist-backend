@@ -21,7 +21,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,6 +70,7 @@ public class RegItem extends BaseTimeEntity {
 	private String embeddingModel;
 
 	@Convert(converter = VectorStringConverter.class)
+	@JdbcTypeCode(SqlTypes.OTHER)
 	@Column(name = "vector_index", columnDefinition = "vector(1536)")
 	private float[] embedding;
 
@@ -81,6 +85,23 @@ public class RegItem extends BaseTimeEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "reg_id", nullable = false)
 	private Regulation regulation;
+
+	/**
+	 * 이 조문만 별도로 개정된 경우의 발효일
+	 *
+	 * null이면 소속 규정({@link Regulation#getEffectiveDate()})과 같은 시점에 발효된
+	 * 것으로 간주한다. 조문 대부분은 규정 전체와 함께 발효되므로 기본값은 null이다
+	 */
+	@Column(name = "effective_date")
+	private LocalDate effectiveDate;
+
+	/**
+	 * 이 조문만 별도로 만료/개정된 경우의 만료일
+	 *
+	 * null이면 소속 규정({@link Regulation#getExpiryDate()})을 그대로 물려받는다
+	 */
+	@Column(name = "expiry_date")
+	private LocalDate expiryDate;
 
 	@Override
 	public boolean equals(Object o) {

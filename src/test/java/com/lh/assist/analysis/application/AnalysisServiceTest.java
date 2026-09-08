@@ -17,11 +17,16 @@ import com.lh.assist.analysis.domain.repository.AnalysisJobRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisResultRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisSectionRepository;
 import com.lh.assist.analysis.domain.repository.AnalysisRiskItemRepository;
+import com.lh.assist.analysis.domain.entity.AnalysisJob;
+import com.lh.assist.analysis.domain.enums.AnalysisJobStatus;
+import com.lh.assist.audit.application.AuditLogService;
 import com.lh.assist.common.exception.BusinessException;
 import com.lh.assist.common.exception.ErrorCode;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.repository.DocumentRepository;
 import com.lh.assist.infrastructure.aws.sqs.SqsMessageProducer;
+import com.lh.assist.reg.domain.repository.AuditManualItemRepository;
+import com.lh.assist.reg.domain.repository.RegItemRepository;
 import com.lh.assist.support.ReflectionTestUtils;
 import com.lh.assist.support.TestDataFactory;
 import com.lh.assist.user.domain.entity.User;
@@ -55,10 +60,19 @@ class AnalysisServiceTest {
     private DocumentRepository documentRepository;
 
     @Mock
+    private RegItemRepository regItemRepository;
+
+    @Mock
+    private AuditManualItemRepository auditManualItemRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
     private SqsMessageProducer sqsMessageProducer;
+
+    @Mock
+    private AuditLogService auditLogService;
 
     @InjectMocks
     private AnalysisService analysisService;
@@ -354,7 +368,66 @@ class AnalysisServiceTest {
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
                 org.mockito.ArgumentMatchers.anyLong(),
-                org.mockito.ArgumentMatchers.anyString()
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(LocalDate.class),
+                org.mockito.ArgumentMatchers.anyList(),
+                org.mockito.ArgumentMatchers.anyList()
+        );
+    }
+
+    @Test
+    @DisplayName("정상 요청이면 기준일 기준 유효 조문/매뉴얼 ID를 계산해 SQS로 전달해야 한다")
+    void 정상_요청시_유효조문ID_계산해_SQS전달() {
+        User user = TestDataFactory.user("owner@lh.com");
+        ReflectionTestUtils.setField(user, "userId", 1L);
+        Document document = Document.builder()
+                .title("문서")
+                .s3Key("documents/10/key.pdf")
+                .baseDate(LocalDate.of(2023, 1, 1))
+                .user(user)
+                .build();
+        ReflectionTestUtils.setField(document, "docId", 10L);
+
+        when(userRepository.findByEmail("owner@lh.com")).thenReturn(Optional.of(user));
+        when(documentRepository.findById(10L)).thenReturn(Optional.of(document));
+
+        AnalysisResult savedResult = AnalysisResult.builder()
+                .document(document)
+                .baseDate(LocalDate.of(2023, 5, 1))
+                .status(AnalysisResultStatus.REQUESTED)
+                .build();
+        ReflectionTestUtils.setField(savedResult, "analysisId", 500L);
+        when(analysisResultRepository.save(org.mockito.ArgumentMatchers.any())).thenReturn(savedResult);
+
+        AnalysisJob savedJob = AnalysisJob.builder()
+                .analysisResult(savedResult)
+                .document(document)
+                .baseDate(LocalDate.of(2023, 5, 1))
+                .status(AnalysisJobStatus.REQUESTED)
+                .retryCount(0)
+                .requestedBy(user)
+                .build();
+        ReflectionTestUtils.setField(savedJob, "jobId", 900L);
+        when(analysisJobRepository.save(org.mockito.ArgumentMatchers.any())).thenReturn(savedJob);
+
+        when(regItemRepository.findValidItemIdsAsOf(LocalDate.of(2023, 5, 1))).thenReturn(List.of(1L, 2L));
+        when(auditManualItemRepository.findValidManualItemIdsAsOf(LocalDate.of(2023, 5, 1))).thenReturn(List.of(9L));
+
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        try {
+            analysisService.requestAnalysisByEmail(10L, "owner@lh.com", LocalDate.of(2023, 5, 1));
+
+            org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        verify(sqsMessageProducer).sendAnalysisRequested(
+                900L, 1L, 10L, "documents/10/key.pdf",
+                LocalDate.of(2023, 5, 1),
+                List.of(1L, 2L),
+                List.of(9L)
         );
     }
 

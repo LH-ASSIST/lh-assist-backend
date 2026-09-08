@@ -25,6 +25,8 @@ import com.lh.assist.infrastructure.aws.sqs.SqsMessageProducer;
 import com.lh.assist.document.domain.entity.Document;
 import com.lh.assist.document.domain.enums.AnalysisStatus;
 import com.lh.assist.document.domain.repository.DocumentRepository;
+import com.lh.assist.reg.domain.repository.AuditManualItemRepository;
+import com.lh.assist.reg.domain.repository.RegItemRepository;
 import com.lh.assist.user.domain.entity.User;
 import com.lh.assist.user.domain.repository.UserRepository;
 import java.time.LocalDate;
@@ -54,6 +56,8 @@ public class AnalysisService {
 	private final AnalysisSectionRepository analysisSectionRepository;
 	private final AnalysisRiskItemRepository analysisRiskItemRepository;
 	private final DocumentRepository documentRepository;
+	private final RegItemRepository regItemRepository;
+	private final AuditManualItemRepository auditManualItemRepository;
 	private final UserRepository userRepository;
 	private final AnalysisDashboardSummaryRepository analysisDashboardSummaryRepository;
 	private final SqsMessageProducer sqsMessageProducer;
@@ -107,6 +111,14 @@ public class AnalysisService {
 				resolvedBaseDate
 		);
 
+		// 조문 단위로 정밀하게 유효성을 판정한다: 대부분의 조문은 소속 규정과 같은
+		// 시점에 발효/만료되지만, 조문만 별도로 개정된 경우 그 조문의 날짜가 우선한다
+		List<Long> validItemIds = regItemRepository.findValidItemIdsAsOf(resolvedBaseDate);
+		// 감사매뉴얼은 법령과 달리 시점 필터링 대상이 아니었다: 폐기된 매뉴얼 조항이
+		// 최신 판정 근거로 그대로 검색될 수 있는 사각지대였다. 매뉴얼 단위 유효성으로
+		// 조항 ID를 함께 계산해 넘긴다
+		List<Long> validManualItemIds = auditManualItemRepository.findValidManualItemIdsAsOf(resolvedBaseDate);
+
 		document.updateAnalysisStatus(AnalysisStatus.ANALYZING);
 		auditLogService.log(
 				AuditActionType.ANALYSIS_REQUESTED,
@@ -123,7 +135,10 @@ public class AnalysisService {
 						analysisJob.getJobId(),
 						user.getUserId(),
 						document.getDocId(),
-						document.getS3Key()
+						document.getS3Key(),
+						resolvedBaseDate,
+						validItemIds,
+						validManualItemIds
 				);
 			}
 		});

@@ -5,6 +5,8 @@ import com.lh.assist.reg.domain.VectorStringConverter;
 import com.lh.assist.reg.domain.enums.ManualContentType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @Entity
@@ -45,6 +47,7 @@ public class AuditManualItem extends BaseTimeEntity {
     private String content;
 
     @Convert(converter = VectorStringConverter.class)
+    @JdbcTypeCode(SqlTypes.OTHER)
     @Column(name = "vector_index", columnDefinition = "vector(1536)")
     private float[] embedding;
 

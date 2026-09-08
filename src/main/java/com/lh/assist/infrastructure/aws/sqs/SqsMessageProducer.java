@@ -40,7 +40,10 @@ public class SqsMessageProducer {
 			Long jobId,
 			Long userId,
 			Long docId,
-			String s3Key
+			String s3Key,
+			java.time.LocalDate baseDate,
+			java.util.List<Long> validItemIds,
+			java.util.List<Long> validManualItemIds
 	) {
 		// 1. [CHAOS TEST] 10%의 확률로 SQS 전송 시도조차 못 하고 예외 발생
 		// afterCommit 단계에서 터지므로 DB 커밋을 되돌릴 수 없음
@@ -50,7 +53,7 @@ public class SqsMessageProducer {
 			throw new SystemException(ErrorCode.INTERNAL_SERVER_ERROR);
 		}
 
-		String payload = toJson(jobId, userId, docId, s3Key);
+		String payload = toJson(jobId, userId, docId, s3Key, baseDate, validItemIds, validManualItemIds);
 		int attempt = 0;
 		while (true) {
 			try {
@@ -73,7 +76,10 @@ public class SqsMessageProducer {
 			Long jobId,
 			Long userId,
 			Long docId,
-			String s3Key
+			String s3Key,
+			java.time.LocalDate baseDate,
+			java.util.List<Long> validItemIds,
+			java.util.List<Long> validManualItemIds
 	) {
 		try {
 			return objectMapper.writeValueAsString(Map.ofEntries(
@@ -84,7 +90,13 @@ public class SqsMessageProducer {
 					Map.entry("docId", docId),
 					Map.entry("doc_id", docId),
 					Map.entry("s3Key", s3Key),
-					Map.entry("s3_key", s3Key)
+					Map.entry("s3_key", s3Key),
+					Map.entry("baseDate", baseDate.toString()),
+					Map.entry("base_date", baseDate.toString()),
+					Map.entry("validItemIds", validItemIds),
+					Map.entry("valid_item_ids", validItemIds),
+					Map.entry("validManualItemIds", validManualItemIds),
+					Map.entry("valid_manual_item_ids", validManualItemIds)
 			));
 		} catch (JsonProcessingException ex) {
 			throw new SystemException(ErrorCode.INTERNAL_SERVER_ERROR, ex);
